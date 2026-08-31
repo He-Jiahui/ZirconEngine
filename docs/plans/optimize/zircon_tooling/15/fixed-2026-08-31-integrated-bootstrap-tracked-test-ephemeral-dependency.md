@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-08-28
 summary_slug: integrated-bootstrap-tracked-test-ephemeral-dependency
 origin_plan: docs/plans/optimize/zircon_tooling/15-mvp-build-staging-product-process-acceptance-evidence-resource-baseline-control-plane-review.md
@@ -13,6 +13,7 @@ related_code:
   - tools/tests/test_tracked_tests_do_not_depend_on_codex_sessions.py
 tests:
   - tools/tests/test_tracked_tests_do_not_depend_on_codex_sessions.py
+resolved_at: 2026-08-31
 ---
 
 # Tooling15 integrated bootstrap tracked test ephemeral dependency
@@ -41,7 +42,8 @@ cannot reproduce the test and another Session can mutate or remove its input.
 
 - Remove the tracked test that reads the Session-only bootstrap artifact.
 - Keep the ephemeral bootstrap and historical fixed record untouched.
-- Preserve the repository-wide guard against `.codex/sessions` dependencies.
+- Preserve the guard against `.codex/sessions` dependencies in Git-tracked
+  `tools/tests` Python and PowerShell files.
 - Prove the tracked test dependency audit has no violations.
 
 ## 禁止临时方案
@@ -52,11 +54,9 @@ cannot reproduce the test and another Session can mutate or remove its input.
 
 ## 修复结果与回传
 
-The non-reproducible tracked Pester test is removed while the ephemeral
-bootstrap and historical fixed record remain untouched. Session-dependency and
-personal-plan guards pass 2/2, and a direct scan finds no `.codex/sessions`
-dependency under `tools/tests`. The scoped diff gate is clean. The exact-two
-coordinator finalizer must reproduce the guards without foreign worktree
-inputs.
-
-Open state: `source_validated / failure_return_pending`.
+- 根因：A permanent tracked Pester test read a Session-only untracked bootstrap, so fresh clones and independent Sessions could not reproduce its input.
+- 架构修复：Commit 36d47fd0e removed only the non-reproducible tracked Pester test. The retained guard now enumerates Git-tracked `tools/tests` inputs in a real repository, enumerates the already-materialized inputs in a gitless validation copy, freezes that set at import, and normalizes path case and separators without matching the Session root itself.
+- 早期验证：Managed ticket `8bbeb3b99ebe41368b49a942b258581e` passed 1/1 and was accepted as evidence `f525bf29aa1c45e4b1688faff2e4fc79`; its closeout input fingerprint was `f8d775b3846e035f1e8dbaad8937f14e76f458a299b2e5b4e2286f90386de41b`.
+- 支持层回归：Ticket `43ee5408e39f46468eecd72905856a88` provided the RED proof that an immutable copy has no `.git`; ticket `26a3550070994594ae33e9e52371fb13` then failed closed at `validation_copy_attribution_stale` after the reviewed source changed, before test execution.
+- 验证：Managed ticket/run `2b993f52bd394d039361d81edc433dad` passed 5/5 from copy `0e63f99cec7041a3be396a5879c1341b`, immutable input manifest `d156c75aed71fd7c3bd92c39737fb747580e7e7dd409baeeaf35a919fe2243b4`, and source manifest `dc8ede92cf51d1f02ff4559b797fdee196aeb6eccb9ba1501ddd8b0f53c23ef6`.
+- 回传：Tooling15 tracked-test reproducibility is restored; the source-only ephemeral dependency failure is fixed and its acceptance gate may resume.
