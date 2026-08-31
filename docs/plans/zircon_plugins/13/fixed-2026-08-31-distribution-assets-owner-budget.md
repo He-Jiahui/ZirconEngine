@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-08-28
 summary_slug: distribution-assets-owner-budget
 origin_plan: docs/plans/zircon_plugins/13-standalone-plugin-build.md
@@ -16,6 +16,7 @@ tests:
   - tools/tests/test_plugin_validate_distribution_owner_boundaries.py
   - tools/tests/test_plugin_validate_distribution_test_owner_boundaries.py
   - tools/tests/test_plugin_validate_distribution_zui_asset_owner_boundaries.py
+resolved_at: 2026-08-31
 ---
 
 # Plugins13 distribution assets owner budget
@@ -56,12 +57,17 @@ empty-match diagnostics, path resolution, and containment diagnostics.
 
 ## 修复结果与回传
 
-Filesystem glob normalization, file filtering, empty-match diagnostics, and
-plugin-root containment now live in the 49-line asset-match leaf. The
-distribution-assets owner retains manifest validation and ZUI dispatch and is
-now 103 lines. The complete distribution owner suites pass 14/14, the asset,
-contract, and module behavior suites pass 31/31, all changed Python files
-compile, and the scoped diff gate is clean. The exact-four coordinator
-finalizer must reproduce both focused suites without foreign worktree inputs.
+- 根因：Filesystem match resolution had no dedicated child owner, so the
+  distribution-assets validator mixed manifest policy with path expansion and
+  containment diagnostics.
+- 架构修复：Commit `62d3728a4` moved glob normalization, file filtering,
+  empty-match diagnostics, and plugin-root containment into the focused
+  `plugin_validate_distribution_asset_matches.py` leaf. The parent retains
+  manifest validation and ZUI dispatch without raising its owner budget.
+- 验证：Managed ticket/run `2ca2135b32554babae931e431c5b4e8e`, validation copy
+  `54f3ead30246415092bac157b25315e6`, and immutable input manifest
+  `2dd6470d0560c94b0261ead5c7bc3ace433e4009d502eba72c5d82b5ef473f6b`
+  passed the focused distribution owner, behavior, and ZUI asset suites 14/14.
+- 回传：The owner-budget failure is removed from the open graph while the
+  original diagnostics and accepted asset-manifest behavior remain intact.
 
-Open state: `source_validated / failure_return_pending`.
