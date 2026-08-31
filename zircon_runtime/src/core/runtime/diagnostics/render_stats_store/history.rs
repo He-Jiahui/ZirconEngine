@@ -1,4 +1,6 @@
-use crate::core::framework::render::{FrameHistoryInvalidationReason, RenderStats};
+use crate::core::framework::render::{
+    FrameHistoryInvalidationReason, RenderHistoryDomain, RenderStats,
+};
 
 use super::{record_bool, record_count, DiagnosticStore};
 
@@ -62,6 +64,7 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
         &["render", "history", "render_size"],
     );
     record_history_copy_report(store, stats);
+    record_history_domains_report(store, stats);
     record_invalidation_reason(
         store,
         frame_index,
@@ -110,6 +113,167 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
         "render.history.invalidated.frame_inputs_changed",
         "frame_inputs_changed",
     );
+    record_invalidation_reason(
+        store,
+        frame_index,
+        history.invalidation_reason,
+        FrameHistoryInvalidationReason::CameraCut,
+        "render.history.invalidated.camera_cut",
+        "camera_cut",
+    );
+}
+
+#[derive(Clone, Copy)]
+struct HistoryDomainDiagnosticPaths {
+    domain: RenderHistoryDomain,
+    valid: &'static str,
+    generation: &'static str,
+    last_successful_frame_present: &'static str,
+    last_successful_frame: &'static str,
+    active_reset_reason_code: &'static str,
+    frame_reset_reason_code: &'static str,
+}
+
+const HISTORY_DOMAIN_DIAGNOSTIC_PATHS: [HistoryDomainDiagnosticPaths; RenderHistoryDomain::COUNT] = [
+    HistoryDomainDiagnosticPaths {
+        domain: RenderHistoryDomain::TaaSceneColor,
+        valid: "render.history.domain.taa_scene_color.valid",
+        generation: "render.history.domain.taa_scene_color.generation",
+        last_successful_frame_present:
+            "render.history.domain.taa_scene_color.last_successful_frame_present",
+        last_successful_frame: "render.history.domain.taa_scene_color.last_successful_frame",
+        active_reset_reason_code: "render.history.domain.taa_scene_color.active_reset_reason_code",
+        frame_reset_reason_code: "render.history.domain.taa_scene_color.frame_reset_reason_code",
+    },
+    HistoryDomainDiagnosticPaths {
+        domain: RenderHistoryDomain::HybridGlobalIllumination,
+        valid: "render.history.domain.hybrid_global_illumination.valid",
+        generation: "render.history.domain.hybrid_global_illumination.generation",
+        last_successful_frame_present:
+            "render.history.domain.hybrid_global_illumination.last_successful_frame_present",
+        last_successful_frame:
+            "render.history.domain.hybrid_global_illumination.last_successful_frame",
+        active_reset_reason_code:
+            "render.history.domain.hybrid_global_illumination.active_reset_reason_code",
+        frame_reset_reason_code:
+            "render.history.domain.hybrid_global_illumination.frame_reset_reason_code",
+    },
+    HistoryDomainDiagnosticPaths {
+        domain: RenderHistoryDomain::AmbientOcclusion,
+        valid: "render.history.domain.ambient_occlusion.valid",
+        generation: "render.history.domain.ambient_occlusion.generation",
+        last_successful_frame_present:
+            "render.history.domain.ambient_occlusion.last_successful_frame_present",
+        last_successful_frame: "render.history.domain.ambient_occlusion.last_successful_frame",
+        active_reset_reason_code:
+            "render.history.domain.ambient_occlusion.active_reset_reason_code",
+        frame_reset_reason_code: "render.history.domain.ambient_occlusion.frame_reset_reason_code",
+    },
+    HistoryDomainDiagnosticPaths {
+        domain: RenderHistoryDomain::ScreenSpaceReflection,
+        valid: "render.history.domain.screen_space_reflection.valid",
+        generation: "render.history.domain.screen_space_reflection.generation",
+        last_successful_frame_present:
+            "render.history.domain.screen_space_reflection.last_successful_frame_present",
+        last_successful_frame:
+            "render.history.domain.screen_space_reflection.last_successful_frame",
+        active_reset_reason_code:
+            "render.history.domain.screen_space_reflection.active_reset_reason_code",
+        frame_reset_reason_code:
+            "render.history.domain.screen_space_reflection.frame_reset_reason_code",
+    },
+    HistoryDomainDiagnosticPaths {
+        domain: RenderHistoryDomain::HzbFurthest,
+        valid: "render.history.domain.hzb_furthest.valid",
+        generation: "render.history.domain.hzb_furthest.generation",
+        last_successful_frame_present:
+            "render.history.domain.hzb_furthest.last_successful_frame_present",
+        last_successful_frame: "render.history.domain.hzb_furthest.last_successful_frame",
+        active_reset_reason_code: "render.history.domain.hzb_furthest.active_reset_reason_code",
+        frame_reset_reason_code: "render.history.domain.hzb_furthest.frame_reset_reason_code",
+    },
+    HistoryDomainDiagnosticPaths {
+        domain: RenderHistoryDomain::Exposure,
+        valid: "render.history.domain.exposure.valid",
+        generation: "render.history.domain.exposure.generation",
+        last_successful_frame_present:
+            "render.history.domain.exposure.last_successful_frame_present",
+        last_successful_frame: "render.history.domain.exposure.last_successful_frame",
+        active_reset_reason_code: "render.history.domain.exposure.active_reset_reason_code",
+        frame_reset_reason_code: "render.history.domain.exposure.frame_reset_reason_code",
+    },
+    HistoryDomainDiagnosticPaths {
+        domain: RenderHistoryDomain::VolumetricScattering,
+        valid: "render.history.domain.volumetric_scattering.valid",
+        generation: "render.history.domain.volumetric_scattering.generation",
+        last_successful_frame_present:
+            "render.history.domain.volumetric_scattering.last_successful_frame_present",
+        last_successful_frame: "render.history.domain.volumetric_scattering.last_successful_frame",
+        active_reset_reason_code:
+            "render.history.domain.volumetric_scattering.active_reset_reason_code",
+        frame_reset_reason_code:
+            "render.history.domain.volumetric_scattering.frame_reset_reason_code",
+    },
+];
+
+fn record_history_domains_report(store: &mut DiagnosticStore, stats: &RenderStats) {
+    let frame_index = stats.submitted_frames;
+    let report = stats.last_frame_history_domains_report;
+    record_bool(
+        store,
+        "render.history.domain.history_target_present",
+        frame_index,
+        report.history_target_present,
+        &["render", "history", "domain"],
+    );
+    for paths in HISTORY_DOMAIN_DIAGNOSTIC_PATHS {
+        let state = report.state(paths.domain);
+        let domain_label = paths.domain.label();
+        let tags = ["render", "history", "domain", domain_label];
+        record_bool(store, paths.valid, frame_index, state.valid, &tags);
+        record_count(
+            store,
+            paths.generation,
+            frame_index,
+            usize::try_from(state.generation).unwrap_or(usize::MAX),
+            &tags,
+        );
+        record_bool(
+            store,
+            paths.last_successful_frame_present,
+            frame_index,
+            state.last_successful_frame.is_some(),
+            &tags,
+        );
+        record_count(
+            store,
+            paths.last_successful_frame,
+            frame_index,
+            state
+                .last_successful_frame
+                .and_then(|frame| usize::try_from(frame).ok())
+                .unwrap_or_default(),
+            &tags,
+        );
+        record_count(
+            store,
+            paths.active_reset_reason_code,
+            frame_index,
+            state
+                .active_reset_reason
+                .map_or(0, |reason| reason.diagnostic_code()),
+            &tags,
+        );
+        record_count(
+            store,
+            paths.frame_reset_reason_code,
+            frame_index,
+            state
+                .frame_reset_reason
+                .map_or(0, |reason| reason.diagnostic_code()),
+            &tags,
+        );
+    }
 }
 
 fn record_history_copy_report(store: &mut DiagnosticStore, stats: &RenderStats) {

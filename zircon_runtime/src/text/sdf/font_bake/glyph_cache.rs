@@ -2,6 +2,9 @@ use std::collections::HashSet;
 
 use super::{RawBakedGlyph, SdfAtlasGlyphKey, SdfAtlasSlot, SdfFontBakeCache};
 
+#[cfg(test)]
+mod optimization_tests;
+
 const MAX_RESIDENT_BAKED_GLYPH_COUNT: usize = 4 * 1024;
 const MAX_RESIDENT_BAKED_GLYPH_BYTE_COUNT: usize = 64 * 1024 * 1024;
 
@@ -31,6 +34,7 @@ impl SdfFontBakeCache {
     }
 
     pub(super) fn insert_baked_glyph(&mut self, key: SdfAtlasGlyphKey, glyph: RawBakedGlyph) {
+        let glyph_byte_count = glyph.bitmap.len();
         self.measured_glyphs.insert(key.clone(), glyph.metrics);
         if let Some(previous) = self.glyphs.insert(key.clone(), glyph) {
             self.resident_baked_glyph_byte_count = self
@@ -39,7 +43,7 @@ impl SdfFontBakeCache {
         }
         self.resident_baked_glyph_byte_count = self
             .resident_baked_glyph_byte_count
-            .saturating_add(self.glyphs.get(&key).map_or(0, |glyph| glyph.bitmap.len()));
+            .saturating_add(glyph_byte_count);
         self.touch_cached_glyph_key(key);
     }
 
@@ -47,10 +51,7 @@ impl SdfFontBakeCache {
         if !self.baked_glyph_cache_over_budget() {
             return;
         }
-        let protected = slots
-            .iter()
-            .map(|slot| slot.key.clone())
-            .collect::<HashSet<_>>();
+        let protected = protected_glyph_keys(slots);
         while self.baked_glyph_cache_over_budget() {
             let Some(victim) = self.oldest_unprotected_baked_glyph(&protected) else {
                 break;
@@ -129,11 +130,15 @@ impl SdfFontBakeCache {
 
     fn oldest_unprotected_baked_glyph(
         &self,
-        protected: &HashSet<SdfAtlasGlyphKey>,
+        protected: &HashSet<&SdfAtlasGlyphKey>,
     ) -> Option<SdfAtlasGlyphKey> {
         self.baked_glyph_recency_order
             .iter()
-            .find(|(_, key)| !protected.contains(key))
+            .find(|(_, key)| !protected.contains(&key))
             .map(|(_, key)| key.clone())
     }
+}
+
+fn protected_glyph_keys(slots: &[SdfAtlasSlot]) -> HashSet<&SdfAtlasGlyphKey> {
+    slots.iter().map(|slot| &slot.key).collect()
 }

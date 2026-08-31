@@ -67,29 +67,21 @@ fn warning(code: impl Into<String>, message: impl Into<String>) -> UiInvalidatio
 }
 
 fn node_has_non_virtualized_scroll_child_pressure(node: &UiNodeDefinition) -> bool {
-    node.children.len() >= NON_VIRTUALIZED_SCROLL_CHILD_WARNING_THRESHOLD
-        && node_is_scrollable_box(node)
-        && !node_declares_virtualization(node)
-}
+    if node.children.len() < NON_VIRTUALIZED_SCROLL_CHILD_WARNING_THRESHOLD {
+        return false;
+    }
 
-fn node_is_scrollable_box(node: &UiNodeDefinition) -> bool {
-    node.widget_type.as_deref() == Some("ScrollableBox")
-        || node
-            .layout
-            .as_ref()
-            .and_then(|layout| layout.get("container"))
-            .and_then(Value::as_table)
-            .and_then(|container| container.get("kind"))
-            .and_then(Value::as_str)
-            == Some("ScrollableBox")
-}
-
-fn node_declares_virtualization(node: &UiNodeDefinition) -> bool {
-    node.layout
+    let container = node
+        .layout
         .as_ref()
         .and_then(|layout| layout.get("container"))
-        .and_then(Value::as_table)
-        .is_some_and(|container| container.contains_key("virtualization"))
+        .and_then(Value::as_table);
+    let is_scrollable = node.widget_type.as_deref() == Some("ScrollableBox")
+        || container
+            .and_then(|container| container.get("kind"))
+            .and_then(Value::as_str)
+            == Some("ScrollableBox");
+    is_scrollable && !container.is_some_and(|container| container.contains_key("virtualization"))
 }
 
 fn selector_is_broad(selector: &str) -> bool {
@@ -102,3 +94,7 @@ fn selector_is_broad(selector: &str) -> bool {
         })
     })
 }
+
+#[cfg(test)]
+#[path = "diagnostic/scroll_pressure_tests.rs"]
+mod scroll_pressure_tests;

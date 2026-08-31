@@ -60,13 +60,12 @@ fn status_chip_border(
         UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading => {
             palette.border_disabled
         }
+        UiPainterResolvedState::Focused | UiPainterResolvedState::DropHovered => palette.focus_ring,
         UiPainterResolvedState::Pressed
-        | UiPainterResolvedState::Focused
         | UiPainterResolvedState::Open
         | UiPainterResolvedState::Dragging
-        | UiPainterResolvedState::DropHovered
         | UiPainterResolvedState::Selected
-        | UiPainterResolvedState::Checked => palette.focus_ring,
+        | UiPainterResolvedState::Checked => palette.border,
         UiPainterResolvedState::Hovered | UiPainterResolvedState::Normal => {
             palette.flat_transparent
         }

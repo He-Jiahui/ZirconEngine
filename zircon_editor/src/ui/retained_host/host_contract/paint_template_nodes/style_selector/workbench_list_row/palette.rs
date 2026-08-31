@@ -31,6 +31,6 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workben
         text: palette.text,
         text_muted: palette.text_muted,
         text_disabled: palette.text_disabled,
-        marked_adornment: palette.focus_ring,
+        marked_adornment: palette.accent,
     }
 }

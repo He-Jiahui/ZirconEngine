@@ -16,6 +16,11 @@ fn existing_project_root_resolves_an_alias_to_the_canonical_identity() {
         })
         .unwrap();
     let expected_root = created.root.clone();
+    assert_eq!(created.identity().operation_path(), expected_root.as_path());
+    assert_eq!(
+        created.identity().display_path(),
+        ProjectPaths::display_path(&expected_root)
+    );
     drop(created);
 
     let alias = location.join("Project Alias");
@@ -30,6 +35,11 @@ fn existing_project_root_resolves_an_alias_to_the_canonical_identity() {
 
     let opened = authority.open_project(&alias).unwrap();
     assert_eq!(opened.project().paths().root(), expected_root.as_path());
+    assert_eq!(opened.identity().operation_path(), expected_root.as_path());
+    assert_eq!(
+        opened.identity().display_path(),
+        ProjectPaths::display_path(&expected_root)
+    );
     drop(opened);
 
     let resolved = ProjectPaths::resolve_existing(&alias).unwrap();

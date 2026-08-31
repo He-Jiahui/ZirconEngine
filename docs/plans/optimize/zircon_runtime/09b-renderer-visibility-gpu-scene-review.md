@@ -46,7 +46,7 @@ reference_engines:
   - dev/Fyrox/fyrox-impl/src/renderer/visibility.rs
 doc_type: review-and-refactor-plan
 review_status: review_complete
-implementation_status: pending
+implementation_status: in_progress
 source_recheck_required: true
 ---
 
@@ -65,6 +65,8 @@ Zircon 当前渲染器不是只有临时三角形路径。它已经有 `GpuScene
 Virtual Geometry 插件的体量和测试很多，但执行权威仍与名称不符。node/cluster cull pass在Rust中构造instance seed、cluster work item、最多8轮CPU hierarchy traversal、page request和traversal record，再把CPU结果创建为buffer；41行compute shader只把seed扩展成instance work item。`virtual_geometry_hardware_rasterization_pass::execute`没有开始render pass或draw，只从CPU selection收集record并创建buffer；`visbuffer64`同样从CPU selection生成entry和buffer。provider再以CPU `BTreeMap/BTreeSet`维护residency、slot、pending request并消费GPU readback。这里有真实GPU上传和少量compute，不是空模块，但“Nanite node/cluster GPU cull、hardware rasterization、VisBuffer authority”尚未成立。
 
 本轮登记7项P0、14项P1、5项P2。P0先建立persistent render scene/change journal、正确bounds与generation identity、view-owned visibility bitset、early visibility ordering、真正被产品消费的GPU preprocess/cull/indirect，以及真实Virtual Geometry traversal/raster authority；P1再收敛GPUScene arena/upload、空间层次、多视图task、command/material cache、HZB pass、residency、诊断和测试；P2才进入Nanite级persistent-thread/两阶段遮挡、software/mesh-shader raster、large-world、多GPU和ray tracing scene同步。真实100k/1M规模、GPU capture、camera cut、device loss和soak证据完成前，不能把当前“GPU Scene/GPU-driven/HZB/Virtual Geometry complete”作为工程完成或性能优于Unreal的结论。
+
+2026-08-26 P0-1 局部实现：`graphics/scene/render_scene/` 已建立独立 CPU scene owner，使用稳定代际 handle、密集 payload、swap-remove relocation、与 static-mesh eligibility 解耦的显式 revision、确定性 delta 与不可变 journal。进一步复核 extract 全链确认 camera LOD 会替换完整 model/mesh/material/primitive source，而不只是 `mesh_lod` 字段；因此新 primitive 使用 component-level identity，持有 base + 全部 LOD camera-neutral source，view 侧 O(log L) 选择，避免多视图污染 scene generation。19 个 focused tests 已编写且 scoped rustfmt/静态结构检查通过；Runtime04/extract delta producer、GPUScene journal consumer、view-family bitset、managed Cargo、规模基线和真实产品证据仍 open。详细记录见 `docs/plans/zircon_runtime/render/03/2026-08-26-persistent-render-scene-generation-architecture.md`。
 
 ## 2. 审查边界与覆盖
 
@@ -92,7 +94,7 @@ Virtual Geometry 插件的体量和测试很多，但执行权威仍与名称不
 
 ### 2.3 明确未做
 
-- 没有修改production code，没有运行Cargo、Editor、App、真实GPU、RenderDoc/PIX、WPR、GPU timestamp、camera-cut capture、device-loss、soak或规模benchmark。本篇是current-source静态审查与重构计划，不是实现验收。
+- 初始审查没有修改production code；当前 P0-1/P0-3 已有局部 production 实现，但尚未接成 persistent product authority。没有运行Cargo、Editor、App、真实GPU、RenderDoc/PIX、WPR、GPU timestamp、camera-cut capture、device-loss、soak或规模benchmark。本篇仍不是实现验收。
 - 没有在本篇逐审material compiler、shader permutation、texture/mesh streaming、lighting/shadow算法、post/temporal和runtime UI；它们进入09C以后单元。这里仅记录其与visibility/GPU Scene/command owner直接交叉的边界。
 - 没有要求第一轮就实现Unreal全部Nanite、work graph、mesh shader或multi-GPU。P0要求的是正确authority、identity、bounds、delta、view和submission闭环；高级吞吐路径在这些边界稳定后进入P2。
 
@@ -122,17 +124,23 @@ typed view key、relevance bits、history snapshot、page request、runtime prov
 
 目标由Runtime04/Render03建立唯一 `RenderSceneGeneration`：persistent dense primitive/instance/material/geometry slots、slot generation、added/changed/removed journal、packed SoA和spatial hierarchy。game/world extract只发布delta与immutable asset handle；viewport只创建view descriptor和visibility result，不再register/retain GPU Scene。stable scene generation的sort/tree/key clone/register/retain/history scan必须为0，camera-only变化不得触发camera-neutral artifact rebuild。
 
-### P0-2：空间预筛选在默认相机下失败，多视图结果又在提交前丢失身份
+### P0-2：空间预筛选不能降低全场景访问，多视图结果在提交边界退化为全流扫描
 
-`VisibilityStaticIndex`是16-unit uniform grid。主视图仅在static >=10,000时尝试prefilter，却用camera-centered保守球AABB枚举cell；默认far=200、60度FOV、16:9得到40^3=64,000 cells，超过4,096预算后返回None并全扫。每个custom/shadow view随后仍对全部candidate独立frustum；directional cascade、point face和spot输出最终被并成`shadow_view_visible: bool`/HashSet，pass不能消费每个view的独立dense set。
+`VisibilityStaticIndex`是16-unit uniform grid。主视图仅在static >=10,000时尝试prefilter，却用camera-centered保守球AABB枚举cell；默认far=200、60度FOV、16:9得到40^3=64,000 cells，超过4,096预算后返回None。即使查询成功，`cull_main_view_with_static_index`仍遍历全部`bvh_instances`并对候选`BTreeSet`逐项查询，只减少部分frustum test而不减少scene-row访问。所谓incremental update又先把全部实例重建为`BTreeMap`；`collect_batching_result`和`build_bvh_update_plan`也逐帧重建全量集合，因此稳定场景仍是O(scene log scene)。每个custom/shadow view随后继续对全候选数组分配work/result `Vec`并独立frustum，且昂贵bounds test发生在layer/relevance过滤之前。
 
-目标以BVH/octree/clustered spatial pages直接遍历frustum planes，inside node批量写bit，intersect才下探；overflow有独立有界列表。每个 `ViewId/ShadowSlot`拥有dense bitset/ranges和stats，identity保持到pass replay。disabled shadow不建view，cascade/face不做union。CPU/GPU路径必须从同一view descriptor、layer/relevance和bounds ABI派生。
+current source已纠正旧审查中的一处事实：`FrameVisibility`保留每个cascade/point face/spot的`Vec<u32>`与`VisibilityViewKey`，`ShadowAtlasSlotPass`也把该key传到产品pass，所以身份并未完全丢失。但mesh build先把所有shadow view union为`shadow_view_visible: bool`来生成一条全局shadow command stream；每个atlas slot随后重新物化`BTreeSet<EntityId>`、禁用global indirect、再扫描整条command stream过滤。问题是identity没有成为可直接消费的dense command range，而不是pass完全看不到view identity。
+
+目标由`RenderSceneGeneration`持有dense primitive SoA和只消费change journal的空间结构；view输出以scene slot为索引的bitset加compact slot/command ranges，shadow slot直接消费自己的ranges，不再构造entity set或扫描全流。策略不能机械固定为octree：UE同时保留packed `PrimitiveBounds`、per-view `PrimitiveVisibilityMap`和scene octree，且`r.Visibility.FrustumCull.UseOctree`默认关闭。Zircon应按实测成本在小场景/高可见率的dense parallel scan与大场景/低可见率/多view的hierarchy traversal间选择；hierarchy路径直接遍历frustum planes，inside node批量接受，intersect才下探，overflow有独立有界列表。两条路径必须从同一view descriptor、layer/relevance、bounds ABI和scene generation派生，结果逐slot对拍一致。
+
+2026-08-26 current-source review完成、实现未开始。优化前必须用WPR/xperf和renderer counters覆盖1/1k/10k/100k primitives，1/4/11 views，compact/sparse/large-bounds分布，0/1/1% dirty和0.1%/10%/100% visible；记录scene rows、node/leaf tests、frustum tests、set/map admissions、allocated bytes、task count、shadow command visits、CPU p50/p95和GPU pass time。当前managed产品构建仍被外部UI资产迁移阻塞，且visibility spatial-query、mesh build和shadow renderer存在其它worktree owner修改；在可复现baseline与owner边界稳定前不改索引算法，也不把HashSet替换或cell阈值调整记作P0-2完成。
 
 ### P0-3：GPU occlusion bounds发生双重变换，CPU与GPU可见性事实不一致
 
 `gpu_scene_sync.rs`把model matrix translation写为primitive `bounds_center`，把matrix最大列长写为`bounds_radius`。`hzb_occlusion_cull.wgsl`随后用current/previous instance world matrix再次变换center，并用同一matrix再次缩放radius。它也没有读取mesh local center/radius。纯平移中心可近似变成2T，uniform scale半径近似变成S²；旋转/非均匀缩放误差更复杂。此数据进入previous-frame HZB false-cull判断，属于画面正确性问题，不只是性能问题。
 
 目标由compiled mesh/model artifact发布local AABB/sphere和bounds revision；instance只持world transform。CPU frustum与GPU shader共享同一packed bounds ABI、finite/negative scale policy、skinned/morph conservative expansion和large-world origin。新增translated/scaled/rotated/nonuniform/skinned/morph fixture，逐实例对拍CPU reference、GPU readback和像素产物；修复前HZB不得作为final visibility authority。
+
+2026-08-26 局部实施状态：GPUScene producer 已硬切为 `local_bounds_center/radius`，HZB 只按 instance current/previous transform 变换一次；skin、变化 morph、CPU morph、shear、退化/非法 bounds 在缺少 conservative history 时 fail-open。CPU visibility 仍使用资源解析前的代理球，CPU/GPU 对拍、managed WGPU/Naga、像素证据与性能证据尚未完成，因此 P0-3 保持未完成。实施证据见 [`../../zircon_runtime/render/03/2026-08-26-gpu-scene-local-bounds-hzb-abi.md`](../../zircon_runtime/render/03/2026-08-26-gpu-scene-local-bounds-hzb-abi.md)。
 
 ### P0-4：GPU-driven/instancing计划未进入产品路径，indirect只是CPU命令的提交格式
 
@@ -304,7 +312,7 @@ compiled asset发布local bounds；CPU/GPU共享ABI并通过differential tests�
 
 ### M3：view family、spatial hierarchy与per-view dense result
 
-替换默认uniform-grid球查询为frustum hierarchy traversal；main/custom/cascade/face各有bitset/ranges和stats。cheap layer/relevance先行，inside node批量接受，intersect下探；TaskPool按eligible/workers预算。删除shadow union bool作为pass authority，spatial query借用generation bitset和scratch。
+替换uniform-grid球查询与全row membership scan，发布同一scene generation上的dense scan/hierarchy双策略；只有量化数据决定分界。main/custom/cascade/face各有slot-indexed bitset、compact command ranges和stats。cheap layer/relevance先行，hierarchy inside node批量接受、intersect下探；TaskPool按eligible/workers预算。删除shadow union bool对全局command admission的控制，shadow pass直接消费view-local ranges；spatial query借用generation bitset和有界scratch。
 
 ### M4：early visibility与static command/material artifact硬切
 

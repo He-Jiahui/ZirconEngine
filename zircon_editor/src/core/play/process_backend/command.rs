@@ -9,6 +9,8 @@ use crate::core::process::{
     configure_process_tree_cancellation, configure_process_tree_suspended_spawn,
 };
 
+use super::ProcessPlayBackendInstallError;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct PlayProcessCommand {
     executable: PathBuf,
@@ -71,23 +73,26 @@ impl PlayProcessCommand {
     }
 }
 
-pub(super) fn runtime_executable_next_to_current_process() -> Result<PathBuf, String> {
+pub(super) fn runtime_executable_next_to_current_process(
+) -> Result<PathBuf, ProcessPlayBackendInstallError> {
     let current = std::env::current_exe()
-        .map_err(|error| format!("failed to resolve current editor executable: {error}"))?;
+        .map_err(|source| ProcessPlayBackendInstallError::CurrentEditorExecutable { source })?;
     runtime_executable_next_to_path(&current)
 }
 
-fn runtime_executable_next_to_path(current: &Path) -> Result<PathBuf, String> {
+fn runtime_executable_next_to_path(
+    current: &Path,
+) -> Result<PathBuf, ProcessPlayBackendInstallError> {
     let directory = current
         .parent()
-        .ok_or_else(|| "current editor executable has no parent directory".to_owned())?;
-    let product_directory = ProjectPaths::resolve_path(directory).map_err(|error| {
-        format!("failed to resolve current editor installation directory: {error}")
+        .ok_or(ProcessPlayBackendInstallError::MissingEditorInstallDirectory)?;
+    let product_directory = ProjectPaths::resolve_path(directory).map_err(|source| {
+        ProcessPlayBackendInstallError::ResolveEditorInstallDirectory { source }
     })?;
     let runtime_name = format!("zircon_runtime{}", std::env::consts::EXE_SUFFIX);
     ProjectPaths::resolve_path_from(&product_directory, runtime_name)
         .map(|path| path.into_operation_path())
-        .map_err(|error| format!("failed to resolve sibling runtime executable: {error}"))
+        .map_err(|source| ProcessPlayBackendInstallError::ResolveRuntimeExecutable { source })
 }
 
 #[cfg(test)]
@@ -98,7 +103,18 @@ mod tests {
 
     use zircon_runtime::asset::project::ProjectPaths;
 
-    use super::runtime_executable_next_to_path;
+    use super::{runtime_executable_next_to_path, ProcessPlayBackendInstallError};
+
+    #[test]
+    fn runtime_executable_resolution_rejects_a_path_without_an_install_parent() {
+        let error = runtime_executable_next_to_path(Path::new(""))
+            .expect_err("an empty executable path cannot identify an installation directory");
+
+        assert!(matches!(
+            error,
+            ProcessPlayBackendInstallError::MissingEditorInstallDirectory
+        ));
+    }
 
     #[cfg(any(unix, windows))]
     #[test]

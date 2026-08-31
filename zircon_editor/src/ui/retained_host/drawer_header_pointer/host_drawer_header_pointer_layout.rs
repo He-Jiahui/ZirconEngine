@@ -1,6 +1,6 @@
 use super::host_drawer_header_pointer_surface::HostDrawerHeaderPointerSurface;
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct HostDrawerHeaderPointerLayout {
     pub surfaces: Vec<HostDrawerHeaderPointerSurface>,
 }

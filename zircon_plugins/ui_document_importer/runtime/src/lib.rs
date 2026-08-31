@@ -24,8 +24,8 @@ pub use plugin::{
 pub fn import_ui_zui_document(
     context: &AssetImportContext,
 ) -> Result<AssetImportOutcome, AssetImportError> {
-    let document = context.source_text()?;
-    let parsed = UiZuiAssetLoader::load_zui_str(&document).map_err(|source| {
+    let document = context.source_str()?;
+    let parsed = UiZuiAssetLoader::load_zui_str(document).map_err(|source| {
         AssetImportError::UiV2Document {
             context: "parse .zui ui asset",
             source: source.into(),
@@ -268,6 +268,119 @@ component = "Container"
         assert!(importers
             .select(std::path::Path::new("layout.uidoc"))
             .is_err());
+    }
+
+    #[test]
+    fn plugins07_importer_hotpath_ui_document_uses_borrowed_source_snapshot() {
+        let context = zircon_runtime::asset::AssetImportContext::new(
+            "panel.zui".into(),
+            zircon_runtime::asset::AssetUri::parse("res://ui/panel.zui").unwrap(),
+            minimal_view_zui().as_bytes().to_vec(),
+            Default::default(),
+        );
+
+        let borrowed = context.source_str().unwrap();
+        let outcome = import_ui_zui_document(&context).unwrap();
+
+        assert_eq!(borrowed.as_ptr(), context.source_bytes.as_ptr());
+        assert!(matches!(
+            outcome.root_entry().expect("root UI view entry").asset,
+            zircon_runtime::asset::ImportedAsset::UiV2View(_)
+        ));
+    }
+
+    #[test]
+    #[ignore = "release performance gate; run through the Plugins07 coordinator validator"]
+    fn plugins07_importer_hotpath_release_ui_document_borrowed_source_p95_gate() {
+        use std::hint::black_box;
+        use std::time::Instant;
+
+        const SAMPLE_PAIRS: usize = 21;
+        const SOURCE_BYTES: usize = 2_097_152;
+        const ITERATIONS: usize = 16;
+        const THRESHOLD_PERCENT: u128 = 20;
+        let context = zircon_runtime::asset::AssetImportContext::new(
+            "large.zui".into(),
+            zircon_runtime::asset::AssetUri::parse("res://ui/large.zui").unwrap(),
+            vec![b'x'; SOURCE_BYTES],
+            Default::default(),
+        );
+        let mut legacy_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        let mut optimized_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        for pair in 0..SAMPLE_PAIRS {
+            let legacy = || {
+                let started = Instant::now();
+                let mut bytes = 0_usize;
+                for _ in 0..ITERATIONS {
+                    let source = context.source_text().unwrap();
+                    bytes += black_box(source.as_str()).len();
+                }
+                black_box(bytes);
+                started.elapsed().as_nanos()
+            };
+            let optimized = || {
+                let started = Instant::now();
+                let mut bytes = 0_usize;
+                for _ in 0..ITERATIONS {
+                    let source = context.source_str().unwrap();
+                    bytes += black_box(source).len();
+                }
+                black_box(bytes);
+                started.elapsed().as_nanos()
+            };
+            if pair % 2 == 0 {
+                legacy_samples.push(legacy());
+                optimized_samples.push(optimized());
+            } else {
+                optimized_samples.push(optimized());
+                legacy_samples.push(legacy());
+            }
+        }
+
+        emit_ui_source_performance_gate(
+            &legacy_samples,
+            &optimized_samples,
+            THRESHOLD_PERCENT,
+            &format!(
+                "source_bytes={SOURCE_BYTES} iterations_per_sample={ITERATIONS} legacy_cloned_bytes_per_sample={} optimized_cloned_bytes_per_sample=0",
+                SOURCE_BYTES * ITERATIONS
+            ),
+        );
+    }
+
+    fn emit_ui_source_performance_gate(
+        legacy_samples: &[u128],
+        optimized_samples: &[u128],
+        threshold_percent: u128,
+        workload: &str,
+    ) {
+        let legacy_p95 = nearest_rank_ui_p95(legacy_samples);
+        let optimized_p95 = nearest_rank_ui_p95(optimized_samples);
+        let improvement_percent =
+            legacy_p95.saturating_sub(optimized_p95).saturating_mul(100) / legacy_p95.max(1);
+        println!(
+            "PERF_RESULT plugins07_ui_document_borrowed_source sample_pairs=21 order=alternating_legacy_first_even {workload} legacy_ns={} optimized_ns={} legacy_p95_ns={legacy_p95} optimized_p95_ns={optimized_p95} improvement_percent={improvement_percent} threshold_percent={threshold_percent}",
+            ui_samples_csv(legacy_samples),
+            ui_samples_csv(optimized_samples),
+        );
+        assert!(
+            improvement_percent >= threshold_percent,
+            "UI document borrowed source must improve P95 by at least {threshold_percent}% (legacy={legacy_p95}ns optimized={optimized_p95}ns improvement={improvement_percent}%)"
+        );
+    }
+
+    fn nearest_rank_ui_p95(samples: &[u128]) -> u128 {
+        let mut sorted = samples.to_vec();
+        sorted.sort_unstable();
+        sorted[(sorted.len() * 95).div_ceil(100).saturating_sub(1)]
+    }
+
+    fn ui_samples_csv(samples: &[u128]) -> String {
+        samples
+            .iter()
+            .map(u128::to_string)
+            .collect::<Vec<_>>()
+            .join(",")
     }
 
     fn minimal_view_zui() -> &'static str {

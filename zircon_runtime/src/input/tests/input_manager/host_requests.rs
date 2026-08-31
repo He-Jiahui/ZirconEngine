@@ -25,6 +25,7 @@ fn gamepad_rumble_requests_are_frame_local_and_drainable() {
     input.begin_frame();
 
     assert!(input.frame_snapshot().gamepad_rumble_requests.is_empty());
+    assert_eq!(input.drain_gamepad_rumble_requests(), vec![add]);
     assert!(input.drain_gamepad_rumble_requests().is_empty());
 }
 
@@ -52,5 +53,9 @@ fn cursor_host_requests_are_frame_local_and_drainable() {
     input.begin_frame();
 
     assert!(input.frame_snapshot().cursor_host_requests.is_empty());
+    assert_eq!(
+        input.drain_cursor_host_requests(),
+        vec![CursorHostRequest::set_grab_mode(CursorGrabMode::None)]
+    );
     assert!(input.drain_cursor_host_requests().is_empty());
 }

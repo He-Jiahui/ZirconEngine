@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 use zircon_runtime::asset::{VirtualGeometryAsset, VirtualGeometryClusterHeaderAsset};
 use zircon_runtime::core::framework::render::{
@@ -240,6 +240,8 @@ impl VirtualGeometryCpuReferenceFrame {
         config: VirtualGeometryCpuReferenceConfig,
     ) -> Self {
         let resident_pages = resident_pages.iter().copied().collect::<BTreeSet<_>>();
+        let mut resident_page_index = HashSet::with_capacity(resident_pages.len());
+        resident_page_index.extend(resident_pages.iter().copied());
         let page_sizes = asset
             .cluster_page_headers
             .iter()
@@ -276,7 +278,7 @@ impl VirtualGeometryCpuReferenceFrame {
                             .saturating_add(u32::try_from(cluster_index).unwrap_or(u32::MAX)),
                         cluster,
                         config,
-                        &resident_pages,
+                        &resident_page_index,
                     );
                 }
                 continue;
@@ -452,8 +454,14 @@ fn store_cluster(
     cluster_ordinal: u32,
     cluster: &VirtualGeometryClusterHeaderAsset,
     config: VirtualGeometryCpuReferenceConfig,
-    resident_pages: &BTreeSet<u32>,
+    resident_pages: &HashSet<u32>,
 ) {
+    let (loaded, selected) = cluster_load_state(
+        resident_pages,
+        cluster.page_id,
+        cluster.lod_level,
+        config.debug.forced_mip,
+    );
     let leaf = VirtualGeometryCpuReferenceLeafCluster {
         entity,
         node_id,
@@ -461,21 +469,27 @@ fn store_cluster(
         cluster_id: cluster.cluster_id,
         page_id: cluster.page_id,
         mip_level: cluster.lod_level,
-        loaded: resident_pages.contains(&cluster.page_id),
+        loaded,
         parent_cluster_id: cluster.parent_cluster_id,
         bounds_center: cluster.bounds_center,
         bounds_radius: cluster.bounds_radius,
         screen_space_error: cluster.screen_space_error,
     };
-    let selected = resident_pages.contains(&cluster.page_id)
-        && config
-            .debug
-            .forced_mip
-            .map_or(true, |forced_mip| forced_mip == cluster.lod_level);
     if selected {
         traversal.selected_clusters.push(leaf.clone());
     }
     traversal.leaf_clusters.push(leaf);
+}
+
+fn cluster_load_state(
+    resident_pages: &HashSet<u32>,
+    page_id: u32,
+    lod_level: u8,
+    forced_mip: Option<u8>,
+) -> (bool, bool) {
+    let loaded = resident_pages.contains(&page_id);
+    let selected = loaded && forced_mip.is_none_or(|forced_mip| forced_mip == lod_level);
+    (loaded, selected)
 }
 
 fn root_node_ids(
@@ -548,11 +562,10 @@ fn build_page_dependency_map(
         .into_iter()
         .map(|page_id| (page_id, (None, Vec::new())))
         .collect::<BTreeMap<_, _>>();
-    let clusters_by_id = asset
-        .cluster_headers
-        .iter()
-        .map(|cluster| (cluster.cluster_id, cluster))
-        .collect::<BTreeMap<_, _>>();
+    let mut clusters_by_id = HashMap::with_capacity(asset.cluster_headers.len());
+    for cluster in &asset.cluster_headers {
+        clusters_by_id.insert(cluster.cluster_id, cluster);
+    }
 
     for cluster in &asset.cluster_headers {
         let Some(parent_page_id) = nearest_distinct_parent_page(cluster, &clusters_by_id) else {
@@ -588,10 +601,10 @@ fn known_page_ids(asset: &VirtualGeometryAsset) -> Vec<u32> {
 
 fn nearest_distinct_parent_page(
     cluster: &VirtualGeometryClusterHeaderAsset,
-    clusters_by_id: &BTreeMap<u32, &VirtualGeometryClusterHeaderAsset>,
+    clusters_by_id: &HashMap<u32, &VirtualGeometryClusterHeaderAsset>,
 ) -> Option<u32> {
     let mut current_parent_cluster_id = cluster.parent_cluster_id;
-    let mut visited_cluster_ids = BTreeSet::new();
+    let mut visited_cluster_ids = HashSet::new();
 
     while let Some(parent_cluster_id) = current_parent_cluster_id {
         if !visited_cluster_ids.insert(parent_cluster_id) {
@@ -613,6 +626,9 @@ fn normalized_child_page_ids(child_page_ids: &[u32]) -> Vec<u32> {
     child_page_ids.dedup();
     child_page_ids
 }
+
+#[cfg(test)]
+mod performance_tests;
 
 #[cfg(test)]
 mod tests {

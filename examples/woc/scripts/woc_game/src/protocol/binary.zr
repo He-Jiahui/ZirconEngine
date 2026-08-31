@@ -58,6 +58,40 @@ pub class TickInput {
     }
 }
 
+powerOfTwo(exponent: int, required: bool): float {
+    if (!required || exponent < -1074 || exponent > 1023) {
+        throw "woc f64 exponent is invalid";
+    }
+    var value = 1.0;
+    var remaining = exponent;
+    while (remaining > 0) {
+        value = value * 2.0;
+        remaining = remaining - 1;
+    }
+    while (remaining < 0) {
+        value = value / 2.0;
+        remaining = remaining + 1;
+    }
+    return value;
+}
+
+decodeFiniteF64Bits(bits: uint): float {
+    var sign = ((bits >> 63) & <uint>1) == <uint>0 ? 1.0 : -1.0;
+    var exponent = <int>((bits >> 52) & <uint>2047);
+    var mantissa = bits & <uint>4503599627370495;
+    if (exponent == 2047) {
+        throw "woc f64 must be finite";
+    }
+    if (exponent == 0) {
+        if (mantissa == <uint>0) {
+            return sign < 0.0 ? -0.0 : 0.0;
+        }
+        return sign * <float>mantissa * powerOfTwo(-1074, true);
+    }
+    var fraction = <float>mantissa / 4503599627370496.0;
+    return sign * (1.0 + fraction) * powerOfTwo(exponent - 1023, true);
+}
+
 class ByteReader {
     pri var bytes: container.Array<uint>;
     pri var offset: int;
@@ -128,38 +162,7 @@ class ByteReader {
         if (a != 1 || b != 1 || c != 2 || d != 4 || e != 8) {
             throw "woc f64 layout is invalid";
         }
-        var bits = this.readU64(1, 1, 2, 4);
-        var sign = ((bits >> 63) & <uint>1) == <uint>0 ? 1.0 : -1.0;
-        var exponent = <int>((bits >> 52) & <uint>2047);
-        var mantissa = bits & <uint>4503599627370495;
-        if (exponent == 2047) {
-            throw "woc f64 must be finite";
-        }
-        if (exponent == 0) {
-            if (mantissa == <uint>0) {
-                return sign < 0.0 ? -0.0 : 0.0;
-            }
-            return sign * <float>mantissa * this.powerOfTwo(-1074, true);
-        }
-        var fraction = <float>mantissa / 4503599627370496.0;
-        return sign * (1.0 + fraction) * this.powerOfTwo(exponent - 1023, true);
-    }
-
-    pub powerOfTwo(exponent: int, required: bool): float {
-        if (!required || exponent < -1074 || exponent > 1023) {
-            throw "woc f64 exponent is invalid";
-        }
-        var value = 1.0;
-        var remaining = exponent;
-        while (remaining > 0) {
-            value = value * 2.0;
-            remaining = remaining - 1;
-        }
-        while (remaining < 0) {
-            value = value / 2.0;
-            remaining = remaining + 1;
-        }
-        return value;
+        return decodeFiniteF64Bits(this.readU64(1, 1, 2, 4));
     }
 
     pub readBytes(
@@ -200,6 +203,26 @@ class ByteReader {
     }
 }
 
+checkedByteAt(source: container.Array<uint>, offset: uint): uint {
+    var value = <uint>source[<int>offset];
+    if (value > <uint>255) {
+        throw "woc byte value exceeds 255";
+    }
+    return value;
+}
+
+readU64LeAtBytes(source: container.Array<uint>, offset: uint): uint {
+    var low = checkedByteAt(source, offset) +
+        checkedByteAt(source, offset + <uint>1) * <uint>256 +
+        checkedByteAt(source, offset + <uint>2) * <uint>65536 +
+        checkedByteAt(source, offset + <uint>3) * <uint>16777216;
+    var high = checkedByteAt(source, offset + <uint>4) +
+        checkedByteAt(source, offset + <uint>5) * <uint>256 +
+        checkedByteAt(source, offset + <uint>6) * <uint>65536 +
+        checkedByteAt(source, offset + <uint>7) * <uint>16777216;
+    return low + high * <uint>4294967296;
+}
+
 // Command payloads are concatenated in a shared byte column. Expose the
 // existing finite f64 decoder at an explicit byte offset so reducers do not
 // need a second floating-point wire implementation.
@@ -210,13 +233,7 @@ pub readF64LeAt(
         width > <uint>source.length - offset) {
         throw "woc f64 payload range is invalid";
     }
-    var reader = new ByteReader(source);
-    var skipped: uint = <uint>0;
-    while (skipped < offset) {
-        reader.readByte(1);
-        skipped = skipped + <uint>1;
-    }
-    return reader.readF64(1, 1, 2, 4, 8);
+    return decodeFiniteF64Bits(readU64LeAtBytes(source, offset));
 }
 
 pub readI32LeAt(
@@ -516,6 +533,16 @@ pub selfTest(): int {
     halfReader.finish(true, 1, 1, 2, 4);
     if (halfValue < 0.499999 || halfValue > 0.500001) {
         return -8;
+    }
+
+    var randomAccessHalf = new container.Array<uint>();
+    randomAccessHalf.add(<uint>99);
+    for (var byte in half) {
+        randomAccessHalf.add(<uint>byte);
+    }
+    var randomAccessHalfValue = readF64LeAt(randomAccessHalf, <uint>1, <uint>8);
+    if (randomAccessHalfValue < 0.499999 || randomAccessHalfValue > 0.500001) {
+        return -71;
     }
 
     var movementWriter = new ByteWriter();

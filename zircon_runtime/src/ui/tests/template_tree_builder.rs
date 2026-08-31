@@ -1,12 +1,10 @@
-use crate::ui::template::{UiTemplateInstance, UiTemplateTreeBuilder};
+use crate::ui::template::{UiTemplateBuildError, UiTemplateInstance, UiTemplateTreeBuilder};
 use zircon_runtime_interface::ui::{event_ui::UiTreeId, template::UiTemplateNode};
 
 #[test]
 fn template_tree_builder_inserts_deep_template_chain_with_explicit_stack() {
     const NODE_COUNT: usize = 4096;
-    let instance = UiTemplateInstance {
-        root: deep_template_chain(NODE_COUNT),
-    };
+    let instance = UiTemplateInstance::new(deep_template_chain(NODE_COUNT));
 
     let result = UiTemplateTreeBuilder::build_tree(UiTreeId::new("deep.template.chain"), &instance);
     // Recursive drop of the transitional template tree is not part of this stack-safety signal.
@@ -30,6 +28,35 @@ fn template_tree_builder_inserts_deep_template_chain_with_explicit_stack() {
             .as_ref()
             .and_then(|metadata| metadata.control_id.as_deref()),
         Some("DeepLeaf")
+    );
+}
+
+#[test]
+fn template_tree_builder_rejects_duplicate_control_ids_during_instantiation() {
+    let instance = UiTemplateInstance::new(UiTemplateNode {
+        component: Some("Root".to_string()),
+        control_id: Some("Duplicate".to_string()),
+        children: vec![UiTemplateNode {
+            component: Some("Child".to_string()),
+            control_id: Some("Duplicate".to_string()),
+            ..Default::default()
+        }],
+        ..Default::default()
+    });
+
+    let error = UiTemplateTreeBuilder::build_tree(
+        UiTreeId::new("duplicate.control.instantiation"),
+        &instance,
+    )
+    .expect_err("duplicate control ids must fail instantiation");
+
+    assert_eq!(
+        error,
+        UiTemplateBuildError::DuplicateControlId {
+            control_id: "Duplicate".to_string(),
+            first_node_path: "root".to_string(),
+            duplicate_node_path: "root/Duplicate_0".to_string(),
+        }
     );
 }
 

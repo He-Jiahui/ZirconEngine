@@ -6,6 +6,7 @@ mod menu;
 mod node;
 mod options;
 mod sample_grid;
+mod settings;
 mod timeline_strip;
 mod weight_heatmap;
 
@@ -17,5 +18,6 @@ pub(crate) use menu::*;
 pub(crate) use node::*;
 pub(crate) use options::*;
 pub(crate) use sample_grid::*;
+pub(crate) use settings::*;
 pub(crate) use timeline_strip::*;
 pub(crate) use weight_heatmap::*;

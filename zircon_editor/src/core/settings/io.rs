@@ -140,7 +140,7 @@ mod settings_paths_tests {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SettingsStore {
     paths: SettingsPaths,
 }
@@ -167,6 +167,15 @@ impl SettingsStore {
 
     pub fn paths(&self) -> &SettingsPaths {
         &self.paths
+    }
+
+    pub(crate) fn with_project_root(&self, project_root: &Path) -> Self {
+        Self {
+            paths: SettingsPaths {
+                user: self.paths.user.clone(),
+                project: Some(project_settings_path(project_root)),
+            },
+        }
     }
 
     pub fn load_into(

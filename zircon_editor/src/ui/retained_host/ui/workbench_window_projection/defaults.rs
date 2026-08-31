@@ -171,6 +171,10 @@ pub(super) fn is_workbench_notification_center_mount(component: &str, control_id
         || control_id == "WorkbenchNotificationCenter"
 }
 
+pub(super) fn is_workbench_settings_window_mount(component: &str, control_id: &str) -> bool {
+    component == "WorkbenchPreferences" || control_id == "WorkbenchPreferences"
+}
+
 pub(super) fn default_text_tone(
     component: &str,
     component_role: &str,

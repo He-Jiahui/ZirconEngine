@@ -144,6 +144,7 @@ fn insert_arena_node(
         .with_template_metadata(UiTemplateNodeMetadata {
             component: node.component.clone(),
             control_id: node.control_id.clone(),
+            pixel_snapping: node.pixel_snapping,
             classes: node.classes.clone(),
             attributes,
             slot_attributes,
@@ -164,8 +165,7 @@ fn insert_arena_node(
                 detail: error.to_string(),
             }
         })?;
-        tree.slots
-            .push(slot.expect("parent nodes compute a slot before metadata move"));
+        tree.push_layout_slot(slot.expect("parent nodes compute a slot before metadata move"));
     } else {
         tree.insert_root(tree_node);
     }

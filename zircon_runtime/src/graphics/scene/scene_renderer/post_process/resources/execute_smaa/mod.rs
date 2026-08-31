@@ -1,6 +1,5 @@
 use crate::core::math::UVec2;
 use crate::graphics::scene::scene_renderer::attachment_ops::color_attachment_operations;
-use crate::graphics::scene::scene_renderer::post_process::resources::render_region::apply_physical_render_region_to_pass;
 use crate::graphics::types::ViewportRenderRegion;
 use crate::render_graph::RenderGraphAttachmentOps;
 
@@ -65,7 +64,7 @@ impl ScenePostProcessResources {
             terminal_input_view,
             blend_view,
             render_region,
-            TerminalRegionSpace::Physical,
+            TerminalRegionSpace::Local,
         );
         self.record_smaa_stage(
             encoder,
@@ -74,7 +73,7 @@ impl ScenePostProcessResources {
             &resolve_bind_group,
             final_color_view,
             attachment_ops,
-            Some((render_region, TerminalRegionSpace::Physical)),
+            Some((render_region, TerminalRegionSpace::Local)),
         );
     }
 
@@ -142,7 +141,7 @@ impl ScenePostProcessResources {
             let region_applied = match region_space {
                 TerminalRegionSpace::Local => render_region.apply_local_to_render_pass(&mut pass),
                 TerminalRegionSpace::Physical => {
-                    apply_physical_render_region_to_pass(&mut pass, render_region)
+                    render_region.apply_physical_to_render_pass(&mut pass)
                 }
             };
             if !region_applied {

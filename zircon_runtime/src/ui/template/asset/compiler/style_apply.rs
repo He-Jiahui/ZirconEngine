@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::sync::Arc;
 
 use toml::Value;
 
@@ -24,13 +25,17 @@ mod mui_surface_child_classes;
 mod mui_x_classes;
 mod slot_contract;
 
+#[cfg(test)]
+#[path = "style_apply/token_map_sharing_tests.rs"]
+mod token_map_sharing_tests;
+
 #[derive(Clone)]
 pub(super) struct ParsedStyleRule {
     selector: UiSelector,
     specificity: UiSelectorSpecificity,
     order: usize,
     set: UiStyleDeclarationBlock,
-    tokens: BTreeMap<String, Value>,
+    tokens: Arc<BTreeMap<String, Value>>,
 }
 
 pub(super) fn build_style_plan(
@@ -39,6 +44,10 @@ pub(super) fn build_style_plan(
     let mut rules = Vec::new();
     let mut order = 0;
     for sheet in sheets {
+        if sheet.stylesheet.rules.is_empty() {
+            continue;
+        }
+        let tokens = Arc::new(sheet.tokens.clone());
         for rule in &sheet.stylesheet.rules {
             let selector = UiSelector::parse(&rule.selector)?;
             rules.push(ParsedStyleRule {
@@ -46,7 +55,7 @@ pub(super) fn build_style_plan(
                 selector,
                 order,
                 set: rule.set.clone(),
-                tokens: sheet.tokens.clone(),
+                tokens: Arc::clone(&tokens),
             });
             order += 1;
         }

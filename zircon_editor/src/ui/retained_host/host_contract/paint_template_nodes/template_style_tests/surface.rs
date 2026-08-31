@@ -16,10 +16,25 @@ fn native_template_button_state_resolves_shared_surface_priority() {
         ButtonInteractionState::Pressed
     );
     assert_eq!(surface_color(&node), PALETTE.surface_pressed);
+    assert_eq!(border_color(&node), PALETTE.border);
+    assert_ne!(border_color(&node), PALETTE.focus_ring);
 
     node.button_style.loading = true;
     node.disabled = true;
     assert_eq!(surface_color(&node), PALETTE.surface_disabled);
+}
+
+#[test]
+fn native_template_hover_keeps_neutral_border_while_focus_uses_focus_ring() {
+    let mut node = button_node();
+    node.hovered = true;
+
+    assert_eq!(border_color(&node), PALETTE.border);
+    assert_ne!(border_color(&node), PALETTE.focus_ring);
+
+    node.hovered = false;
+    node.focused = true;
+    assert_eq!(border_color(&node), PALETTE.focus_ring);
 }
 
 #[test]
@@ -36,6 +51,21 @@ fn native_template_button_style_keeps_declared_colors_after_state_resolution() {
 
     node.hovered = false;
     assert_eq!(surface_color(&node), [11, 22, 33, 255]);
+}
+
+#[test]
+fn transparent_surface_is_clear_at_idle_and_keeps_interaction_feedback() {
+    let mut node = panel_node("transparent");
+    node.corner_radius = 6.0;
+
+    assert_eq!(surface_color(&node), [0, 0, 0, 0]);
+
+    node.hovered = true;
+    assert_eq!(surface_color(&node), PALETTE.surface_hover);
+
+    node.hovered = false;
+    node.pressed = true;
+    assert_eq!(surface_color(&node), PALETTE.surface_pressed);
 }
 
 #[test]
@@ -83,7 +113,8 @@ fn asset_thumbnail_card_and_name_area_use_content_browser_layers() {
 
     assert_eq!(surface_color(&card), [0, 0, 0, 0]);
     assert_eq!(template_border_width(&card), 1.0);
-    assert_eq!(border_color(&card), PALETTE.accent);
+    assert_eq!(border_color(&card), PALETTE.border);
+    assert_ne!(border_color(&card), PALETTE.accent);
     assert_ne!(border_color(&card), PALETTE.focus_ring);
 
     let mut name_area = panel_node("asset-thumbnail-name-area");
@@ -119,7 +150,8 @@ fn asset_thumbnail_name_area_text_uses_selected_palette_without_accent_noise() {
 
     title.selected = false;
     title.text_tone = "accent".into();
-    assert_eq!(text_color(&title), PALETTE.focus_ring);
+    assert_eq!(text_color(&title), PALETTE.accent);
+    assert_ne!(text_color(&title), PALETTE.focus_ring);
 }
 
 #[test]

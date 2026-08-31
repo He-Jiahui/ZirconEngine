@@ -3,8 +3,10 @@ use zircon_runtime_interface::ui::{
     event_ui::UiValueType,
 };
 
-pub(super) fn inspector_actions() -> Vec<UiActionDescriptor> {
-    vec![
+pub(super) const INSPECTOR_ACTION_COUNT: usize = 3;
+
+pub(super) fn inspector_actions() -> [UiActionDescriptor; INSPECTOR_ACTION_COUNT] {
+    [
         UiActionDescriptor::new(
             "inspector.apply_batch.invoke",
             UiEventKind::Click,

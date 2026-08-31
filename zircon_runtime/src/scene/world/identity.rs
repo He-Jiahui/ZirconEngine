@@ -1,22 +1,25 @@
+use crate::scene::EntityId;
 use crate::scene::ecs::{
     ArchetypeId, ArchetypeIndexPerformanceStats, ArchetypeSignature, ComponentId, ComponentTicks,
     EntityLocation, InternalEntity, StableEntityLocation,
 };
-use crate::scene::EntityId;
 use std::collections::BTreeMap;
 
 use super::{SceneResult, World};
 
 impl World {
-    pub fn internal_entity(&self, entity: EntityId) -> Option<InternalEntity> {
+    pub(crate) fn internal_entity(&self, entity: EntityId) -> Option<InternalEntity> {
         self.entity_registry.internal_for_stable(entity)
     }
 
-    pub fn internal_entity_location(&self, entity: EntityId) -> Option<StableEntityLocation> {
+    pub(crate) fn internal_entity_location(
+        &self,
+        entity: EntityId,
+    ) -> Option<StableEntityLocation> {
         self.entity_registry.location_for_stable(entity)
     }
 
-    pub fn contains_internal_entity(&self, entity: InternalEntity) -> bool {
+    pub(crate) fn contains_internal_entity(&self, entity: InternalEntity) -> bool {
         self.entity_registry.contains_internal(entity)
     }
 
@@ -44,7 +47,8 @@ impl World {
     ) -> InternalEntity {
         let internal = self
             .entity_registry
-            .spawn_prevalidated(entity, EntityLocation::new(ArchetypeId::EMPTY, usize::MAX));
+            .spawn_prevalidated(entity, EntityLocation::new(ArchetypeId::EMPTY, usize::MAX))
+            .expect("prevalidated entity registration must reserve capacity before commit");
         let row = self.append_empty_archetype_row(entity);
         self.entity_registry
             .set_location(entity, EntityLocation::new(ArchetypeId::EMPTY, row))
@@ -62,7 +66,8 @@ impl World {
     ) -> InternalEntity {
         let internal = self
             .entity_registry
-            .spawn_prevalidated(entity, EntityLocation::new(ArchetypeId::EMPTY, usize::MAX));
+            .spawn_prevalidated(entity, EntityLocation::new(ArchetypeId::EMPTY, usize::MAX))
+            .expect("prevalidated entity registration must reserve capacity before commit");
         self.stable_query_order
             .register_at_order(entity, internal, stable_order);
         internal

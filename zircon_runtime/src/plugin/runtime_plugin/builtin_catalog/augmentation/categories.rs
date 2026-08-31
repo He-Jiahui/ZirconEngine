@@ -1,10 +1,10 @@
 use super::super::BuiltinCatalogDescriptorBuilder;
 
 pub(super) fn assign_category(
+    package_id: &str,
     descriptor: BuiltinCatalogDescriptorBuilder,
 ) -> BuiltinCatalogDescriptorBuilder {
-    let package_id = descriptor.package_id().to_string();
-    match package_id.as_str() {
+    match package_id {
         "texture" => descriptor.with_category("runtime"),
         "terrain" | "tilemap_2d" | "prefab_tools" => descriptor.with_category("authoring"),
         "virtual_geometry" | "hybrid_gi" | "solari" => descriptor.with_category("rendering"),

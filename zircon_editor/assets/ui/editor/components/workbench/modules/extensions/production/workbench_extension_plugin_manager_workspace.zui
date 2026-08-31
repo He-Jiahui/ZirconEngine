@@ -11,8 +11,8 @@ widgets = [
   "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
   "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
   "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
-  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
   "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
+  "res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow",
 ]
 styles = []
 
@@ -21,54 +21,53 @@ root = "plugin_manager_workspace"
 default_classes = ["workbench-module-body", "workbench-extension-module-body"]
 
 [nodes.plugin_manager_workspace]
-component = "HorizontalGroup"
+component = "Overlay"
 control_id = "WorkbenchExtensionPluginManagerWorkspace"
 classes = ["workbench-module-body", "workbench-extension-module-body"]
 props = { visibility = "collapsed" }
-layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "plugin_manager_rail_gap" }, { node = "plugin_manager_left" }, { node = "plugin_manager_center" }, { node = "plugin_manager_right" }]
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "plugin_manager_workspace_main" },
+  { node = "plugin_manager_right", slot = { layout = { alignment = { horizontal = "End", vertical = "Fill" }, z_order = 20 } } },
+]
 
+[nodes.plugin_manager_workspace_main]
+component = "HorizontalGroup"
+classes = ["workbench-module-layout-main"]
+layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "plugin_manager_rail_gap" }, { node = "plugin_manager_left" }, { node = "plugin_manager_center" }, { node = "plugin_manager_right_reserve" }]
+
+[nodes.plugin_manager_right_reserve]
+component = "Container"
+classes = ["workbench-module-details-reserve"]
+props = { responsive_min_tier = "wide" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 [nodes.plugin_manager_rail_gap]
 component = "Container"
 control_id = "WorkbenchExtensionPluginManagerRailGap"
-layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { responsive_min_tier = "narrow" }
+layout = { width = { min = "$editor.chrome.activity_rail.width", preferred = "$editor.chrome.activity_rail.width", max = "$editor.chrome.activity_rail.width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.plugin_manager_left]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionPluginManagerLeftPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "plugin_manager_title" }, { node = "plugin_manager_installed_tab" }, { node = "plugin_manager_dependencies_tab" }, { node = "plugin_manager_updates_tab" }, { node = "plugin_manager_audio_row" }, { node = "plugin_manager_renderdoc_row" }, { node = "plugin_manager_gameplay_row" }]
+props = { responsive_min_tier = "narrow" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "plugin_manager_title" }, { node = "plugin_manager_left_content" }]
+
+[nodes.plugin_manager_left_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionPluginManagerLeftContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "plugin_manager_audio_row" }, { node = "plugin_manager_renderdoc_row" }, { node = "plugin_manager_gameplay_row" }]
 
 [nodes.plugin_manager_title]
 component = "WorkbenchSectionTitle"
 control_id = "WorkbenchExtensionPluginManagerTitle"
 props = { text = "Plugin Manager" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
-
-[nodes.plugin_manager_installed_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionPluginManagerInstalledTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Installed", checked = true, selected = true, value = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/PluginManagerInstalledTab", event = "Click", route = "workbench.extension.plugin_manager.installed" }]
-
-[nodes.plugin_manager_dependencies_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionPluginManagerDependenciesTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Dependencies", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/PluginManagerDependenciesTab", event = "Click", route = "workbench.extension.plugin_manager.dependencies" }]
-
-[nodes.plugin_manager_updates_tab]
-component = "WorkbenchTab"
-control_id = "WorkbenchExtensionPluginManagerUpdatesTab"
-classes = ["workbench-tab", "workbench-module-panel-tab"]
-props = { text = "Updates", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/PluginManagerUpdatesTab", event = "Click", route = "workbench.extension.plugin_manager.updates" }]
 
 [nodes.plugin_manager_audio_row]
 component = "WorkbenchListRow"
@@ -98,14 +97,14 @@ events = [{ id = "WorkbenchExtension/PluginManagerGameplayRow", event = "Click",
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionPluginManagerCenterPanel"
 classes = ["workbench-panel", "workbench-module-center"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "plugin_manager_center_header" }, { node = "plugin_manager_dependency_table" }, { node = "plugin_manager_output" }]
 
 [nodes.plugin_manager_center_header]
 component = "HorizontalGroup"
 control_id = "WorkbenchExtensionPluginManagerCenterHeader"
 classes = ["workbench-panel-toolbar"]
-layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
 children = [{ node = "plugin_manager_center_title" }, { node = "plugin_manager_header_fill" }, { node = "plugin_manager_hot_reload_button" }, { node = "plugin_manager_validate_button" }]
 
 [nodes.plugin_manager_center_title]
@@ -123,7 +122,7 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionPluginManagerHotReloadButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Hot Reload", button_variant = "filled", button_color = "accent", selected = true, checked = true }
+props = { text = "Hot Reload", button_variant = "filled", button_color = "accent" }
 layout = { width = { min = 98.0, preferred = 98.0, max = 110.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/PluginManagerHotReload", event = "Click", route = "workbench.extension.plugin_manager.hot_reload" }]
 
@@ -131,16 +130,16 @@ events = [{ id = "WorkbenchExtension/PluginManagerHotReload", event = "Click", r
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionPluginManagerValidateButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Validate Plugin", button_variant = "outlined", button_color = "secondary" }
+props = { responsive_min_tier = "narrow", text = "Validate Plugin", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { min = 122.0, preferred = 122.0, max = 134.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/PluginManagerValidate", event = "Click", route = "workbench.extension.plugin_manager.validate" }]
 
 [nodes.plugin_manager_dependency_table]
-component = "VerticalGroup"
+component = "ScrollableBox"
 control_id = "WorkbenchExtensionPluginManagerDependencyTable"
 classes = ["workbench-panel", "workbench-module-canvas"]
-props = {}
-layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = 0.0, scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "plugin_manager_audio_runtime_table_row" }, { node = "plugin_manager_renderdoc_bridge_table_row" }, { node = "plugin_manager_gameplay_pack_table_row" }, { node = "plugin_manager_version_warning_table_row" }]
 
 [nodes.plugin_manager_audio_runtime_table_row]
@@ -179,16 +178,23 @@ events = [{ id = "WorkbenchExtension/PluginManagerVersionWarningTableRow", event
 component = "WorkbenchTableRow"
 control_id = "WorkbenchExtensionPluginManagerOutputRow"
 classes = ["workbench-table-row"]
-props = { text = "Plugin Output", value_text = "18 installed   3 updates   1 warning" }
+props = { text = "Plugin Output", value_text = "18 installed   3 updates   1 warning", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/PluginManagerOutput", event = "Click", route = "workbench.extension.plugin_manager.output" }]
 
 [nodes.plugin_manager_right]
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionPluginManagerRightPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "plugin_manager_details_title" }, { node = "plugin_manager_plugin_dropdown" }, { node = "plugin_manager_channel_dropdown" }, { node = "plugin_manager_version_field" }]
+props = { responsive_min_tier = "wide", responsive_compact_drawer = "module_details" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "plugin_manager_details_title" }, { node = "plugin_manager_right_content" }]
+
+[nodes.plugin_manager_right_content]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionPluginManagerRightContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "plugin_manager_plugin_dropdown_property_row" }, { node = "plugin_manager_channel_dropdown_property_row" }, { node = "plugin_manager_version_field_property_row" }]
 
 [nodes.plugin_manager_details_title]
 component = "WorkbenchSectionTitle"
@@ -196,27 +202,48 @@ control_id = "WorkbenchExtensionPluginManagerDetailsTitle"
 props = { text = "Plugin Details" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
 
+[nodes.plugin_manager_plugin_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionPluginManagerPluginDropdownPropertyRow"
+props = { text = "Plugin" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "plugin_manager_plugin_dropdown", slot = { name = "value" } }]
+
 [nodes.plugin_manager_plugin_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionPluginManagerPluginDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "Audio Runtime", value = "Audio Runtime", options = ["Audio Runtime", "RenderDoc Bridge", "Gameplay Pack", "Telemetry"] }
+props = { value_text = "Audio Runtime", value = "Audio Runtime", options = ["Audio Runtime", "RenderDoc Bridge", "Gameplay Pack", "Telemetry"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/PluginManagerPluginEdit", event = "Change", route = "workbench.extension.plugin_manager.plugin.edit" },
   { id = "WorkbenchExtension/PluginManagerPluginCommit", event = "Submit", route = "workbench.extension.plugin_manager.plugin.commit" },
 ]
 
+[nodes.plugin_manager_channel_dropdown_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionPluginManagerChannelDropdownPropertyRow"
+props = { text = "Channel" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "plugin_manager_channel_dropdown", slot = { name = "value" } }]
+
 [nodes.plugin_manager_channel_dropdown]
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionPluginManagerChannelDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { text = "Editor", value = "Editor", options = ["Editor", "Runtime", "Tools", "Experimental"] }
+props = { value_text = "Editor", value = "Editor", options = ["Editor", "Runtime", "Tools", "Experimental"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/PluginManagerChannelEdit", event = "Change", route = "workbench.extension.plugin_manager.channel.edit" },
   { id = "WorkbenchExtension/PluginManagerChannelCommit", event = "Submit", route = "workbench.extension.plugin_manager.channel.commit" },
 ]
+
+[nodes.plugin_manager_version_field_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchExtensionPluginManagerVersionFieldPropertyRow"
+props = { text = "Version" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "plugin_manager_version_field", slot = { name = "value" } }]
 
 [nodes.plugin_manager_version_field]
 component = "WorkbenchField"

@@ -7,6 +7,9 @@ pub(super) const EXPECTED_RUNTIME_03_SOURCE_FILES: &[&str] = &[
     "src/dynamic_api/session/menu.rs",
     "src/scene/level_system.rs",
     "src/scene/module/world_driver.rs",
+    "src/scene/world_time/mod.rs",
+    "src/scene/world_time/controller.rs",
+    "src/scene/world_time/snapshot.rs",
     "src/core/framework/scene/system_stage.rs",
     "src/scene/ecs/schedule_stage_plan.rs",
     "src/scene/ecs/schedule_runner.rs",
@@ -23,11 +26,15 @@ pub(super) const EXPECTED_RUNTIME_03_SOURCE_FILES: &[&str] = &[
 pub(super) const EXPECTED_RUNTIME_03_GUARD_FILES: &[&str] = &[
     "src/scene/tests/ecs_schedule.rs",
     "src/scene/tests/ecs_schedule/fixed_update.rs",
+    "src/scene/tests/ecs_schedule/schedule_plan.rs",
+    "src/scene/tests/ecs_schedule/world_driver.rs",
+    "src/scene/tests/ecs_schedule/world_time_controller.rs",
     "src/scene/tests/ecs_schedule/parallel_executor.rs",
     "src/scene/tests/ecs_schedule_parallel_executor_structure.rs",
     "src/dynamic_api/tests/session_profiles.rs",
     "src/tests/time.rs",
     "src/tests/runtime_absorption/schedule_frame_loop.rs",
+    "src/tests/runtime_absorption/schedule_frame_loop/mirror_docs.rs",
 ];
 
 pub(super) const EXPECTED_RUNTIME_03_BEHAVIOR_TEST_ANCHORS: &[&str] = &[
@@ -36,8 +43,9 @@ pub(super) const EXPECTED_RUNTIME_03_BEHAVIOR_TEST_ANCHORS: &[&str] = &[
     "world_driver_consumes_runtime_time_advance_without_advancing_clocks_again",
     "level_tick_repeats_fixed_loop_stages_for_drained_fixed_steps",
     "level_tick_skips_fixed_loop_stages_when_no_fixed_steps_are_drained",
-    "level_tick_fixed_loop_steps_are_capped_by_runtime_time_advance",
-    "fixed_step_plan_reports_overstep_fraction_in_unit_range",
+    "worlds_derive_virtual_and_fixed_time_independently_from_one_outer_frame",
+    "fixed_loop_clamps_to_max_steps_per_frame",
+    "fixed_step_plan_separates_interpolation_fraction_from_total_debt",
     "schedule_parallel_executor_can_run_parallel_batches_serially_with_report",
     "schedule_parallel_execution_report_records_diagnostic_counts",
     "schedule_parallel_report_keeps_run_batches_compatible",

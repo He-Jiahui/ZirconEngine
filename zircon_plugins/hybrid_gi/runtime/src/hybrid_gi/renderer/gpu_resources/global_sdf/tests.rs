@@ -18,6 +18,24 @@ struct GlobalSdfBuildReadback {
 }
 
 #[test]
+fn trace_page_signature_commits_only_with_the_runtime_prepare_frame() {
+    let source = include_str!("trace_bindings.rs");
+    let upload = source
+        .find("buffer_uploads.write_buffer(")
+        .expect("Global SDF page-table upload recorder");
+    let transaction = source
+        .find("frame_transactions.register(RuntimePrepareFrameTransaction::new(")
+        .expect("Global SDF signature frame transaction");
+    let commit = source
+        .find("move || committed_signature.store(signature, Ordering::Relaxed)")
+        .expect("Global SDF committed signature update");
+
+    assert!(upload < transaction);
+    assert!(transaction < commit);
+    assert!(!source.contains("queue.write_buffer"));
+}
+
+#[test]
 fn global_sdf_build_shader_writes_mesh_sdf_distance_and_completion() {
     let Some((device, queue)) = test_device() else {
         eprintln!("skipping Global SDF build Wgpu test because no adapter is available");

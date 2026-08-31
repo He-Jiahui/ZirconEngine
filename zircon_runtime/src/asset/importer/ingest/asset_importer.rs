@@ -6,8 +6,6 @@ use super::import_shader;
 use super::import_shader_package;
 #[cfg(test)]
 use super::import_sound;
-#[cfg(feature = "ui")]
-use super::import_ui_v2_asset;
 use super::{
     import_animation_asset, import_authoring_asset, import_cube_lut, import_data_asset,
     import_gltf, import_material, import_mesh, import_model, import_obj, import_physics_material,
@@ -20,6 +18,8 @@ use crate::asset::{
 
 const BUILTIN_IMPORTER_PLUGIN_ID: &str = "zircon.builtin.asset_importers";
 const PLUGIN_REQUIRED_IMPORTER_PLUGIN_ID: &str = "zircon.runtime.plugin_required_importers";
+const BUILTIN_GLTF_IMPORTER_VERSION: u32 =
+    2 + crate::asset::assets::DECODED_RGBA8_TEXTURE_BUILD_VERSION;
 
 #[derive(Clone, Debug)]
 pub struct AssetImporter {
@@ -98,7 +98,7 @@ impl AssetImporter {
         )?;
         #[cfg(feature = "text")]
         self.register_function(
-            descriptor("zircon.builtin.toml.font", AssetKind::Font, 1)
+            descriptor("zircon.builtin.toml.font", AssetKind::Font, 2)
                 .with_full_suffixes([".font.toml"]),
             import_font_asset::import_font_asset,
         )?;
@@ -188,14 +188,6 @@ impl AssetImporter {
                 .with_full_suffixes([".icon.toml"]),
             import_ui_icon_asset::import_ui_icon_asset,
         )?;
-        #[cfg(feature = "ui")]
-        self.register_function(
-            descriptor("zircon.builtin.ui.zui", AssetKind::UiLayout, 1)
-                .with_full_suffixes([".zui"])
-                .with_additional_output_kinds([AssetKind::UiWidget, AssetKind::UiStyle]),
-            import_ui_v2_asset::import_ui_v2_asset,
-        )?;
-
         self.register_function(
             descriptor(
                 "zircon.builtin.animation.zranim.skeleton",
@@ -243,7 +235,7 @@ impl AssetImporter {
         )?;
 
         self.register_function(
-            descriptor("zircon.builtin.texture.image", AssetKind::Texture, 1)
+            descriptor("zircon.builtin.texture.image", AssetKind::Texture, 2)
                 .with_priority(10)
                 .with_source_extensions([
                     "png", "jpg", "jpeg", "bmp", "tga", "tiff", "tif", "gif", "webp", "hdr", "exr",
@@ -333,18 +325,22 @@ impl AssetImporter {
             import_obj::import_obj,
         )?;
         self.register_function(
-            descriptor("zircon.builtin.model.gltf", AssetKind::Model, 2)
-                .with_priority(10)
-                .with_source_extensions(["gltf", "glb"])
-                .with_additional_output_kinds([
-                    AssetKind::Mesh,
-                    AssetKind::Scene,
-                    AssetKind::Material,
-                    AssetKind::Texture,
-                    AssetKind::Data,
-                    AssetKind::AnimationSkeleton,
-                    AssetKind::AnimationClip,
-                ]),
+            descriptor(
+                "zircon.builtin.model.gltf",
+                AssetKind::Model,
+                BUILTIN_GLTF_IMPORTER_VERSION,
+            )
+            .with_priority(10)
+            .with_source_extensions(["gltf", "glb"])
+            .with_additional_output_kinds([
+                AssetKind::Mesh,
+                AssetKind::Scene,
+                AssetKind::Material,
+                AssetKind::Texture,
+                AssetKind::Data,
+                AssetKind::AnimationSkeleton,
+                AssetKind::AnimationClip,
+            ]),
             import_gltf::import_gltf,
         )?;
         self.register_optional(

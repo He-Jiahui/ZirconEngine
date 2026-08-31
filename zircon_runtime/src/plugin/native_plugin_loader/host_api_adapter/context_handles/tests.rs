@@ -11,32 +11,10 @@ use super::{HostContextRegistry, HOST_CONTEXT_PAGE_SLOTS};
 
 use crate::plugin::RuntimeExtensionRegistry;
 
-use super::super::ecs_registration::NativeHostApiV3RegistrationScope;
 use super::super::registration_policy::{
     NativeHostApiV4RegistrationPolicy, NativeHostApiV4RegistrationScope,
 };
-use super::{context_for, context_for_v4, context_snapshot};
-
-#[test]
-fn native_host_registration_scope_drop_waits_for_an_in_flight_context_pin() {
-    let mut registry = RuntimeExtensionRegistry::default();
-    let scope = NativeHostApiV3RegistrationScope::new(&mut registry, "weather.runtime").unwrap();
-    let handle = scope.handle();
-    let pin = context_for(handle).expect("registration context should be available");
-
-    let release = thread::spawn(move || {
-        while !pin.is_closing() {
-            thread::yield_now();
-        }
-        drop(pin);
-    });
-
-    drop(scope);
-    release
-        .join()
-        .expect("in-flight registration context should release");
-    assert!(context_snapshot(handle.raw()).is_none());
-}
+use super::{context_for_v4, context_snapshot};
 
 #[test]
 fn native_host_v4_registration_scope_drop_waits_for_an_in_flight_context_pin() {

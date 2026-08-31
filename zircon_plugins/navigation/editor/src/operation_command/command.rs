@@ -39,7 +39,9 @@ impl NavigationOperationCommand {
         context: &dyn EditContext,
         request: ZrRuntimeOperationSubmitRequestV1,
     ) -> Result<NavigationGeneratedBakeChange, CommandExecutionError> {
-        let gateway = context.runtime_gateway();
+        let gateway = context
+            .runtime_operations()
+            .map_err(CommandExecutionError::unchanged)?;
         let expected_operation = request.operation_id.clone();
         let handle = gateway
             .submit_operation(request)

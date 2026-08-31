@@ -398,14 +398,10 @@ fn create_bindless_material_bind_group(
     layout: &wgpu::BindGroupLayout,
     slot_textures: &[Arc<GpuTextureResource>],
 ) -> wgpu::BindGroup {
-    let texture_views = slot_textures
-        .iter()
-        .map(|texture| texture.view())
-        .collect::<Vec<_>>();
-    let samplers = slot_textures
-        .iter()
-        .map(|texture| texture.sampler())
-        .collect::<Vec<_>>();
+    let mut texture_views = Vec::with_capacity(slot_textures.len());
+    texture_views.extend(slot_textures.iter().map(|texture| texture.view()));
+    let mut samplers = Vec::with_capacity(slot_textures.len());
+    samplers.extend(slot_textures.iter().map(|texture| texture.sampler()));
     device.create_bind_group(&wgpu::BindGroupDescriptor {
         label: Some("zircon-bindless-material-bind-group"),
         layout,
@@ -425,8 +421,8 @@ fn create_bindless_material_bind_group(
 #[cfg(test)]
 mod tests {
     use super::{
-        bindless_material_binding_array_layout_entries, BindlessMaterialSlab,
-        BindlessMaterialSlabError, BindlessSlotIndex, BindlessTextureKey,
+        BindlessMaterialSlab, BindlessMaterialSlabError, BindlessSlotIndex, BindlessTextureKey,
+        bindless_material_binding_array_layout_entries,
     };
     use crate::core::framework::render::RenderCapabilitySummary;
     use crate::core::resource::ResourceId;
@@ -574,5 +570,77 @@ mod tests {
         assert_eq!(entries[1].binding, 1);
         assert_eq!(entries[1].count.map(NonZeroU32::get), Some(64));
         assert!(matches!(entries[1].ty, wgpu::BindingType::Sampler(_)));
+    }
+
+    #[test]
+    fn bindless_bind_group_projection_reserves_slot_capacity() {
+        let source = include_str!("bindless_slab.rs");
+        let implementation = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("bindless material implementation");
+
+        assert!(implementation.contains("Vec::with_capacity(slot_textures.len())"));
+        assert!(implementation.contains("texture_views.extend("));
+        assert!(implementation.contains("samplers.extend("));
+    }
+
+    #[test]
+    #[ignore = "managed Windows release performance evidence"]
+    fn optimization_batch_20260830ct_runtime_bindless_view_capacity_p95() {
+        const SAMPLE_PAIRS: usize = 17;
+        const SLOTS_PER_SAMPLE: usize = 256;
+        let mut legacy = Vec::with_capacity(SAMPLE_PAIRS);
+        let mut optimized = Vec::with_capacity(SAMPLE_PAIRS);
+        for pair in 0..SAMPLE_PAIRS {
+            if pair % 2 == 0 {
+                legacy.push(measure(SLOTS_PER_SAMPLE, false));
+                optimized.push(measure(SLOTS_PER_SAMPLE, true));
+            } else {
+                optimized.push(measure(SLOTS_PER_SAMPLE, true));
+                legacy.push(measure(SLOTS_PER_SAMPLE, false));
+            }
+        }
+        let legacy_p95_ns = percentile(&legacy, 95);
+        let optimized_p95_ns = percentile(&optimized, 95);
+        println!(
+            "RUNTIME394_BINDLESS_VIEW_CAPACITY_BENCH_V1 sample_pairs={SAMPLE_PAIRS} slots_per_sample={SLOTS_PER_SAMPLE} legacy_p95_ns={legacy_p95_ns} optimized_p95_ns={optimized_p95_ns} legacy_raw_ns={} optimized_raw_ns={}",
+            csv(&legacy),
+            csv(&optimized)
+        );
+        assert!(optimized_p95_ns.saturating_mul(100) <= legacy_p95_ns.saturating_mul(70));
+
+        fn measure(count: usize, use_capacity: bool) -> u128 {
+            let started = std::time::Instant::now();
+            let mut checksum = 0usize;
+            for _ in 0..10_000 {
+                if use_capacity {
+                    let mut values = Vec::with_capacity(count);
+                    values.extend(0..count);
+                    checksum ^= values.len();
+                    std::hint::black_box(values);
+                } else {
+                    let values = (0..count).collect::<Vec<_>>();
+                    checksum ^= values.len();
+                    std::hint::black_box(values);
+                }
+            }
+            std::hint::black_box(checksum);
+            started.elapsed().as_nanos().max(1)
+        }
+
+        fn percentile(samples: &[u128], p: usize) -> u128 {
+            let mut sorted = samples.to_vec();
+            sorted.sort_unstable();
+            sorted[(sorted.len() * p).div_ceil(100).saturating_sub(1)]
+        }
+
+        fn csv(samples: &[u128]) -> String {
+            samples
+                .iter()
+                .map(u128::to_string)
+                .collect::<Vec<_>>()
+                .join(",")
+        }
     }
 }

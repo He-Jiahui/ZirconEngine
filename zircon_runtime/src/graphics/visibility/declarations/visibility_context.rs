@@ -78,24 +78,30 @@ impl VisibilityContext {
 
     pub fn main_view_culled_entities(&self) -> Vec<EntityId> {
         let visible_entities = self.main_view_visible_entity_set();
-        self.renderable_entities
-            .iter()
-            .copied()
-            .filter(|entity| !visible_entities.contains(entity))
-            .collect()
+        let mut culled_entities = Vec::with_capacity(self.renderable_entities.len());
+        culled_entities.extend(
+            self.renderable_entities
+                .iter()
+                .copied()
+                .filter(|entity| !visible_entities.contains(entity)),
+        );
+        culled_entities
     }
 
     pub fn main_view_culled_stable_instance_keys(&self) -> Vec<u64> {
         let visible_stable_instance_keys = self
             .frame_visibility
             .main_view_visible_stable_instance_key_set();
-        self.bvh_instances
-            .iter()
-            .map(|instance| instance.stable_instance_key)
-            .filter(|stable_instance_key| {
-                !visible_stable_instance_keys.contains(stable_instance_key)
-            })
-            .collect()
+        let mut culled_stable_instance_keys = Vec::with_capacity(self.bvh_instances.len());
+        culled_stable_instance_keys.extend(
+            self.bvh_instances
+                .iter()
+                .map(|instance| instance.stable_instance_key)
+                .filter(|stable_instance_key| {
+                    !visible_stable_instance_keys.contains(stable_instance_key)
+                }),
+        );
+        culled_stable_instance_keys
     }
 
     pub fn main_view_visible_batches(&self) -> Vec<VisibilityBatch> {
@@ -111,27 +117,182 @@ impl VisibilityContext {
         batches: &[VisibilityBatch],
         visible_stable_instance_keys: &BTreeSet<u64>,
     ) -> Vec<VisibilityBatch> {
-        batches
-            .iter()
-            .filter_map(|batch| {
-                let members = batch
-                    .stable_instance_keys
-                    .iter()
-                    .zip(batch.entities.iter())
-                    .filter(|(stable_instance_key, _)| {
-                        visible_stable_instance_keys.contains(stable_instance_key)
-                    })
-                    .map(|(stable_instance_key, entity)| (*stable_instance_key, *entity))
-                    .collect::<Vec<_>>();
-                (!members.is_empty()).then(|| {
-                    let (stable_instance_keys, entities) = members.into_iter().unzip();
-                    VisibilityBatch {
-                        key: batch.key.clone(),
-                        stable_instance_keys,
-                        entities,
-                    }
-                })
+        let mut visible_batches = Vec::with_capacity(batches.len());
+        for batch in batches {
+            let member_capacity = batch.stable_instance_keys.len().min(batch.entities.len());
+            let mut stable_instance_keys = Vec::with_capacity(member_capacity);
+            let mut entities = Vec::with_capacity(member_capacity);
+            for (stable_instance_key, entity) in
+                batch.stable_instance_keys.iter().zip(batch.entities.iter())
+            {
+                if visible_stable_instance_keys.contains(stable_instance_key) {
+                    stable_instance_keys.push(*stable_instance_key);
+                    entities.push(*entity);
+                }
+            }
+            if !stable_instance_keys.is_empty() {
+                visible_batches.push(VisibilityBatch {
+                    key: batch.key.clone(),
+                    stable_instance_keys,
+                    entities,
+                });
+            }
+        }
+        visible_batches
+    }
+}
+
+#[cfg(test)]
+mod optimization_batch_20260830cg_runtime_tests {
+    use std::collections::BTreeSet;
+    use std::hint::black_box;
+    use std::time::Instant;
+
+    use crate::core::framework::render::RenderLayerSet;
+    use crate::core::framework::scene::Mobility;
+    use crate::core::resource::ResourceId;
+
+    use super::super::visibility_batch_key::VisibilityBatchKey;
+    use super::*;
+
+    const SAMPLE_PAIRS: usize = 17;
+    const BATCHES_PER_SAMPLE: usize = 64;
+    const MEMBERS_PER_BATCH: usize = 128;
+
+    #[test]
+    fn visible_batch_projection_preserves_order_and_zip_truncation() {
+        let batches = vec![
+            batch("first", vec![1, 2, 3], vec![10, 20]),
+            batch("empty", vec![4], vec![40]),
+            batch("second", vec![2, 5], vec![22, 50]),
+        ];
+        let visible = BTreeSet::from([2, 3]);
+
+        let projected =
+            VisibilityContext::visible_batches_for_stable_instance_keys(&batches, &visible);
+
+        assert_eq!(projected.len(), 2);
+        assert_eq!(projected[0].key.material_id, batches[0].key.material_id);
+        assert_eq!(projected[0].stable_instance_keys, vec![2]);
+        assert_eq!(projected[0].entities, vec![20]);
+        assert_eq!(projected[1].key.material_id, batches[2].key.material_id);
+        assert_eq!(projected[1].stable_instance_keys, vec![2]);
+        assert_eq!(projected[1].entities, vec![22]);
+    }
+
+    #[test]
+    fn visibility_projection_reserves_known_input_bounds() {
+        let source = include_str!("visibility_context.rs");
+        let implementation = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("visibility context implementation");
+
+        assert!(implementation.contains("Vec::with_capacity(self.renderable_entities.len())"));
+        assert!(implementation.contains("Vec::with_capacity(self.bvh_instances.len())"));
+        assert!(implementation.contains("Vec::with_capacity(batches.len())"));
+        assert!(
+            implementation.contains("batch.stable_instance_keys.len().min(batch.entities.len())")
+        );
+        assert!(!implementation.contains("members.into_iter().unzip()"));
+    }
+
+    #[test]
+    #[ignore = "managed Windows release performance evidence"]
+    fn optimization_batch_20260830cg_runtime_visibility_projection_capacity_p95() {
+        let batches = benchmark_batches();
+        let mut legacy = Vec::with_capacity(SAMPLE_PAIRS);
+        let mut optimized = Vec::with_capacity(SAMPLE_PAIRS);
+        for pair in 0..SAMPLE_PAIRS {
+            if pair % 2 == 0 {
+                legacy.push(measure(&batches, false));
+                optimized.push(measure(&batches, true));
+            } else {
+                optimized.push(measure(&batches, true));
+                legacy.push(measure(&batches, false));
+            }
+        }
+        let legacy_p95_ns = percentile(&legacy, 95);
+        let optimized_p95_ns = percentile(&optimized, 95);
+        println!(
+            "RUNTIME385_VISIBILITY_PROJECTION_CAPACITY_BENCH_V1 sample_pairs={SAMPLE_PAIRS} batches_per_sample={BATCHES_PER_SAMPLE} members_per_batch={MEMBERS_PER_BATCH} legacy_p95_ns={legacy_p95_ns} optimized_p95_ns={optimized_p95_ns} legacy_raw_ns={} optimized_raw_ns={}",
+            csv(&legacy),
+            csv(&optimized)
+        );
+        assert!(optimized_p95_ns.saturating_mul(100) <= legacy_p95_ns.saturating_mul(70));
+    }
+
+    fn batch(label: &str, stable_instance_keys: Vec<u64>, entities: Vec<u64>) -> VisibilityBatch {
+        VisibilityBatch {
+            key: VisibilityBatchKey {
+                render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+                material_id: ResourceId::from_stable_label(&format!("tests/{label}/material")),
+                model_id: ResourceId::from_stable_label(&format!("tests/{label}/model")),
+                mobility: Mobility::Dynamic,
+            },
+            stable_instance_keys,
+            entities,
+        }
+    }
+
+    fn benchmark_batches() -> Vec<Vec<u64>> {
+        (0..BATCHES_PER_SAMPLE)
+            .map(|batch| {
+                (0..MEMBERS_PER_BATCH)
+                    .map(|member| (batch * MEMBERS_PER_BATCH + member) as u64)
+                    .collect()
             })
             .collect()
+    }
+
+    fn measure(batches: &[Vec<u64>], use_capacity: bool) -> u128 {
+        let started = Instant::now();
+        let mut checksum = 0usize;
+        for _ in 0..32 {
+            let mut projected = if use_capacity {
+                Vec::with_capacity(batches.len())
+            } else {
+                Vec::new()
+            };
+            for batch in black_box(batches) {
+                if use_capacity {
+                    let mut keys = Vec::with_capacity(batch.len());
+                    let mut entities = Vec::with_capacity(batch.len());
+                    for (entity, key) in batch.iter().enumerate() {
+                        if key % 3 != 0 {
+                            keys.push(*key);
+                            entities.push(entity as u64);
+                        }
+                    }
+                    projected.push((keys, entities));
+                } else {
+                    let members = batch
+                        .iter()
+                        .enumerate()
+                        .filter(|(_, key)| *key % 3 != 0)
+                        .map(|(entity, key)| (*key, entity as u64))
+                        .collect::<Vec<_>>();
+                    projected.push(members.into_iter().unzip());
+                }
+            }
+            checksum ^= projected.iter().map(|(keys, _)| keys.len()).sum::<usize>();
+            black_box(projected);
+        }
+        black_box(checksum);
+        started.elapsed().as_nanos().max(1)
+    }
+
+    fn percentile(samples: &[u128], p: usize) -> u128 {
+        let mut sorted = samples.to_vec();
+        sorted.sort_unstable();
+        sorted[(sorted.len() * p).div_ceil(100).saturating_sub(1)]
+    }
+
+    fn csv(samples: &[u128]) -> String {
+        samples
+            .iter()
+            .map(u128::to_string)
+            .collect::<Vec<_>>()
+            .join(",")
     }
 }

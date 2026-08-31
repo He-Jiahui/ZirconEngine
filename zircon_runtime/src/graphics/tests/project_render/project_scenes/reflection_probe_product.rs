@@ -1,15 +1,15 @@
 use std::sync::Arc;
 
 use crate::asset::{
-    texture_asset_from_ibl_bake_artifact_pmrem, AssetManager, ProjectAssetManager, TextureAsset,
+    AssetManager, ProjectAssetManager, TextureAsset, texture_asset_from_ibl_bake_artifact_pmrem,
 };
 use crate::core::framework::render::{
-    build_source_cubemap_from_equirect, CapturedFrame, CorePipelineKind, EnvironmentExtract,
-    IblBakeArtifactBlob, IblBakeArtifactContents, IblBakeArtifactDescriptor,
-    IblBakeArtifactPayload, ProbeInfluenceShape, ProceduralSkyParams, ProjectionMode,
-    ReflectionProbeData, RenderFrameExtract, RenderFramework, RenderOverlayExtract,
-    RenderQualityProfile, RenderWorldSnapshotHandle, SceneViewportExtractRequest,
-    ViewportRenderSettings,
+    CapturedFrame, CorePipelineKind, EnvironmentExtract, IblBakeArtifactBlob,
+    IblBakeArtifactContents, IblBakeArtifactDescriptor, IblBakeArtifactPayload,
+    ProbeInfluenceShape, ProceduralSkyParams, ProjectionMode, ReflectionProbeData,
+    RenderFrameExtract, RenderFramework, RenderOverlayExtract, RenderQualityProfile,
+    RenderWorldSnapshotHandle, SceneViewportExtractRequest, ViewportRenderSettings,
+    build_source_cubemap_from_equirect,
 };
 use crate::core::math::{Quat, UVec2, Vec3};
 use crate::core::resource::{ResourceId, ResourceKind, ResourceRecord};

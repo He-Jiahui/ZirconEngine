@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::HashSet;
 
 use toml::Value;
 use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
@@ -94,7 +94,7 @@ pub(super) fn collect_preview_mock_expression_dependencies(
     value: &Value,
 ) -> Vec<(String, String, Value)> {
     let mut dependencies = Vec::new();
-    let mut seen = BTreeSet::new();
+    let mut seen = HashSet::new();
     collect_expression_dependencies(
         document,
         state,
@@ -112,7 +112,7 @@ fn collect_expression_dependencies(
     current_node_id: &str,
     value: &Value,
     dependencies: &mut Vec<(String, String, Value)>,
-    seen: &mut BTreeSet<(String, String)>,
+    seen: &mut HashSet<(String, String)>,
 ) {
     match value {
         Value::String(text) if text.trim_start().starts_with('=') => {
@@ -159,7 +159,7 @@ fn collect_expression_dependencies_from_text(
     current_node_id: &str,
     expression: &str,
     dependencies: &mut Vec<(String, String, Value)>,
-    seen: &mut BTreeSet<(String, String)>,
+    seen: &mut HashSet<(String, String)>,
 ) {
     let trimmed = expression.trim();
     if trimmed.is_empty() {
@@ -212,7 +212,7 @@ fn collect_expression_argument_dependencies(
     current_node_id: &str,
     argument: &str,
     dependencies: &mut Vec<(String, String, Value)>,
-    seen: &mut BTreeSet<(String, String)>,
+    seen: &mut HashSet<(String, String)>,
 ) {
     let trimmed = argument.trim();
     if trimmed.is_empty() {
@@ -285,7 +285,7 @@ fn resolve_reference_dependency(
 
 fn push_dependency(
     dependencies: &mut Vec<(String, String, Value)>,
-    seen: &mut BTreeSet<(String, String)>,
+    seen: &mut HashSet<(String, String)>,
     target_node_id: String,
     target_path: String,
     target_value: Value,
@@ -723,3 +723,6 @@ fn binding_graph_target(binding: &UiBindingRef) -> Option<String> {
         })
         .filter(|target| !target.trim().is_empty())
 }
+
+#[cfg(test)]
+mod hash_dependency_tests;

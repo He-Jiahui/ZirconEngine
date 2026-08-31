@@ -1,16 +1,24 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use crate::rhi::{BufferDesc, TextureDesc};
+use crate::rhi::{BufferDesc, TextureDesc, TextureDimension};
 
+use super::access::{
+    RenderGraphResourceAccessMetadata, RenderGraphTextureAspect, RenderGraphTextureSubresourceRange,
+};
 use super::error::RenderGraphError;
 use super::types::{
     ExternalResource, PassFlags, QueueLane, RenderGraphAttachmentOps,
     RenderGraphComputePassMetadata, RenderGraphComputeWorkload, RenderGraphExternalResourceBinding,
-    RenderGraphResource, RenderGraphResourceDesc, RenderGraphResourceKind,
-    RenderGraphResourceUsageFlags, RenderPassId, RgBufferHandle, RgTextureHandle,
+    RenderGraphExternalResourceType, RenderGraphResource, RenderGraphResourceDesc,
+    RenderGraphResourceKind, RenderGraphResourceUsageFlags, RenderGraphResourceVersionToken,
+    RenderGraphTextureViewAlias, RenderPassId, RgBufferHandle, RgTextureHandle,
 };
 
+mod access_authoring;
+mod access_scope_tracker;
+mod access_validation;
 mod compile;
+mod resource_dependency_inference;
 
 static NEXT_RENDER_GRAPH_BUILDER_GENERATION: AtomicU64 = AtomicU64::new(1);
 
@@ -24,7 +32,9 @@ enum ResourceAccessKind {
 struct ResourceAccess {
     resource: RenderGraphResource,
     kind: ResourceAccessKind,
+    input_version: Option<RenderGraphResourceVersionToken>,
     attachment_ops: Option<RenderGraphAttachmentOps>,
+    metadata: RenderGraphResourceAccessMetadata,
 }
 
 #[derive(Clone, Debug)]
@@ -47,7 +57,10 @@ struct ResourceNode {
     name: String,
     desc: RenderGraphResourceDesc,
     external_binding: RenderGraphExternalResourceBinding,
+    external_texture_desc: Option<TextureDesc>,
+    external_buffer_desc: Option<BufferDesc>,
     external_alias_group: Option<String>,
+    texture_view_alias: Option<RenderGraphTextureViewAlias>,
     usage: RenderGraphResourceUsageFlags,
 }
 
@@ -168,10 +181,61 @@ impl RenderGraphBuilder {
             name,
             desc: RenderGraphResourceDesc::Texture(desc),
             external_binding: RenderGraphExternalResourceBinding::report_only(),
+            external_texture_desc: None,
+            external_buffer_desc: None,
             external_alias_group: None,
+            texture_view_alias: None,
             usage: RenderGraphResourceUsageFlags::default(),
         });
         handle
+    }
+
+    /// Declares a distinct logical texture resource backed by an exact view of
+    /// a graph-owned transient texture. The view never receives an allocation
+    /// slot of its own.
+    pub fn create_texture_view_alias(
+        &mut self,
+        name: impl Into<String>,
+        parent: RgTextureHandle,
+        range: RenderGraphTextureSubresourceRange,
+    ) -> Result<RgTextureHandle, RenderGraphError> {
+        let name = name.into();
+        self.ensure_resource(RenderGraphResource::TransientTexture(parent))?;
+        let parent_node = self
+            .resources
+            .iter()
+            .find(|node| node.resource == RenderGraphResource::TransientTexture(parent))
+            .ok_or_else(|| RenderGraphError::ResourceDeclarationMissing {
+                resource: format!("{parent:?}"),
+            })?;
+        if parent_node.texture_view_alias.is_some() {
+            return Err(RenderGraphError::TextureViewAliasParentIsAlias {
+                alias: name,
+                parent_name: parent_node.name.clone(),
+            });
+        }
+        let RenderGraphResourceDesc::Texture(parent_desc) = &parent_node.desc else {
+            return Err(RenderGraphError::ResourceDeclarationMissing {
+                resource: parent_node.name.clone(),
+            });
+        };
+        let desc = texture_view_alias_desc(&name, &parent_node.name, parent_desc, range)?;
+
+        let id = self.next_texture;
+        self.next_texture += 1;
+        let handle = RgTextureHandle::from_index(id, self.generation);
+        self.resources.push(ResourceNode {
+            resource: RenderGraphResource::TransientTexture(handle),
+            name,
+            desc: RenderGraphResourceDesc::Texture(desc),
+            external_binding: RenderGraphExternalResourceBinding::report_only(),
+            external_texture_desc: None,
+            external_buffer_desc: None,
+            external_alias_group: None,
+            texture_view_alias: Some(RenderGraphTextureViewAlias::new(parent, range)),
+            usage: RenderGraphResourceUsageFlags::default(),
+        });
+        Ok(handle)
     }
 
     pub fn create_buffer(&mut self, desc: BufferDesc) -> RgBufferHandle {
@@ -187,17 +251,43 @@ impl RenderGraphBuilder {
             name,
             desc: RenderGraphResourceDesc::Buffer(desc),
             external_binding: RenderGraphExternalResourceBinding::report_only(),
+            external_texture_desc: None,
+            external_buffer_desc: None,
             external_alias_group: None,
+            texture_view_alias: None,
             usage: RenderGraphResourceUsageFlags::default(),
         });
         handle
     }
 
+    /// Imports an external resource without assigning it a cull-root role.
     pub fn import_external_resource(&mut self, name: impl Into<String>) -> ExternalResource {
+        self.import_external_resource_with_usage(name, RenderGraphResourceUsageFlags::default())
+    }
+
+    /// Imports the external result that this graph presents to its consumer.
+    pub fn import_present_external_resource(
+        &mut self,
+        name: impl Into<String>,
+    ) -> ExternalResource {
         self.import_external_resource_with_usage(name, RenderGraphResourceUsageFlags::present())
     }
 
+    /// Imports an external resource binding without assigning it a cull-root role.
     pub fn import_external_resource_with_binding(
+        &mut self,
+        name: impl Into<String>,
+        external_binding: RenderGraphExternalResourceBinding,
+    ) -> ExternalResource {
+        self.import_external_resource_with_usage_and_binding(
+            name,
+            RenderGraphResourceUsageFlags::default(),
+            external_binding,
+        )
+    }
+
+    /// Imports an externally bound result that this graph presents to its consumer.
+    pub fn import_present_external_resource_with_binding(
         &mut self,
         name: impl Into<String>,
         external_binding: RenderGraphExternalResourceBinding,
@@ -206,6 +296,116 @@ impl RenderGraphBuilder {
             name,
             RenderGraphResourceUsageFlags::present(),
             external_binding,
+        )
+    }
+
+    /// Imports an external texture without assigning it a cull-root role.
+    pub fn import_external_texture_with_binding(
+        &mut self,
+        name: impl Into<String>,
+        texture_desc: TextureDesc,
+        external_binding: RenderGraphExternalResourceBinding,
+    ) -> ExternalResource {
+        self.import_external_texture_with_usage_and_binding(
+            name,
+            RenderGraphResourceUsageFlags::default(),
+            texture_desc,
+            external_binding,
+        )
+    }
+
+    /// Imports a presented external texture whose physical shape is part of the graph contract.
+    pub fn import_present_external_texture_with_binding(
+        &mut self,
+        name: impl Into<String>,
+        texture_desc: TextureDesc,
+        external_binding: RenderGraphExternalResourceBinding,
+    ) -> ExternalResource {
+        self.import_external_texture_with_usage_and_binding(
+            name,
+            RenderGraphResourceUsageFlags::present(),
+            texture_desc,
+            external_binding,
+        )
+    }
+
+    /// Imports a physical external texture with an explicit graph lifetime role.
+    pub fn import_external_texture_with_usage_and_binding(
+        &mut self,
+        name: impl Into<String>,
+        usage: RenderGraphResourceUsageFlags,
+        texture_desc: TextureDesc,
+        external_binding: RenderGraphExternalResourceBinding,
+    ) -> ExternalResource {
+        let external_binding = match external_binding.resource_type {
+            RenderGraphExternalResourceType::Unknown => RenderGraphExternalResourceBinding {
+                resource_type: RenderGraphExternalResourceType::Texture,
+                requirement: external_binding.requirement,
+            },
+            _ => external_binding,
+        };
+        self.import_external_resource_with_usage_binding_optional_alias_and_physical_desc(
+            name,
+            usage,
+            external_binding,
+            None,
+            Some(texture_desc),
+            None,
+        )
+    }
+
+    /// Imports an external buffer without assigning it a cull-root role.
+    pub fn import_external_buffer_with_binding(
+        &mut self,
+        name: impl Into<String>,
+        buffer_desc: BufferDesc,
+        external_binding: RenderGraphExternalResourceBinding,
+    ) -> ExternalResource {
+        self.import_external_buffer_with_usage_and_binding(
+            name,
+            RenderGraphResourceUsageFlags::default(),
+            buffer_desc,
+            external_binding,
+        )
+    }
+
+    /// Imports a presented external buffer whose physical shape is part of the graph contract.
+    pub fn import_present_external_buffer_with_binding(
+        &mut self,
+        name: impl Into<String>,
+        buffer_desc: BufferDesc,
+        external_binding: RenderGraphExternalResourceBinding,
+    ) -> ExternalResource {
+        self.import_external_buffer_with_usage_and_binding(
+            name,
+            RenderGraphResourceUsageFlags::present(),
+            buffer_desc,
+            external_binding,
+        )
+    }
+
+    /// Imports a physical external buffer with an explicit graph lifetime role.
+    pub fn import_external_buffer_with_usage_and_binding(
+        &mut self,
+        name: impl Into<String>,
+        usage: RenderGraphResourceUsageFlags,
+        buffer_desc: BufferDesc,
+        external_binding: RenderGraphExternalResourceBinding,
+    ) -> ExternalResource {
+        let external_binding = match external_binding.resource_type {
+            RenderGraphExternalResourceType::Unknown => RenderGraphExternalResourceBinding {
+                resource_type: RenderGraphExternalResourceType::Buffer,
+                requirement: external_binding.requirement,
+            },
+            _ => external_binding,
+        };
+        self.import_external_resource_with_usage_binding_optional_alias_and_physical_desc(
+            name,
+            usage,
+            external_binding,
+            None,
+            None,
+            Some(buffer_desc),
         )
     }
 
@@ -259,6 +459,25 @@ impl RenderGraphBuilder {
         external_binding: RenderGraphExternalResourceBinding,
         external_alias_group: Option<String>,
     ) -> ExternalResource {
+        self.import_external_resource_with_usage_binding_optional_alias_and_physical_desc(
+            name,
+            usage,
+            external_binding,
+            external_alias_group,
+            None,
+            None,
+        )
+    }
+
+    fn import_external_resource_with_usage_binding_optional_alias_and_physical_desc(
+        &mut self,
+        name: impl Into<String>,
+        usage: RenderGraphResourceUsageFlags,
+        external_binding: RenderGraphExternalResourceBinding,
+        external_alias_group: Option<String>,
+        external_texture_desc: Option<TextureDesc>,
+        external_buffer_desc: Option<BufferDesc>,
+    ) -> ExternalResource {
         let id = self.next_external_resource;
         self.next_external_resource += 1;
         let handle = ExternalResource::from_index(id, self.generation);
@@ -267,7 +486,10 @@ impl RenderGraphBuilder {
             name: name.into(),
             desc: RenderGraphResourceDesc::External,
             external_binding,
+            external_texture_desc,
+            external_buffer_desc,
             external_alias_group,
+            texture_view_alias: None,
             usage,
         });
         handle
@@ -285,148 +507,55 @@ impl RenderGraphBuilder {
         })
     }
 
-    pub fn read_texture(
-        &mut self,
-        pass: RenderPassId,
-        texture: RgTextureHandle,
+    fn validate_resource_version_token(
+        &self,
+        consumer_pass: RenderPassId,
+        expected_resource: RenderGraphResource,
+        token: RenderGraphResourceVersionToken,
     ) -> Result<(), RenderGraphError> {
-        self.add_resource_access(
-            pass,
-            RenderGraphResource::TransientTexture(texture),
-            ResourceAccessKind::Read,
-            None,
-        )
-    }
-
-    pub fn write_texture(
-        &mut self,
-        pass: RenderPassId,
-        texture: RgTextureHandle,
-    ) -> Result<(), RenderGraphError> {
-        self.write_texture_with_ops(pass, texture, RenderGraphAttachmentOps::clear_store())
-    }
-
-    pub fn write_storage_texture(
-        &mut self,
-        pass: RenderPassId,
-        texture: RgTextureHandle,
-    ) -> Result<(), RenderGraphError> {
-        self.add_resource_access(
-            pass,
-            RenderGraphResource::TransientTexture(texture),
-            ResourceAccessKind::Write,
-            None,
-        )
-    }
-
-    pub fn write_texture_with_ops(
-        &mut self,
-        pass: RenderPassId,
-        texture: RgTextureHandle,
-        ops: RenderGraphAttachmentOps,
-    ) -> Result<(), RenderGraphError> {
-        self.add_resource_access(
-            pass,
-            RenderGraphResource::TransientTexture(texture),
-            ResourceAccessKind::Write,
-            Some(ops),
-        )
-    }
-
-    pub fn read_buffer(
-        &mut self,
-        pass: RenderPassId,
-        buffer: RgBufferHandle,
-    ) -> Result<(), RenderGraphError> {
-        self.add_resource_access(
-            pass,
-            RenderGraphResource::TransientBuffer(buffer),
-            ResourceAccessKind::Read,
-            None,
-        )
-    }
-
-    pub fn write_buffer(
-        &mut self,
-        pass: RenderPassId,
-        buffer: RgBufferHandle,
-    ) -> Result<(), RenderGraphError> {
-        self.add_resource_access(
-            pass,
-            RenderGraphResource::TransientBuffer(buffer),
-            ResourceAccessKind::Write,
-            None,
-        )
-    }
-
-    pub fn read_external(
-        &mut self,
-        pass: RenderPassId,
-        external: ExternalResource,
-    ) -> Result<(), RenderGraphError> {
-        self.add_resource_access(
-            pass,
-            RenderGraphResource::External(external),
-            ResourceAccessKind::Read,
-            None,
-        )
-    }
-
-    pub fn write_external(
-        &mut self,
-        pass: RenderPassId,
-        external: ExternalResource,
-    ) -> Result<(), RenderGraphError> {
-        self.add_resource_access(
-            pass,
-            RenderGraphResource::External(external),
-            ResourceAccessKind::Write,
-            Some(RenderGraphAttachmentOps::load_store()),
-        )
-    }
-
-    pub fn write_storage_external(
-        &mut self,
-        pass: RenderPassId,
-        external: ExternalResource,
-    ) -> Result<(), RenderGraphError> {
-        self.add_resource_access(
-            pass,
-            RenderGraphResource::External(external),
-            ResourceAccessKind::Write,
-            None,
-        )
-    }
-
-    pub fn write_external_with_ops(
-        &mut self,
-        pass: RenderPassId,
-        external: ExternalResource,
-        ops: RenderGraphAttachmentOps,
-    ) -> Result<(), RenderGraphError> {
-        self.add_resource_access(
-            pass,
-            RenderGraphResource::External(external),
-            ResourceAccessKind::Write,
-            Some(ops),
-        )
-    }
-
-    fn add_resource_access(
-        &mut self,
-        pass: RenderPassId,
-        resource: RenderGraphResource,
-        kind: ResourceAccessKind,
-        attachment_ops: Option<RenderGraphAttachmentOps>,
-    ) -> Result<(), RenderGraphError> {
-        self.ensure_pass(pass)?;
-        self.ensure_resource(resource)?;
-        self.passes[pass.0].resources.push(ResourceAccess {
-            resource,
-            kind,
-            attachment_ops,
-        });
+        if token.builder_generation() != self.generation {
+            return Err(RenderGraphError::ForeignResourceVersion {
+                handle_generation: token.builder_generation(),
+                builder_generation: self.generation,
+            });
+        }
+        if token.resource() != expected_resource {
+            return Err(RenderGraphError::ResourceVersionResourceMismatch {
+                pass: self.passes[consumer_pass.0].name.clone(),
+                expected_resource: self.resource_name(expected_resource),
+                producer_resource: self.resource_name(token.resource()),
+            });
+        }
+        let Some(producer_pass) = self.passes.get(token.producer_pass().index()) else {
+            return Err(RenderGraphError::ResourceVersionProducerMissing {
+                producer_pass: token.producer_pass().index(),
+                producer_access: token.producer_access_index(),
+            });
+        };
+        let Some(producer_access) = producer_pass.resources.get(token.producer_access_index())
+        else {
+            return Err(RenderGraphError::ResourceVersionProducerNotWrite {
+                producer_pass: producer_pass.name.clone(),
+                producer_access: token.producer_access_index(),
+            });
+        };
+        if producer_access.resource != expected_resource
+            || producer_access.kind != ResourceAccessKind::Write
+        {
+            return Err(RenderGraphError::ResourceVersionProducerNotWrite {
+                producer_pass: producer_pass.name.clone(),
+                producer_access: token.producer_access_index(),
+            });
+        }
         Ok(())
+    }
+
+    fn resource_name(&self, resource: RenderGraphResource) -> String {
+        self.resources
+            .iter()
+            .find(|candidate| candidate.resource == resource)
+            .map(|candidate| candidate.name.clone())
+            .unwrap_or_else(|| format!("{resource:?}"))
     }
 
     fn ensure_pass(&self, id: RenderPassId) -> Result<(), RenderGraphError> {
@@ -509,4 +638,80 @@ fn next_render_graph_builder_generation() -> u64 {
     } else {
         generation
     }
+}
+
+fn resource_access_kind(access: super::types::RenderGraphResourceAccessKind) -> ResourceAccessKind {
+    match access {
+        super::types::RenderGraphResourceAccessKind::Read => ResourceAccessKind::Read,
+        super::types::RenderGraphResourceAccessKind::Write => ResourceAccessKind::Write,
+    }
+}
+
+fn texture_view_alias_desc(
+    alias: &str,
+    parent_name: &str,
+    parent: &TextureDesc,
+    range: RenderGraphTextureSubresourceRange,
+) -> Result<TextureDesc, RenderGraphError> {
+    let array_layers = match parent.dimension {
+        TextureDimension::D2Array | TextureDimension::Cube => parent.depth,
+        TextureDimension::D1 | TextureDimension::D2 | TextureDimension::D3 => 1,
+    };
+    let mip_level_count = range
+        .mip_level_count
+        .unwrap_or_else(|| parent.mip_levels.saturating_sub(range.base_mip_level));
+    let array_layer_count = range
+        .array_layer_count
+        .unwrap_or_else(|| array_layers.saturating_sub(range.base_array_layer));
+    let mip_end = range.base_mip_level.checked_add(mip_level_count);
+    let array_end = range.base_array_layer.checked_add(array_layer_count);
+    if mip_level_count == 0
+        || array_layer_count == 0
+        || mip_end.is_none_or(|end| end > parent.mip_levels)
+        || array_end.is_none_or(|end| end > array_layers)
+    {
+        return Err(RenderGraphError::TextureViewAliasRangeOutOfBounds {
+            alias: alias.to_owned(),
+            parent_name: parent_name.to_owned(),
+            base_mip_level: range.base_mip_level,
+            mip_level_count: range.mip_level_count,
+            mip_levels: parent.mip_levels,
+            base_array_layer: range.base_array_layer,
+            array_layer_count: range.array_layer_count,
+            array_layers,
+        });
+    }
+    let aspect_supported = match range.aspect {
+        RenderGraphTextureAspect::All => true,
+        RenderGraphTextureAspect::Color => !parent.format.is_depth(),
+        RenderGraphTextureAspect::Depth => parent.format.is_depth(),
+        RenderGraphTextureAspect::Stencil => parent.format.has_stencil(),
+    };
+    if !aspect_supported {
+        return Err(RenderGraphError::TextureViewAliasAspectUnsupported {
+            alias: alias.to_owned(),
+            parent_name: parent_name.to_owned(),
+            aspect: range.aspect,
+            format: parent.format,
+        });
+    }
+
+    let mut desc = parent.clone();
+    desc.label = Some(alias.to_owned());
+    desc.width = mip_extent(parent.width, range.base_mip_level);
+    desc.height = mip_extent(parent.height, range.base_mip_level);
+    if parent.dimension == TextureDimension::D3 {
+        desc.depth = mip_extent(parent.depth, range.base_mip_level);
+    } else if matches!(
+        parent.dimension,
+        TextureDimension::D2Array | TextureDimension::Cube
+    ) {
+        desc.depth = array_layer_count;
+    }
+    desc.mip_levels = mip_level_count;
+    Ok(desc)
+}
+
+fn mip_extent(value: u32, mip_level: u32) -> u32 {
+    value.checked_shr(mip_level).unwrap_or(0).max(1)
 }

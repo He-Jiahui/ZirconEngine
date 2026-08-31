@@ -1,6 +1,6 @@
 use super::super::measure::measure_line_width_with_provider;
-use crate::text::shaping::TextShapeRunProvider;
 use crate::text::TextStyle;
+use crate::text::shaping::{TextLayoutOutcome, TextShapeRunProvider};
 
 const LINE_FIT_EPSILON: f32 = 0.01;
 
@@ -28,11 +28,12 @@ pub(crate) fn line_text_fits_with_provider<P>(
     max_width: f32,
     style: &TextStyle,
     provider: &mut P,
-) -> bool
+) -> TextLayoutOutcome<bool>
 where
     P: TextShapeRunProvider + ?Sized,
 {
-    measure_line_width_with_provider(text, style, provider) <= max_width + LINE_FIT_EPSILON
+    measure_line_width_with_provider(text, style, provider)
+        .map(|width| width <= max_width + LINE_FIT_EPSILON)
 }
 
 fn finite_non_negative(value: f32) -> f32 {

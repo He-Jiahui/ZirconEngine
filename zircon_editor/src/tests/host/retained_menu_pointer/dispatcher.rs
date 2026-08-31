@@ -136,7 +136,7 @@ fn shared_menu_pointer_click_dispatches_editor_operation_payloads_from_extension
     let mut extension = EditorExtensionRegistry::default();
     extension
         .register_command(
-            EditorCommandDescriptor::operation(operation_path.clone(), "Open Weather").with_event(
+            EditorCommandDescriptor::operation(operation_path.clone()).with_event(
                 EditorEvent::Layout(LayoutCommand::ActivateMainPage {
                     page_id: MainPageId::new("weather"),
                 }),
@@ -211,10 +211,11 @@ fn shared_menu_pointer_click_dispatches_nested_editor_operation_leaf_from_workbe
     let mut extension = EditorExtensionRegistry::default();
     extension
         .register_command(
-            EditorCommandDescriptor::operation(operation_path.clone(), "Refresh Cloud Layers")
-                .with_event(EditorEvent::Layout(LayoutCommand::ActivateMainPage {
+            EditorCommandDescriptor::operation(operation_path.clone()).with_event(
+                EditorEvent::Layout(LayoutCommand::ActivateMainPage {
                     page_id: MainPageId::new("weather"),
-                })),
+                }),
+            ),
         )
         .expect("test operation should register in extension");
     harness
@@ -317,10 +318,11 @@ fn shared_menu_pointer_click_executes_registered_operation_factory_transaction()
     let mut extension = EditorExtensionRegistry::default();
     extension
         .register_operation_command(
-            EditorCommandDescriptor::operation(operation_path.clone(), "Apply Retained Operation"),
+            EditorCommandDescriptor::operation(operation_path.clone()),
             OperationCommandFactoryRegistration::new(
                 operation_path.clone(),
                 "Apply Retained Operation",
+                crate::core::editing::operation::EditOperationTarget::EditWorkspace,
                 Arc::new(CountingOperationFactory {
                     applications: Arc::clone(&applications),
                 }),

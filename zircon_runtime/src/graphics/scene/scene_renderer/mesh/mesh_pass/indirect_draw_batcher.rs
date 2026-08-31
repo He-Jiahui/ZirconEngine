@@ -59,7 +59,10 @@ impl IndirectDrawBatcher {
             };
         }
 
-        let mut batcher = Self::default();
+        let mut batcher = Self {
+            args_cpu: Vec::with_capacity(commands.len()),
+            ..Self::default()
+        };
         let mut active_key = None::<IndirectDrawBatchKey>;
 
         for (command_index, command) in commands.iter().enumerate() {
@@ -267,6 +270,59 @@ mod tests {
         assert!(batcher.args_cpu().is_empty());
         assert!(batcher.batches().is_empty());
         assert_eq!(batcher.fallback_draw_count(), 1);
+    }
+
+    #[test]
+    fn optimization_batch_20260830dv_indirect_args_reserve_command_upper_bound() {
+        let source = include_str!("indirect_draw_batcher.rs");
+        let production = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("production source");
+
+        assert!(production.contains("args_cpu: Vec::with_capacity(commands.len())"));
+        assert!(production.contains("batches: Vec<IndirectDrawBatch>"));
+        assert!(!production.contains("batches: Vec::with_capacity(commands.len())"));
+    }
+
+    #[test]
+    #[ignore = "release-only performance evidence"]
+    fn optimization_batch_20260830dv_indirect_args_capacity_evidence() {
+        const FRAME_COUNT: usize = 32_768;
+        const COMMAND_COUNT: usize = 256;
+        const MARKER: &str = "RUNTIME530_INDIRECT_ARGS_CAPACITY_BENCH_V1";
+
+        let legacy_growth_events = args_growth_events(FRAME_COUNT, COMMAND_COUNT, false);
+        let optimized_growth_events = args_growth_events(FRAME_COUNT, COMMAND_COUNT, true);
+
+        assert!(legacy_growth_events > 0);
+        assert_eq!(optimized_growth_events, 0);
+        println!(
+            "{MARKER} frames={FRAME_COUNT} commands_per_frame={COMMAND_COUNT} \
+             legacy_growth_events={legacy_growth_events} \
+             optimized_growth_events={optimized_growth_events} reduction_pct=100"
+        );
+    }
+
+    fn args_growth_events(
+        frame_count: usize,
+        command_count: usize,
+        reserve_upper_bound: bool,
+    ) -> usize {
+        let mut growth_events = 0;
+        for _ in 0..frame_count {
+            let mut args = if reserve_upper_bound {
+                Vec::with_capacity(command_count)
+            } else {
+                Vec::new()
+            };
+            for command in 0..command_count {
+                let previous_capacity = args.capacity();
+                args.push(command);
+                growth_events += usize::from(args.capacity() != previous_capacity);
+            }
+        }
+        growth_events
     }
 
     #[test]
