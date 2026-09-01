@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-08-31
 summary_slug: cleanup-duplicate-target-deletion-evidence
 origin_plan: docs/plans/optimize/zircon_tooling/06-session-coordinator-control-plane-leases-validation-artifacts-finalize-supervision-review.md
@@ -14,6 +14,7 @@ related_code:
   - tools/session_coordinator/tests/test_cleanup.py
 tests:
   - python -B -m unittest tools.session_coordinator.tests.test_cleanup -v
+resolved_at: 2026-09-01
 ---
 
 # Tooling06: preserve per-attempt cleanup evidence for duplicate targets
@@ -66,6 +67,7 @@ the individual deletion attempt observed or performed.
 
 ## 修复结果与回传
 
-Implementation and focused regression are present in the Tooling06 owned scope. Full cleanup-suite
-validation, isolated derived-blob validation that excludes the foreign RetentionService hunk,
-failure return, and atomic finalization remain pending.
+- 根因：CleanupService.apply classified each candidate attempt from membership in the plan-wide deleted collection, so a later duplicate target inherited the first deletion result even after observing target_missing.
+- 架构修复：Track target_deleted as per-candidate state only after that candidate's rmtree succeeds, then use the same state for cargo cleanup status, lane events, and cleanup.target_deletion_completed while preserving the second retained attempt and releasing its reservation.
+- 验证：Coordinator validation ticket 2aab9ff49eb34c62a3e340c9053121f8 passed all 42 tools.session_coordinator.tests.test_cleanup tests in 340.807 seconds against source manifest b5964554ba16816bfb96daa19aced9a94c09b019613d61f3a7e0d0043deef091.
+- 回传：Duplicate persisted cleanup candidates now keep independent durable outcomes: the first deletion is deleted, the later missing-target attempt is retained with before.target_exists=false, lane events stay ordered, and reservations are released.
