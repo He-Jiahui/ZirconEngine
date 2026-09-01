@@ -498,9 +498,17 @@ class FailureCloseoutWorkflowTests(unittest.TestCase):
             {"kind": "focused", "dependencyRoots": ["tools/session_coordinator"]}
         )
         manifest_hash = hashlib.sha256(manifest_json.encode("utf-8")).hexdigest()
+        session = self.sessions.get(self.session_id)
         dedupe_key = hashlib.sha256(
             "\n".join(
-                (manifest_hash, command_json, toolchain_json, coverage_json)
+                (
+                    manifest_hash,
+                    command_json,
+                    toolchain_json,
+                    coverage_json,
+                    str(session.baseline_epoch or ""),
+                    session.base_head or "",
+                )
             ).encode("utf-8")
         ).hexdigest()
         now = utc_text()

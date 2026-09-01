@@ -1292,6 +1292,8 @@ class FailureCloseoutWorkflowService:
                     canonical_command,
                     canonical_toolchain,
                     canonical_coverage,
+                    str(session.baseline_epoch or ""),
+                    session.base_head or "",
                 )
             ).encode("utf-8")
         ).hexdigest()
