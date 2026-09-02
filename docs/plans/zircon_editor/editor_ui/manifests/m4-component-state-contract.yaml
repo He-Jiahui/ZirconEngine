@@ -1,0 +1,33 @@
+---
+milestone: M4
+status: validated
+mvp_gate: "design-ready"
+owner_sessions:
+  - current-session
+changed_scope:
+  - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_tab.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_rail_button.zui
+  - docs/plans/zircon_editor/editor_ui/evidence/m4-component-state-contract.md
+packages:
+  - zircon_editor
+feature_profiles: []
+interface_boundaries:
+  - workbench-component-visual-state
+  - editor-semantic-theme-tokens
+
+target_dir: "not-used-static-focused-tests"
+cargo_profile: "development"
+storage_mode: "reuse"
+commands:
+  - "python -m unittest tools.tests.test_editor_zui_workbench_layout_contract tools.tests.test_editor_zui_workbench_toolbar_radius_contract tools.tests.test_editor_zui_base_radius_hierarchy_contract tools.tests.test_editor_ui_focus_visible_contract tools.tests.test_editor_zui_product_interaction_event_contract"
+focused_tests:
+  - 76 Python layout radius focus and interaction contract tests
+product_evidence: []
+failures_repaired: []
+deferred_external_checks:
+  - Editor product screenshot
+  - keyboard focus ring product validation
+  - Penpot A2-P rendered parity
+unlocks:
+  - M5 product shell and Penpot parity validation
