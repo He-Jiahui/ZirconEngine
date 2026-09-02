@@ -1,0 +1,38 @@
+---
+milestone: M5
+status: blocked
+mvp_gate: "f4-accepted-required"
+owner_sessions:
+  - current-session
+changed_scope:
+  - docs/plans/zircon_editor/editor_ui/evidence/m5-product-closeout.md
+packages:
+  - zircon_editor
+  - zircon_runtime
+feature_profiles:
+  - target-editor-host
+interface_boundaries:
+  - penpot-a2-c
+  - penpot-a2-p
+  - editor-product-shell
+  - runtime-structured-frame
+
+target_dir: "coordinator-managed-required"
+cargo_profile: "development"
+storage_mode: "reuse"
+commands:
+  - "python -m unittest tools.tests.test_editor_zui_design_token_palette_parity_contract tools.tests.test_editor_workbench_preview_token_parity tools.tests.test_zircon_editor_ui_visual_oracle"
+  - "git remote -v"
+  - "git branch -vv"
+focused_tests:
+  - 35 token preview and visual oracle contract tests
+product_evidence: []
+failures_repaired: []
+deferred_external_checks:
+  - A2-C managed Cargo execution
+  - A2-P structured Runtime frame
+  - real Editor screenshot
+  - GPU and Softbuffer parity
+  - resize and input performance
+  - MVP F0-F4 owner acceptance
+unlocks: []
