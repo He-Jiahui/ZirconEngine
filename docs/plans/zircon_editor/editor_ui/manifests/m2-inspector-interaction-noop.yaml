@@ -1,0 +1,31 @@
+---
+milestone: M2
+status: validated
+mvp_gate: "design-ready"
+owner_sessions:
+  - current-session
+changed_scope:
+  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/inspector_filter.rs
+  - docs/plans/zircon_editor/editor_ui/evidence/m2-inspector-interaction-noop.md
+packages:
+  - zircon_editor
+feature_profiles: []
+interface_boundaries:
+  - editor-retained-inspector-input
+  - zui-change-submit-routing
+
+target_dir: "not-used-static-focused-tests"
+cargo_profile: "development"
+storage_mode: "reuse"
+commands:
+  - "git diff --check -- zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/inspector_filter.rs"
+  - "python -m unittest tools.tests.test_editor_zui_inspector_filter_contract tools.tests.test_editor_zui_product_interaction_event_contract tools.tests.test_editor_zui_inspector_layer_interaction_contract"
+focused_tests:
+  - 20 Python Inspector and product interaction contract tests
+product_evidence: []
+failures_repaired: []
+deferred_external_checks:
+  - Windows managed Rust lib tests
+  - real keyboard and IME product validation
+unlocks:
+  - M3 generation cache and invalidation performance

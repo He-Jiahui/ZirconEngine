@@ -44,6 +44,13 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             return Ok(Some(false));
         }
 
+        let current = self
+            .control_string(FILTER_CONTROL, "query")
+            .unwrap_or_default();
+        if current == value {
+            return Ok(Some(true));
+        }
+
         self.mutate_control_property(FILTER_CONTROL, "query", UiValue::String(value.to_string()))?;
         self.apply_inspector_filter()?;
         self.template_surface
