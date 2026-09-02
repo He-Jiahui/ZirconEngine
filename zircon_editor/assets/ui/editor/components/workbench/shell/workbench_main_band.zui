@@ -29,12 +29,12 @@ children = [{ node = "scene_workspace" }, { node = "module_workspace" }]
 component = "HorizontalGroup"
 control_id = "WorkbenchSceneWorkspace"
 classes = ["workbench-main-band", "workbench-scene-workspace"]
-layout = { clip = true, container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.xsmall" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [
   { node = "activity_rail", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } },
-  { node = "left_drawer_shell", slot = { layout = { linear_size = { rule = "StretchContent", value = 1.0 } } } },
-  { node = "viewport_panel", slot = { layout = { linear_size = { rule = "Stretch", value = 4.0 } } } },
-  { node = "right_drawer_shell", slot = { layout = { linear_size = { rule = "StretchContent", value = 1.0 } } } },
+  { node = "left_drawer_shell", slot = { layout = { linear_size = { rule = "StretchContent", value = 1.0, shrink_value = 1.0 } } } },
+  { node = "viewport_panel", slot = { layout = { linear_size = { rule = "Stretch", value = 4.0, shrink_value = 0.0 } } } },
+  { node = "right_drawer_shell", slot = { layout = { linear_size = { rule = "StretchContent", value = 1.0, shrink_value = 1.0 } } } },
 ]
 
 [nodes.activity_rail]
@@ -57,7 +57,7 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 [nodes.viewport_panel]
 component = "WorkbenchViewportPanel"
 control_id = "WorkbenchMainBandViewportPanel"
-layout = { width = { priority = 100, weight = 4.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { width = { min = 0.0, priority = 100, weight = 4.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
 [nodes.right_drawer_shell]
 component = "Container"

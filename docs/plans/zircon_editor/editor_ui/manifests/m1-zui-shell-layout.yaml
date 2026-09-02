@@ -1,0 +1,33 @@
+---
+milestone: M1
+status: validated
+mvp_gate: "design-ready"
+owner_sessions:
+  - current-session
+changed_scope:
+  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_main_band.zui
+  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_scene_tree_panel.zui
+  - docs/plans/zircon_editor/editor_ui/evidence/m1-zui-shell-layout.md
+packages:
+  - zircon_editor
+feature_profiles: []
+interface_boundaries:
+  - editor-zui-workbench-layout
+  - editor-shell-region-sizing
+
+target_dir: "not-used-static-focused-tests"
+cargo_profile: "development"
+storage_mode: "reuse"
+commands:
+  - "git diff --check -- <M1 files>"
+  - "python -m unittest tools.tests.test_editor_zui_workbench_layout_contract tools.tests.test_editor_zui_scene_tree_header_contract tools.tests.test_editor_zui_workbench_product_drawer_authority_contract"
+focused_tests:
+  - 26 Python ZUI layout/scene-tree/drawer contract tests
+product_evidence: []
+failures_repaired: []
+deferred_external_checks:
+  - Windows managed Cargo validation
+  - Editor resize pressure and screenshot capture
+  - Penpot A2-P rendered parity
+unlocks:
+  - M2 input focus and typed command boundary
