@@ -101,6 +101,13 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         }
 
         let raw_value = strip_axis_prefix(value, edit.axis_label);
+        let current_value = self
+            .control_string(edit.control_id, "value")
+            .unwrap_or_default();
+        if current_value == raw_value {
+            return Ok(Some(true));
+        }
+
         self.mutate_control_property(edit.control_id, "value", UiValue::String(raw_value.clone()))?;
         self.mutate_control_property(
             edit.row_control_id,

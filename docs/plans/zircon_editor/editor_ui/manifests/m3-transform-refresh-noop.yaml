@@ -1,0 +1,32 @@
+---
+milestone: M3
+status: validated
+mvp_gate: "design-ready"
+owner_sessions:
+  - current-session
+changed_scope:
+  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/transform_edit.rs
+  - docs/plans/zircon_editor/editor_ui/evidence/m3-transform-refresh-noop.md
+packages:
+  - zircon_editor
+feature_profiles: []
+interface_boundaries:
+  - inspector-transform-transient-edit
+  - retained-surface-dirty-refresh
+
+target_dir: "not-used-static-focused-tests"
+cargo_profile: "development"
+storage_mode: "reuse"
+commands:
+  - "git diff --check -- zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/transform_edit.rs"
+  - "python -m unittest tools.tests.test_editor_zui_edit_control_index_contract tools.tests.test_editor_zui_product_interaction_event_contract tools.tests.test_editor_zui_inspector_layer_interaction_contract"
+focused_tests:
+  - 16 Python edit-control and interaction contract tests
+product_evidence: []
+failures_repaired: []
+deferred_external_checks:
+  - Windows managed Rust tests
+  - real pointer drag and keyboard repeat profile
+  - full patch GPU parity
+unlocks:
+  - M4 Penpot parity and product shell validation
