@@ -1,0 +1,34 @@
+---
+milestone: M0
+status: planned
+mvp_gate: "design-ready"
+owner_sessions: []
+changed_scope:
+  - docs/plans/zircon_editor/editor_ui/2026-09-02-penpot-slate-zui-convergence.md
+  - docs/plans/zircon_editor/editor_ui/evidence/m0-zui-slate-ui-contract.md
+packages:
+  - zircon_runtime_interface
+  - zircon_runtime
+  - zircon_editor
+feature_profiles: []
+interface_boundaries:
+  - zircon_runtime_interface::ui
+  - zircon_runtime::ui
+  - zircon_editor::ui
+  - penpot-authoring-adapter
+
+target_dir: "<coordinator-assigned-approved-path>"
+cargo_profile: "development"
+storage_mode: "reuse"
+commands: []
+focused_tests:
+  - zui governance/parser checks
+  - editor UI structure guards
+product_evidence: []
+failures_repaired: []
+deferred_external_checks:
+  - Windows managed Cargo validation
+  - real Penpot browser round-trip
+  - product screenshot/frame parity
+unlocks:
+  - M1 shell token/component/layout baseline
