@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 failure_scope: cross_plan
 created_at: 2026-08-23
 summary_slug: runtime90-readback-layout-test-queue-lifetime
@@ -11,6 +11,7 @@ fixing_child_dir: docs/plans/optimize/zircon_runtime/90
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/crates/zr_rhi_wgpu/src/gpu_readback_queue/tests.rs
+resolved_at: 2026-09-05
 ---
 
 # Runtime90 readback layout test Queue lifetime: validation failure handoff
@@ -61,8 +62,7 @@ in fixture lifetime setup instead of reaching the readback contract under test.
 
 ## 修复结果与回传
 
-Runtime90 has retained the queue returned by `offscreen_test_device()` in the affected fixture, so
-encoder creation now reaches the intended oversized readback request. The focused managed replay
-passes its `CapacityOverflow` and exactly-once abort-callback assertions. The full current-source
-`zr_rhi_wgpu --lib` suite still needs a fresh managed receipt, so this handoff remains `open` and
-is not acceptance evidence for either Runtime90 or UI12.
+- 根因：The test discarded its only wgpu Queue before creating the command encoder, so fixture setup failed before exercising readback overflow.
+- 架构修复：The existing named _submission_queue binding retains the Queue for the full fixture lifetime. Oversized range, CapacityOverflow, pending callback and explicit abort assertions remain unchanged; production readback logic is unchanged.
+- 验证：Focused replay of the current managed test binary passed 1/1 on 2026-09-05 using fixture lease f316d891bf164d6dbe972e5c8cb32347. Full serial Windows validate-matrix.ps1 -Package zr_rhi_wgpu -SkipBuild -LibTests with RUST_TEST_THREADS=1 passed: job 045109d2b7624a78ad329f307f4416b9 released exit 0 at 2026-09-05T08:44:16Z, [OK] Cargo test. No numeric full-suite total is claimed because the validator suppresses harness stdout.
+- 回传：UI12 can resume the M6 full lower-layer WGPU regression gate; queue lifetime setup now reaches the intended readback overflow and abort contract.
