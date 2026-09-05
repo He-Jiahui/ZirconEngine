@@ -1,22 +1,28 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
+failure_scope: cross_plan
 created_at: 2026-08-25
 summary_slug: ui-srgb-coverage-and-native-drop-order
 origin_plan: docs/plans/zircon_runtime/frameworks/01-runtime-crate-decomposition.md
 fixing_plan: docs/plans/optimize/zircon_runtime/79-runtime-ui-renderer-display-list-paint-order-clip-transform-opacity-atlas-text-glyph-batch-wgpu-submit-product-integration-current-source-review.md
 origin_child_dir: docs/plans/zircon_runtime/frameworks/01
 fixing_child_dir: docs/plans/optimize/zircon_runtime/79
+plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/tests/native_submission.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/shaders/ui_material.wgsl
+  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/tests.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/geometry/tests.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/batching/tests.rs
 tests:
   - >-
     $env:RUST_TEST_THREADS='1'; $env:RUST_TEST_NOCAPTURE='1';
     $env:TEMP='E:\Git\ZirconEngine\.codex\state\session-coordinator';
     & .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1
     -Package zr_rhi_wgpu -SkipBuild -LibTests
+resolved_at: 2026-09-05
 ---
 
 # Runtime79: UI sRGB fixture coverage coupling and native drop order
@@ -64,4 +70,7 @@ actual [174, 174, 174, 108]
 
 ## 修复结果与回传
 
-Open state: `待修复`; no pass is claimed.
+- 根因：The single-pixel color fixture sampled analytic edge coverage, and UI native owners declared dependencies after their queue/device/adapter/instance owners.
+- 架构修复：Context and renderer declare native owners last in dependency order; owned surface setup retains its creating instance through device handoff. Native lifecycle guards freeze this order. The sRGB fixture requires a WGPU device and samples full interior coverage while retaining RGB 187..189 and alpha 127..128. Rounded color partition, clipping precision, analytic fringe and batching fixtures now test their distinct contracts; submit guards include allocation pins.
+- 验证：Windows managed full serial zr_rhi_wgpu --lib: validate-matrix.ps1 -Package zr_rhi_wgpu -SkipBuild -LibTests with RUST_TEST_THREADS=1; job 045109d2b7624a78ad329f307f4416b9 released exit 0, [OK] Cargo test, 2026-09-05T08:44:16Z. Focused rounded color partition job 1d3402ddb78e4808909950c704ad2843 released exit 0. Scoped rustfmt and independent source review passed. Full validator suppresses harness totals, so no numeric test count is claimed.
+- 回传：Frameworks01 can resume RHI/WGPU product integration after the complete library gate passed. Runtime79 M7 product capture and backend reference-artifact qualification remain open and are not certified by this failure closeout.
