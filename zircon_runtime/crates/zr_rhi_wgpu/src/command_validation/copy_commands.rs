@@ -463,6 +463,7 @@ mod tests {
     #[test]
     fn command_copy_execution_does_not_clone_whole_source_resources() {
         let source = include_str!("copy_commands.rs");
+        let source = source.split("mod tests {").next().unwrap();
         let compact = source.split_whitespace().collect::<String>();
 
         assert!(

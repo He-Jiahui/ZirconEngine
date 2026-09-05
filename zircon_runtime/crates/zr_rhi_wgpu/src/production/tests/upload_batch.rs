@@ -4,6 +4,7 @@ fn texture_upload_batches_are_ticketed_without_per_subresource_payload_clones() 
     let native_submission = include_str!("../device/native_submission.rs");
     let submission = include_str!("../submission.rs");
     let upload_batch = include_str!("../upload_batch.rs");
+    let queued_work = include_str!("../submission/queued_work.rs");
 
     assert!(native_submission.contains("enqueue_native_texture_upload_batch"));
     assert!(native_submission.contains("enqueue_native_buffer_upload_batch"));
@@ -11,7 +12,9 @@ fn texture_upload_batches_are_ticketed_without_per_subresource_payload_clones() 
     assert!(submission.contains("TextureUploadBatch"));
     assert!(buffer_batch.contains("WgpuBufferUploadBatch"));
     assert!(buffer_batch.contains("Arc<[u8]>"));
-    assert!(submission.contains("Arc<[u8]>"));
+    assert!(upload_batch.contains("Arc<[u8]>"));
+    assert!(queued_work.contains("batch: WgpuBufferUploadBatch"));
+    assert!(queued_work.contains("batch: WgpuTextureUploadBatch"));
     assert!(upload_batch.contains("source_range"));
     assert!(upload_batch.contains("WgpuTextureUploadBatch"));
     assert!(!native_submission.contains("queue.write_texture"));
@@ -73,10 +76,11 @@ fn mixed_resource_upload_uses_one_copy_ticket_and_preserves_upload_before_draw_o
         .split("QueuedWgpuSubmission::ResourceUpload")
         .nth(1)
         .expect("mixed resource flush arm");
-    let buffer_write = resource_flush
+    let compact_resource_flush = resource_flush.split_whitespace().collect::<String>();
+    let buffer_write = compact_resource_flush
         .find("self.queue.write_buffer")
         .expect("buffer writes");
-    let texture_write = resource_flush
+    let texture_write = compact_resource_flush
         .find("self.queue.write_texture")
         .expect("texture writes");
     assert!(buffer_write < texture_write);

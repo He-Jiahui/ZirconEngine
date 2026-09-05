@@ -143,6 +143,7 @@ mod tests {
     #[test]
     fn prepared_surface_target_discards_unpresented_leases() {
         let source = include_str!("native_surface_recording.rs");
+        let source = source.split("mod tests {").next().unwrap();
 
         assert!(source.contains("pub struct WgpuNativeSurfaceFrameTarget"));
         assert!(source.contains("impl Drop for WgpuNativeSurfaceFrameTarget"));

@@ -71,7 +71,10 @@ fn image_pins_retire_with_their_submission_ticket() {
     assert!(packet.contains("pub(crate) fn retain_ui_image_pins("));
     assert!(submission.contains("WgpuUiImageRetirementOwner"));
     assert!(submission.contains("commit_packet_with_ui_image_pins("));
-    assert!(submission.contains("self.ui_image_retirements.retain_batch("));
+    assert!(submission
+        .split_whitespace()
+        .collect::<String>()
+        .contains("self.ui_image_retirements.retain_batch("));
     assert!(submission.contains("completion_retirements.complete(&completed_tickets)"));
     assert!(submission.contains("self.ui_image_retirements.terminalize_all()"));
     assert!(retirement.contains("HashMap<SubmissionTicket, WgpuUiImageInFlightPins>"));
@@ -93,13 +96,16 @@ fn shared_surface_present_uses_the_arc_device_owner_and_keeps_its_ticket() {
     assert!(source.contains(".submit_native_recording_packet(packet)"));
     assert!(!source.contains("self.queue.submit(Some(command_buffer))"));
     assert!(!source.contains("Result<Option<SubmissionTicket>, RhiError>"));
-    assert!(presentation.contains("let submission = Some(self.submit_present_command_buffer"));
+    assert!(presentation
+        .split_whitespace()
+        .collect::<String>()
+        .contains("letsubmission=Some(self.submit_present_command_buffer"));
     assert!(!presentation.contains("self.queue.submit(Some(encoder.finish()));"));
     assert!(neutral_stats.contains("pub submission: Option<SubmissionTicket>"));
     assert!(source.contains("stats.submission = presentation.submission"));
 
     let submit = presentation
-        .find("let submission = Some(self.submit_present_command_buffer")
+        .find("self.submit_present_command_buffer(")
         .expect("shared UI present must submit through the device owner");
     let retained_commit = presentation
         .find("retained_cache.mark_ordinary_baseline_ready()")

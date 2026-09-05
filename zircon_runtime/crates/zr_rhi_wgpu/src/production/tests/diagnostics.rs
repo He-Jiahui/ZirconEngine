@@ -98,11 +98,19 @@ fn native_query_recording_reserves_before_passes_and_binds_only_at_scene_enqueue
     assert!(device_diagnostics_source.contains("pub fn prepare_native_diagnostic_query_frame("));
     assert!(native_recording_source
         .contains("pub fn enqueue_native_recording_packet_with_frame_diagnostics("));
-    assert!(native_recording_source.contains("bind_native_query_frame(ticket, frame)"));
-    assert!(native_recording_source
+    let native_enqueue = native_recording_source
+        .split("pub fn enqueue_native_recording_packet_with_frame_diagnostics(")
+        .nth(1)
+        .and_then(|source| {
+            source
+                .split("pub fn submit_native_recording_packet(")
+                .next()
+        })
+        .expect("native diagnostic enqueue owner");
+    assert!(native_enqueue
         .find("bind_native_query_frame(ticket, frame)")
-        .is_some_and(|bind| native_recording_source
-            .find("self.submissions.commit_packet(ticket, command_buffers)")
+        .is_some_and(|bind| native_enqueue
+            .find("self.submissions.commit_packet_with_ui_image_pins(")
             .is_some_and(|commit| bind < commit)));
 }
 

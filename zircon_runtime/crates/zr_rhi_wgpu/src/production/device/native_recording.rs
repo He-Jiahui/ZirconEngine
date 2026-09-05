@@ -429,6 +429,7 @@ mod tests {
     #[test]
     fn native_packet_is_generation_qualified_and_opaque_to_product_callers() {
         let source = include_str!("native_recording.rs");
+        let source = source.split("mod tests {").next().unwrap();
 
         for field in [
             "device_id",
@@ -448,6 +449,7 @@ mod tests {
     #[test]
     fn fused_surface_target_is_registered_before_the_scene_packet_flushes() {
         let source = include_str!("native_recording.rs");
+        let source = source.split("mod tests {").next().unwrap();
         let fused_submit = source
             .split("pub fn submit_native_recording_packet_with_frame_diagnostics_and_surface")
             .nth(1)

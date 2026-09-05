@@ -3,6 +3,7 @@ fn surface_bootstrap_transfers_one_compatible_native_surface_into_the_neutral_de
     let bootstrap = include_str!("../surface_bootstrap.rs");
     let selected_adapter = include_str!("../surface_bootstrap_adapter.rs");
     let device = include_str!("../device.rs");
+    let surface_lifecycle = include_str!("../device/surface_lifecycle.rs");
     let service = include_str!("../surface.rs");
 
     for required in [
@@ -10,7 +11,8 @@ fn surface_bootstrap_transfers_one_compatible_native_surface_into_the_neutral_de
         "instance: wgpu::Instance",
         "surface: wgpu::Surface<'static>",
         "pub fn select_compatible_adapter(\n        self,",
-        "surface.get_capabilities(&adapter)",
+        "let surface_ref = &surface;",
+        "surface_ref.get_capabilities(&adapter)",
         "surface_descriptor_is_supported(&capabilities, &descriptor)",
     ] {
         assert!(
@@ -35,7 +37,9 @@ fn surface_bootstrap_transfers_one_compatible_native_surface_into_the_neutral_de
     }
 
     assert!(
-        device.contains("fn adopt_surface_session("),
+        device.contains("mod surface_lifecycle;")
+            && surface_lifecycle.contains("impl WgpuRenderDevice {")
+            && surface_lifecycle.contains("fn adopt_surface_session("),
         "the neutral device must own the bootstrap handoff endpoint"
     );
     assert!(
