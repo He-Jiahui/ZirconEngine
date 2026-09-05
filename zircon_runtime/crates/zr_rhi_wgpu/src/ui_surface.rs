@@ -77,13 +77,13 @@ impl WgpuUiSurfaceCompletionOwner {
 /// that invariant makes imported render products and UI sampling use the same WGPU device.
 #[derive(Clone)]
 pub struct WgpuUiSurfaceContext {
-    instance: wgpu::Instance,
-    adapter: wgpu::Adapter,
-    device: wgpu::Device,
-    queue: wgpu::Queue,
+    completion_owner: WgpuUiSurfaceCompletionOwner,
     shared_image_registry: Arc<WgpuUiSharedImageRegistry>,
     render_device: Arc<WgpuRenderDevice>,
-    completion_owner: WgpuUiSurfaceCompletionOwner,
+    queue: wgpu::Queue,
+    device: wgpu::Device,
+    adapter: wgpu::Adapter,
+    instance: wgpu::Instance,
 }
 
 impl WgpuUiSurfaceContext {
@@ -96,13 +96,13 @@ impl WgpuUiSurfaceContext {
         render_device: Arc<WgpuRenderDevice>,
     ) -> Self {
         Self {
-            instance,
-            adapter,
-            device,
-            queue,
+            completion_owner: WgpuUiSurfaceCompletionOwner::External,
             shared_image_registry,
             render_device,
-            completion_owner: WgpuUiSurfaceCompletionOwner::External,
+            queue,
+            device,
+            adapter,
+            instance,
         }
     }
 
@@ -230,6 +230,13 @@ impl WgpuUiExternalImage {
 /// supplied to the presenter. Returning `None` selects the ordinary CPU image-cache fallback.
 pub trait WgpuUiSurfaceExternalImageProvider: Send + Sync {
     fn resolve(&self, resource_key: &str, generation: u64) -> Option<WgpuUiExternalImage>;
+
+    /// Returns a stable provider revision when unchanged revisions imply unchanged image products.
+    /// Providers that cannot make that guarantee must return `None`, preserving per-source
+    /// resolution on every prepare.
+    fn cache_revision(&self) -> Option<u64> {
+        None
+    }
 
     /// Records that the UI cache accepted a resolved texture for sampling.
     fn confirm_resident(&self, _resource_key: &str, _generation: u64) {}
@@ -558,10 +565,6 @@ impl WgpuUiSurfaceRenderStats {
 }
 
 struct WgpuUiSurfaceRenderer {
-    _instance: wgpu::Instance,
-    _adapter: wgpu::Adapter,
-    device: wgpu::Device,
-    queue: wgpu::Queue,
     surface: wgpu::Surface<'static>,
     config: wgpu::SurfaceConfiguration,
     damage_clear_pipeline: wgpu::RenderPipeline,
@@ -584,6 +587,10 @@ struct WgpuUiSurfaceRenderer {
     compiled_draw_buffers: WgpuUiDrawBufferCache,
     damage_draw_op_candidates: Vec<usize>,
     present_index: u64,
+    queue: wgpu::Queue,
+    device: wgpu::Device,
+    _adapter: wgpu::Adapter,
+    _instance: wgpu::Instance,
 }
 
 impl WgpuUiSurfaceRenderer {
@@ -603,8 +610,9 @@ impl WgpuUiSurfaceRenderer {
             force_fallback_adapter: false,
         }))
         .map_err(|_| RhiError::SurfaceUnavailable("no compatible adapter found".into()))?;
+        // Keep the local instance alive until the already-created surface reaches its owner.
         let render_device =
-            request_owned_render_device(instance, &adapter, descriptor.allow_gpu_timing)?;
+            request_owned_render_device(instance.clone(), &adapter, descriptor.allow_gpu_timing)?;
         let context = render_device
             .ui_surface_context()
             .with_local_completion_owner();
@@ -652,10 +660,6 @@ impl WgpuUiSurfaceRenderer {
             .map(|_| GpuReadbackQueue::new(&context.device));
 
         Ok(Self {
-            _instance: context.instance,
-            _adapter: context.adapter,
-            device: context.device,
-            queue: context.queue,
             surface,
             config,
             damage_clear_pipeline,
@@ -678,6 +682,10 @@ impl WgpuUiSurfaceRenderer {
             compiled_draw_buffers: WgpuUiDrawBufferCache::default(),
             damage_draw_op_candidates: Vec::new(),
             present_index: 0,
+            queue: context.queue,
+            device: context.device,
+            _adapter: context.adapter,
+            _instance: context.instance,
         })
     }
 

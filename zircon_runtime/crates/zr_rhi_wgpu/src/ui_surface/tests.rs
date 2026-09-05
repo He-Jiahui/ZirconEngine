@@ -8,10 +8,65 @@ use zr_rhi::{
 use super::color_space::UI_IMAGE_TEXTURE_FORMAT;
 use super::*;
 
+fn assert_native_owner_suffix(source: &str, declaration: &str, suffix: &str) {
+    let body = source
+        .split_once(declaration)
+        .and_then(|(_, remainder)| remainder.split_once("\n}"))
+        .map(|(body, _)| body)
+        .unwrap_or_else(|| panic!("missing struct declaration {declaration}"));
+    let compact = body.split_whitespace().collect::<String>();
+
+    assert!(
+        compact.ends_with(suffix),
+        "{declaration} must declare queue/device/adapter/instance last and in dependency order"
+    );
+}
+
 #[path = "tests/native_submission.rs"]
 mod native_submission;
 #[path = "tests/timeline_ownership.rs"]
 mod timeline_ownership;
+
+#[test]
+fn ui_surface_native_dependents_drop_before_queue_device_adapter_and_instance() {
+    let source = include_str!("../ui_surface.rs");
+
+    assert_native_owner_suffix(
+        source,
+        "pub struct WgpuUiSurfaceContext {",
+        "queue:wgpu::Queue,device:wgpu::Device,adapter:wgpu::Adapter,instance:wgpu::Instance,",
+    );
+    assert_native_owner_suffix(
+        source,
+        "struct WgpuUiSurfaceRenderer {",
+        "queue:wgpu::Queue,device:wgpu::Device,_adapter:wgpu::Adapter,_instance:wgpu::Instance,",
+    );
+
+    let owned_constructor = source
+        .split_once("fn new_owned(")
+        .and_then(|(_, remainder)| remainder.split_once("fn new_with_context("))
+        .map(|(body, _)| body)
+        .expect("missing owned UI surface constructor");
+    let compact_constructor = owned_constructor.split_whitespace().collect::<String>();
+    let instance_declaration = compact_constructor
+        .find("letinstance=")
+        .expect("owned UI surface constructor must create an instance owner");
+    let surface_creation = compact_constructor
+        .find("letsurface=create_surface(&instance,target)?;")
+        .expect("owned UI surface constructor must create its surface from the retained instance");
+    let retained_instance_handoff = compact_constructor
+        .find("request_owned_render_device(instance.clone(),")
+        .expect(
+            "device creation must receive a clone while the surface keeps its local instance owner",
+        );
+    let surface_handoff = compact_constructor
+        .find("Self::from_surface(descriptor,context,surface,None)")
+        .expect("owned UI surface constructor must hand the surface to its steady-state owner");
+
+    assert!(instance_declaration < surface_creation);
+    assert!(surface_creation < retained_instance_handoff);
+    assert!(retained_instance_handoff < surface_handoff);
+}
 
 #[test]
 fn retryable_surface_acquisition_does_not_advance_the_presented_frame_count() {

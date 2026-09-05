@@ -59,13 +59,13 @@ fn batch_plan_batches_disjoint_rounded_quads_without_fallback() {
         vec![
             rounded_quad(
                 0,
-                UiSurfaceRect::new(0.0, 0.0, 10.0, 10.0),
+                UiSurfaceRect::new(2.0, 2.0, 10.0, 10.0),
                 [255, 0, 0, 255],
                 5.0,
             ),
             rounded_quad(
                 1,
-                UiSurfaceRect::new(20.0, 0.0, 10.0, 10.0),
+                UiSurfaceRect::new(22.0, 2.0, 10.0, 10.0),
                 [0, 255, 0, 255],
                 5.0,
             ),

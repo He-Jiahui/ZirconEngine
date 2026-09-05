@@ -112,7 +112,7 @@ fn wgpu_ui_surface_presents_only_after_submission_and_retained_commit() {
         .and_then(|source| source.split("fn retryable_surface_presentation(").next())
         .expect("native surface render owner");
     let submit = render
-        .find("self.submit_present_command_buffer(encoder.finish())?")
+        .find("self.submit_present_command_buffer(encoder.finish(), image_allocation_pins)?")
         .expect("native presentation must submit its encoder");
     let commit = render
         .find("RetainedCacheCommit::OrdinaryBaseline =>")
@@ -136,7 +136,7 @@ fn wgpu_ui_surface_commits_retained_state_only_after_owner_submission() {
         .find(".encode_copies(&mut encoder, self.present_index)")
         .expect("readback copies must be encoded before submission");
     let submit = source
-        .find("self.submit_present_command_buffer(encoder.finish())?")
+        .find("self.submit_present_command_buffer(encoder.finish(), image_allocation_pins)?")
         .expect("native presentation must submit its encoder");
     let commit = source
         .find("RetainedCacheCommit::OrdinaryBaseline =>")
@@ -181,7 +181,7 @@ fn wgpu_ui_surface_acquires_before_advancing_or_preparing_the_frame() {
 fn wgpu_ui_surface_does_not_fail_a_submitted_frame_when_timing_map_fails() {
     let source = include_str!("../presentation.rs");
     let submitted = source
-        .split("self.submit_present_command_buffer(encoder.finish())?")
+        .split("self.submit_present_command_buffer(encoder.finish(), image_allocation_pins)?")
         .nth(1)
         .and_then(|source| source.split("Ok(WgpuUiSurfaceRenderStats").next())
         .expect("native presentation should finish submitted-frame bookkeeping");
@@ -299,7 +299,7 @@ fn wgpu_ui_rounded_box_readback_partitions_fill_and_border_colors() {
     let pixels = render_analytic_solid_commands(
         &device,
         &queue,
-        UiSurfaceRect::new(1.0, 1.0, 6.0, 6.0),
+        UiSurfaceRect::new(0.0, 0.0, 8.0, 8.0),
         vec![
             UiSurfaceCommandKind::Quad {
                 color: [255, 0, 0, 255],
@@ -307,7 +307,7 @@ fn wgpu_ui_rounded_box_readback_partitions_fill_and_border_colors() {
             },
             UiSurfaceCommandKind::Border {
                 color: [0, 255, 0, 255],
-                width: 1.0,
+                width: 2.0,
                 corner_radius: 2.0,
             },
         ],
@@ -316,8 +316,12 @@ fn wgpu_ui_rounded_box_readback_partitions_fill_and_border_colors() {
     let pixel = |x: usize, y: usize| pixels[y * 8 + x];
 
     assert_eq!(pixel(3, 3), [255, 0, 0, 255], "center uses fill color");
-    assert_eq!(pixel(3, 1), [0, 255, 0, 255], "ring uses border color");
-    let outer_corner = pixel(1, 1);
+    assert_eq!(
+        pixel(3, 1),
+        [0, 255, 0, 255],
+        "ring interior uses border color"
+    );
+    let outer_corner = pixel(0, 0);
     assert!(
         outer_corner[3] > 0 && outer_corner[3] < 255,
         "rounded outer corner must retain fractional coverage: {outer_corner:?}"
@@ -370,10 +374,9 @@ fn wgpu_ui_fractional_square_border_readback_preserves_subpixel_width() {
 }
 
 #[test]
-fn wgpu_ui_srgb_target_encodes_linear_light_alpha_coverage() {
-    let Some((device, queue)) = offscreen_test_device() else {
-        return;
-    };
+fn wgpu_ui_srgb_target_encodes_linear_light_alpha_at_an_interior_sample() {
+    let (device, queue) = offscreen_test_device()
+        .expect("the managed sRGB qualification requires an offscreen WGPU device");
 
     let pixel = render_flat_solid_sample(
         &device,

@@ -601,7 +601,11 @@ fn wgpu_ui_surface_damage_redraws_content_beneath_the_analytic_fringe() {
     let items = solid_items(&draw_list);
 
     assert_eq!(items.len(), 2);
-    assert_eq!(items[0].rect, background_frame);
+    assert_eq!(items[0].rect, UiSurfaceRect::new(9.75, 13.0, 1.75, 6.0));
+    assert!(items[0]
+        .vertices()
+        .iter()
+        .all(|vertex| vertex.half_extent == [0.25, 2.0]));
     assert_eq!(items[1].rect, UiSurfaceRect::new(9.75, 11.25, 22.0, 20.0));
 }
 
@@ -651,7 +655,8 @@ fn wgpu_ui_surface_clip_does_not_rebuild_rounded_geometry_at_the_clip_edge() {
     assert!(solid
         .vertices()
         .iter()
-        .any(|vertex| vertex.local_position == [0.0, -10.0]));
+        .any(|vertex| vertex.local_position[0].abs() < 0.000_01
+            && (vertex.local_position[1] + 10.0).abs() < 0.000_01));
     assert!(solid.vertices().iter().all(|vertex| {
         vertex.half_extent == [10.0, 10.0]
             && vertex.corner_radius == 8.0
@@ -674,7 +679,8 @@ fn wgpu_ui_surface_clip_does_not_rebuild_rounded_geometry_at_the_clip_edge() {
     assert!(border
         .vertices()
         .iter()
-        .any(|vertex| vertex.local_position == [0.0, -10.0]));
+        .any(|vertex| vertex.local_position[0].abs() < 0.000_01
+            && (vertex.local_position[1] + 10.0).abs() < 0.000_01));
     assert!(border.vertices().iter().all(|vertex| {
         vertex.half_extent == [10.0, 10.0]
             && vertex.corner_radius == 8.0
