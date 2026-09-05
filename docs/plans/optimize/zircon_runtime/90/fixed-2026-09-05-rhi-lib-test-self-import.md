@@ -14,6 +14,8 @@ related_code:
   - zircon_runtime/crates/zr_rhi/src/tests/device_fault.rs
   - zircon_runtime/crates/zr_rhi/src/tests/device_profile.rs
   - zircon_runtime/crates/zr_rhi/src/tests/handles.rs
+  - zircon_runtime/crates/zr_rhi/src/ui_surface/compact_styles.rs
+  - zircon_runtime/crates/zr_rhi/src/ui_surface/image_resources.rs
 tests:
   - .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zr_rhi -SkipBuild -LibTests -TestFilter surface_handle -VerboseOutput
   - .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zr_rhi -SkipBuild -LibTests -VerboseOutput
@@ -60,5 +62,5 @@ crate-relative imports in the unit-test tree.
 
 - 根因：Unit-test modules used external-crate imports even though lib.rs mounts them as cfg(test) children; the RHI UI source-contract tests also had stale source slicing that masked the current generic HashMap and test-module boundaries.
 - 架构修复：Kept unit tests crate-relative and corrected the two source-contract assertions to inspect the explicit typed capacity allocation and production section before the test module. No alias, compatibility facade, fallback, or production behavior bypass was added.
-- 验证：Coordinator-managed Windows cargo test -p zr_rhi --locked --lib completed successfully in the E:\cargo-targets\zircon-engine\pool\512c70185e168c08f5932544e6456e4327df2ef2717a85aa184d3337f9b3c6eb target: 87 tests, 83 passed, 2 ignored, 0 failed; scoped Python regressions 2/2 passed; rustfmt check passed.
+- 验证：Managed job `a70385210f6e4dcab15449a4f2814640` ran `validate-matrix.ps1 -Package zr_rhi -SkipBuild -LibTests` on Windows and was released with exit 0 and `[OK] Cargo test` at `2026-09-05T07:22:22Z`. Target: `E:\cargo-targets\zircon-engine\pool\512c70185e168c08f5932544e6456e4327df2ef2717a85aa184d3337f9b3c6eb`. The quiet validator did not report a numeric test summary. `rustfmt --edition 2021 --check` passed for both changed source files. Snapshot ticket `030867b7f4874420859abd8d51670646` passed source-contract checks only; a separate Cargo ticket was blocked by the dirty external `E:\Git\zr_vm` worktree and is not claimed as acceptance evidence.
 - 回传：Runtime90 self-import failure is fixed. The complete managed zr_rhi library gate is green; remaining Runtime90 failures and product-level acceptance remain open.
