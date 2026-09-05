@@ -269,7 +269,7 @@ mod tests {
     #[test]
     fn optimization_batch_hj_runtime586_image_resource_extend_uses_group_append() {
         let source = include_str!("image_resources.rs");
-        let production = source.split("#[cfg(test)]").next().unwrap();
+        let production = source.split("mod tests {").next().unwrap();
         let extend = production
             .split("pub fn extend")
             .nth(1)

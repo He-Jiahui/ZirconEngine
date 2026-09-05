@@ -311,7 +311,9 @@ mod optimization_batch_20260830cr_runtime_tests {
 
         assert!(production.contains("let style_capacity = commands.len();"));
         assert!(production.contains("Vec::with_capacity(style_capacity)"));
-        assert!(production.contains("HashMap::with_capacity(style_capacity)"));
+        assert!(production.contains(
+            "HashMap::<UiSurfaceStyleKey, UiSurfaceStyleHandle>::with_capacity(style_capacity)"
+        ));
     }
 
     #[test]
