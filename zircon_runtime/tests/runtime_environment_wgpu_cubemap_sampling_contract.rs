@@ -21,8 +21,8 @@ const REALTIME_CAPTURE_SHADER: &str = concat!(
         "../src/graphics/scene/scene_renderer/environment/shaders/realtime_ibl_capture.wgsl"
     ),
 );
-const SKYBOX_SETTINGS_SOURCE: &str =
-    include_str!("../src/core/framework/render/environment/skybox.rs");
+const RESOLVED_PROCEDURAL_SUN_SOURCE: &str =
+    include_str!("../src/core/framework/render/environment/skybox/procedural_sky/resolved_sun.rs");
 
 fn environment_pbr_composition_source() -> String {
     function_body(
@@ -475,11 +475,10 @@ fn runtime_environment_cpu_sun_rotation_is_inverse_of_shader_lookup_rotation() {
         );
     }
 
-    let cpu_rotation = SKYBOX_SETTINGS_SOURCE
-        .split("fn direction_for_sampling_rotation(")
-        .nth(1)
-        .and_then(|source| source.split("impl ProceduralSkyParams").next())
-        .expect("procedural sky should retain the CPU sampling-rotation owner");
+    let cpu_rotation = function_body(
+        RESOLVED_PROCEDURAL_SUN_SOURCE,
+        "fn direction_for_sampling_rotation(",
+    );
     assert!(cpu_rotation.contains("self.direction.x * cosine + self.direction.z * sine"));
     assert!(cpu_rotation.contains("-self.direction.x * sine + self.direction.z * cosine"));
 }
@@ -643,6 +642,22 @@ fn runtime_environment_procedural_sky_uses_shared_source_radiance_owner() {
             "{label} pipeline must assemble one shared procedural-sky radiance owner"
         );
     }
+}
+
+#[test]
+fn runtime_environment_procedural_sky_is_continuous_at_the_horizon() {
+    let shared_radiance = function_body(PROCEDURAL_SKY_SHADER, "fn zr_procedural_sky_radiance(");
+
+    assert!(
+        shared_radiance.contains("let sky_t = clamp(normalized_direction.y, 0.0, 1.0);")
+            && shared_radiance
+                .contains("let ground_t = clamp(normalized_direction.y + 1.0, 0.0, 1.0);"),
+        "both procedural-sky hemispheres must converge to horizon_color at direction.y == 0"
+    );
+    assert!(
+        !shared_radiance.contains("normalized_direction.y * 0.5 + 0.5"),
+        "the sky hemisphere must not map the horizon to the midpoint between horizon and zenith"
+    );
 }
 
 #[test]
