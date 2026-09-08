@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import sqlite3
 import tempfile
 import unittest
 from unittest import mock
@@ -15,6 +17,33 @@ from tools.session_coordinator.tests.helpers import init_repo
 
 
 class SnapshotTests(unittest.TestCase):
+    def test_snapshot_transaction_rollback_removes_unreferenced_object_file(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            config = CoordinatorConfig.for_repo(repo, state_root=root / "state")
+            database = Database(config.database_path)
+            migrate(database)
+            store = ObjectStore(database, config.object_root)
+            snapshots = SnapshotService(database, repo, store)
+            content = (repo / "README.md").read_bytes()
+            object_hash = hashlib.sha256(content).hexdigest()
+
+            with self.assertRaises(sqlite3.IntegrityError):
+                snapshots.create(
+                    session_id="missing-session",
+                    paths=["README.md"],
+                    baseline_epoch=None,
+                    purpose="force rollback",
+                )
+
+            self.assertFalse(store.path_for_hash(object_hash).exists())
+            with database.connect() as connection:
+                row = connection.execute(
+                    "SELECT 1 FROM objects WHERE object_hash=?", (object_hash,)
+                ).fetchone()
+            self.assertIsNone(row)
+
     def test_reconcile_removes_dead_writer_temporary_and_keeps_known_object(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

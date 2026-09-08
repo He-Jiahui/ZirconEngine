@@ -6,8 +6,10 @@ import re
 import sqlite3
 import threading
 import zlib
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Iterator
 
 from .baselines import hash_bytes, hash_file
 from .database import Database
@@ -24,12 +26,37 @@ class ObjectStore:
     def __init__(self, database: Database, root: str | Path):
         self.database = database
         self.root = Path(root)
+        self._transaction_lock = threading.Lock()
+        self._transaction_hashes: dict[int, set[str]] = {}
+
+    @contextmanager
+    def transaction(self) -> Iterator[sqlite3.Connection]:
+        published_hashes: set[str] = set()
+        try:
+            with self.database.transaction() as connection:
+                key = id(connection)
+                with self._transaction_lock:
+                    self._transaction_hashes[key] = published_hashes
+                try:
+                    yield connection
+                finally:
+                    with self._transaction_lock:
+                        self._transaction_hashes.pop(key, None)
+        except BaseException as error:
+            try:
+                self._remove_unreferenced(published_hashes)
+            except BaseException as cleanup_error:
+                error.add_note(
+                    "ObjectStore rollback cleanup failed: "
+                    f"{type(cleanup_error).__name__}: {cleanup_error}"
+                )
+            raise
 
     def put(
         self, content: bytes, *, connection: sqlite3.Connection | None = None
     ) -> str:
         if connection is None:
-            with self.database.transaction() as owned_connection:
+            with self.transaction() as owned_connection:
                 return self._put(content, owned_connection)
         return self._put(content, connection)
 
@@ -56,6 +83,10 @@ class ObjectStore:
                 os.replace(temporary, target)
             finally:
                 temporary.unlink(missing_ok=True)
+        with self._transaction_lock:
+            tracked_hashes = self._transaction_hashes.get(id(connection))
+            if tracked_hashes is not None:
+                tracked_hashes.add(object_hash)
         connection.execute(
             """
             INSERT INTO objects(object_hash, byte_count, compressed_byte_count, created_at)
@@ -67,6 +98,23 @@ class ObjectStore:
             (object_hash, len(content), compressed_byte_count, utc_text()),
         )
         return object_hash
+
+    def _remove_unreferenced(self, object_hashes: set[str]) -> None:
+        if not object_hashes:
+            return
+        with self.database.transaction() as connection:
+            for object_hash in object_hashes:
+                exists = connection.execute(
+                    "SELECT 1 FROM objects WHERE object_hash=?", (object_hash,)
+                ).fetchone()
+                if exists is not None:
+                    continue
+                target = self.path_for_hash(object_hash)
+                target.unlink(missing_ok=True)
+                try:
+                    target.parent.rmdir()
+                except OSError:
+                    pass
 
     def get(self, object_hash: str) -> bytes:
         target = self.path_for_hash(object_hash)
@@ -174,7 +222,7 @@ class SnapshotService:
             contents.append(
                 (display_path, absolute_path.read_bytes() if absolute_path.is_file() else None)
             )
-        with self.database.transaction() as connection:
+        with self.object_store.transaction() as connection:
             manifest = {
                 display_path: self.object_store.put(content, connection=connection)
                 if content is not None

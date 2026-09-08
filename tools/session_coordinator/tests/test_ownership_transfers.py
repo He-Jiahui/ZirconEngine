@@ -96,6 +96,86 @@ class OwnershipTransferTests(unittest.TestCase):
                 ).fetchone()[0],
             )
 
+    def _owned_path_without_scope(self) -> Path:
+        path = self._abandoned_change()
+        self.assertTrue(self.leases.acquire("target", ["tools/owned.py"]).acquired)
+        self.baselines.attribute("target", ["tools/owned.py"])
+        self.leases.release("target")
+        return path
+
+    def test_apply_repairs_exact_current_self_attribution_missing_scope(self) -> None:
+        path = self._owned_path_without_scope()
+        self.baselines.accept(reason="owned clean scope recovery fixture")
+        before = path.read_bytes()
+
+        preview = self.service.preview(target_session_id="target", paths=("tools/owned.py",))
+        self.assertTrue(preview.paths[0].eligible, preview.paths[0].blocking_reasons)
+        applied = self.service.apply(preview.fingerprint, actor="fixture")
+
+        self.assertFalse(applied.already_applied)
+        self.assertEqual(before, path.read_bytes())
+        self.assertEqual(("tools/owned.py",), self.sessions.get("target").write_scope)
+        self.assertTrue(self.service.apply(preview.fingerprint, actor="fixture").already_applied)
+        with self.database.connect() as connection:
+            transfer = connection.execute(
+                "SELECT source_session_id,target_session_id FROM ownership_transfers WHERE fingerprint=?",
+                (preview.fingerprint,),
+            ).fetchone()
+        self.assertEqual(("target", "target"), tuple(transfer))
+
+    def test_scope_recovery_refuses_stale_self_attribution_and_foreign_lease(self) -> None:
+        path = self._owned_path_without_scope()
+        before = path.read_bytes()
+        path.write_text("value = 3\n", encoding="utf-8")
+        stale = self.service.preview(target_session_id="target", paths=("tools/owned.py",))
+        self.assertFalse(stale.paths[0].eligible)
+        path.write_bytes(before)
+        self.sessions.set_status("source", SessionStatus.ACTIVE)
+        self.assertTrue(self.leases.acquire("source", ["tools"]).acquired)
+        leased = self.service.preview(target_session_id="target", paths=("tools/owned.py",))
+        self.assertFalse(leased.paths[0].eligible)
+        self.assertIn("live_foreign_lease", leased.paths[0].blocking_reasons)
+        self.assertEqual((), self.sessions.get("target").write_scope)
+
+    def test_scope_recovery_rechecks_new_scope_after_preview(self) -> None:
+        self._owned_path_without_scope()
+        preview = self.service.preview(target_session_id="target", paths=("tools/owned.py",))
+        self.assertTrue(preview.paths[0].eligible, preview.paths[0].blocking_reasons)
+        with self.database.transaction() as connection:
+            self.sessions.extend_write_scope_in_connection(
+                connection, "target", ("TOOLS",), transfer_fingerprint="independent-scope-fix"
+            )
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.apply(preview.fingerprint, actor="fixture")
+        self.assertEqual("ownership_transfer_preview_stale", rejected.exception.code)
+        self.assertEqual([], self.leases.owned_paths("target"))
+
+    def test_self_attribution_already_in_directory_scope_is_not_a_recovery(self) -> None:
+        self._owned_path_without_scope()
+        with self.database.transaction() as connection:
+            self.sessions.extend_write_scope_in_connection(
+                connection, "target", ("TOOLS",), transfer_fingerprint="directory-scope"
+            )
+        preview = self.service.preview(target_session_id="target", paths=("tools/owned.py",))
+        self.assertFalse(preview.paths[0].eligible)
+        self.assertIn("path_already_owned_by_target", preview.paths[0].blocking_reasons)
+
+    def test_scope_recovery_respects_root_and_separator_boundaries(self) -> None:
+        self._owned_path_without_scope()
+        with self.database.transaction() as connection:
+            self.sessions.extend_write_scope_in_connection(
+                connection, "target", ("tool",), transfer_fingerprint="neighbor-scope"
+            )
+        neighbor = self.service.preview(target_session_id="target", paths=("tools/owned.py",))
+        self.assertTrue(neighbor.paths[0].eligible, neighbor.paths[0].blocking_reasons)
+        with self.database.transaction() as connection:
+            self.sessions.extend_write_scope_in_connection(
+                connection, "target", (".",), transfer_fingerprint="root-scope"
+            )
+        root = self.service.preview(target_session_id="target", paths=("tools/owned.py",))
+        self.assertFalse(root.paths[0].eligible)
+        self.assertIn("path_already_owned_by_target", root.paths[0].blocking_reasons)
+
     def test_apply_moves_an_archived_exact_clean_path(self) -> None:
         self._archived_clean_path()
 

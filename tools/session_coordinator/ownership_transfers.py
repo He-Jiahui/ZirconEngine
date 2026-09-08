@@ -6,13 +6,13 @@ import hashlib
 import json
 from dataclasses import dataclass
 from datetime import datetime
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from sqlite3 import Connection, Row
 
 from .baselines import hash_file
 from .database import Database
 from .leases import LeaseService, lease_paths_overlap
-from .models import CoordinatorError, parse_utc, utc_now, utc_text
+from .models import CoordinatorError, utc_now, utc_text
 from .sessions import SessionService
 
 
@@ -114,7 +114,8 @@ class OwnershipTransferService:
         normalized = self._paths(paths)
         current_time = now or utc_now()
         with self.database.connect() as connection:
-            self._target_session(connection, target_session_id)
+            target = self._target_session(connection, target_session_id)
+            target_scope = tuple(json.loads(target["write_scope_json"]))
             baseline_epoch = self._baseline_epoch(connection)
             baseline_hashes = self._baseline_hashes(connection, baseline_epoch, normalized)
             attributions = self._attributions(connection, normalized)
@@ -129,6 +130,7 @@ class OwnershipTransferService:
                     attributions.get(path_key),
                     leases,
                     target_session_id,
+                    target_scope,
                 )
             )
         entries = tuple(entries_list)
@@ -264,7 +266,8 @@ class OwnershipTransferService:
         preview: OwnershipTransferPreview,
         requested: tuple[OwnershipTransferPath, ...],
     ) -> None:
-        self._target_session(connection, preview.target_session_id)
+        target = self._target_session(connection, preview.target_session_id)
+        target_scope = tuple(json.loads(target["write_scope_json"]))
         if self._baseline_epoch(connection) != preview.baseline_epoch:
             raise CoordinatorError(
                 "ownership_transfer_baseline_changed",
@@ -284,6 +287,7 @@ class OwnershipTransferService:
                 attributions.get(path_key),
                 leases,
                 preview.target_session_id,
+                target_scope,
             )
             if (
                 not current.eligible
@@ -303,7 +307,7 @@ class OwnershipTransferService:
 
     def _target_session(self, connection: Connection, session_id: str) -> Row:
         row = connection.execute(
-            "SELECT session_id, status, session_role FROM sessions WHERE session_id=?",
+            "SELECT session_id, status, session_role, write_scope_json FROM sessions WHERE session_id=?",
             (session_id,),
         ).fetchone()
         if row is None:
@@ -365,9 +369,11 @@ class OwnershipTransferService:
     @staticmethod
     def _live_leases(connection: Connection, now: datetime) -> tuple[Row, ...]:
         rows = connection.execute(
-            "SELECT path_key, session_id, expires_at FROM leases"
+            """SELECT path_key, session_id, expires_at FROM leases
+               WHERE expires_at >= ?""",
+            (utc_text(now),),
         ).fetchall()
-        return tuple(row for row in rows if now <= parse_utc(str(row["expires_at"])))
+        return tuple(rows)
 
     def _preview_path(
         self,
@@ -376,6 +382,7 @@ class OwnershipTransferService:
         attribution: Row | None,
         leases: tuple[Row, ...],
         target_session_id: str,
+        target_scope: tuple[str, ...],
     ) -> OwnershipTransferPath:
         current_hash = hash_file(self.repo_root / path)
         source_session_id = str(attribution["session_id"]) if attribution else None
@@ -397,6 +404,20 @@ class OwnershipTransferService:
             and source_status == "archived"
             and source_content_hash == current_hash
         )
+        path_key = path.casefold()
+        candidate_path = PurePosixPath((self.repo_root / path).as_posix().casefold())
+        scope_covers_path = source_session_id == target_session_id and any(
+            candidate_path.is_relative_to(
+                PurePosixPath((self.repo_root / scope).resolve().as_posix().casefold())
+            )
+            for scope in target_scope
+        )
+        self_scope_recovery = (
+            source_session_id == target_session_id
+            and current_hash is not None
+            and current_hash == source_content_hash
+            and not scope_covers_path
+        )
         reasons: list[str] = []
         if current_hash is None and path_state != "future":
             reasons.append("path_missing")
@@ -404,13 +425,14 @@ class OwnershipTransferService:
             current_hash is not None
             and current_hash == baseline_hash
             and not archived_clean_handoff
+            and not self_scope_recovery
         ):
             reasons.append("path_matches_baseline")
         if source_session_id == target_session_id:
-            reasons.append("path_already_owned_by_target")
+            if not self_scope_recovery:
+                reasons.append("path_already_owned_by_target")
         elif source_status in _EXECUTABLE_SESSION_STATUSES:
             reasons.append("source_owner_executable")
-        path_key = path.casefold()
         foreign_leases = [
             row
             for row in leases

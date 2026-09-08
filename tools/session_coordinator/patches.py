@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import errno
 import json
+import os
 import subprocess
+from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
@@ -10,6 +13,7 @@ from .baselines import hash_bytes, hash_file
 from .database import Database
 from .leases import LeaseService
 from .models import CoordinatorError, SessionStatus, utc_text
+from .processes import live_process_ids_named
 from .sessions import SessionService
 from .snapshots import ObjectStore, SnapshotService
 
@@ -52,6 +56,7 @@ class PatchService:
         self.snapshots = snapshots
         self.leases = leases
         self.sessions = sessions
+        self.recover_interrupted()
 
     def submit(
         self,
@@ -73,10 +78,9 @@ class PatchService:
             path: hash_bytes(content) if content is not None else None
             for path, content in base_contents.items()
         }
-        acquisition = self.leases.acquire(session_id, display_paths)
-        status = PatchStatus.APPLYING if acquisition.acquired else PatchStatus.QUEUED
+        status = PatchStatus.QUEUED
         now = utc_text()
-        with self.database.transaction() as connection:
+        with self.object_store.transaction() as connection:
             base_objects = {
                 path: self.object_store.put(content, connection=connection)
                 if content is not None
@@ -105,14 +109,14 @@ class PatchService:
                 ),
             )
             patch_id = int(cursor.lastrowid)
-        if not acquisition.acquired:
+        patch = self._apply(patch_id)
+        if patch.status == PatchStatus.QUEUED:
             self.sessions.set_status(
                 session_id,
                 SessionStatus.WAITING_LEASE,
-                reason=f"patch {patch_id} queued for {', '.join(acquisition.conflicts)}",
+                reason=f"patch {patch_id} queued for {', '.join(display_paths)}",
             )
-            return self.get(patch_id)
-        return self._apply(patch_id)
+        return patch
 
     def get(self, patch_id: int) -> PatchRecord:
         with self.database.connect() as connection:
@@ -151,6 +155,7 @@ class PatchService:
         session_id: str | None = None,
         patch_ids: tuple[int, ...] | None = None,
     ) -> list[PatchRecord]:
+        self.recover_interrupted(session_id=session_id, patch_ids=patch_ids)
         processed: list[PatchRecord] = []
         queued = self.list(status=PatchStatus.QUEUED, session_id=session_id)
         if patch_ids is not None:
@@ -158,7 +163,7 @@ class PatchService:
             queued = [patch for patch in queued if patch.patch_id in allowed]
         for patch in queued:
             try:
-                acquisition = self.leases.acquire(patch.session_id, patch.targets)
+                result = self._apply(patch.patch_id)
             except CoordinatorError as error:
                 if error.code != "session_not_writable":
                     raise
@@ -167,36 +172,50 @@ class PatchService:
                 # rather than turning an unrelated successful lease release
                 # into a client-visible command failure.
                 continue
-            if not acquisition.acquired:
-                continue
-            current_hashes = {
-                target: hash_file(self.leases.path_policy.normalize(target).absolute)
-                for target in patch.targets
-            }
-            if current_hashes != patch.base_hashes:
-                self._update(
-                    patch.patch_id,
-                    PatchStatus.NEEDS_REBASE,
-                    capture_targets=patch.targets,
-                    error_text="target content changed after patch was queued",
-                )
-                self.leases.release(patch.session_id, patch.targets)
-                self.sessions.set_status(
-                    patch.session_id,
-                    SessionStatus.ACTIVE,
-                    reason=f"patch {patch.patch_id} requires rebase",
-                )
-                processed.append(self.get(patch.patch_id))
-                continue
-            self._update(patch.patch_id, PatchStatus.APPLYING)
-            processed.append(self._apply(patch.patch_id))
+            if result.status != PatchStatus.QUEUED:
+                processed.append(result)
         return processed
 
     def _apply(self, patch_id: int) -> PatchRecord:
+        with self._application_lock(patch_id) as acquired:
+            if not acquired:
+                return self.get(patch_id)
+            with self.database.transaction() as connection:
+                patch = connection.execute(
+                    "SELECT session_id, status, targets_json FROM patches WHERE patch_id=?",
+                    (patch_id,),
+                ).fetchone()
+                if patch["status"] != PatchStatus.QUEUED.value:
+                    return self.get(patch_id)
+                targets = json.loads(patch["targets_json"])
+                acquisition = self.leases.acquire_in_connection(
+                    connection, patch["session_id"], targets
+                )
+                if not acquisition.acquired:
+                    return self.get(patch_id)
+                lease_proofs = []
+                for target in targets:
+                    path_key = self.leases.path_policy.normalize(target).key
+                    lease = connection.execute(
+                        """SELECT path_key, base_hash, acquired_at, last_heartbeat_at, expires_at
+                           FROM leases WHERE path_key=? AND session_id=? AND expires_at>=?""",
+                        (path_key, patch["session_id"], utc_text()),
+                    ).fetchone()
+                    if lease is None:
+                        return self.get(patch_id)
+                    lease_proofs.append(dict(lease))
+                self._update_in_connection(connection, patch_id, PatchStatus.APPLYING)
+                self._application_event(
+                    connection, patch["session_id"], "patch.application_started",
+                    {"patchId": patch_id, "pid": os.getpid(), "leases": lease_proofs},
+                )
+            return self._apply_locked(patch_id)
+
+    def _apply_locked(self, patch_id: int) -> PatchRecord:
         patch = self.get(patch_id)
-        patch_bytes = self.object_store.get(patch.patch_object_hash)
-        epoch = self._current_epoch()
         try:
+            patch_bytes = self.object_store.get(patch.patch_object_hash)
+            epoch = self._current_epoch()
             current_hashes = {
                 target: hash_file(self.leases.path_policy.normalize(target).absolute)
                 for target in patch.targets
@@ -242,6 +261,12 @@ class PatchService:
             )
             now = utc_text()
             with self.database.transaction() as connection:
+                self.sessions.extend_write_scope_in_connection(
+                    connection,
+                    patch.session_id,
+                    patch.targets,
+                    transfer_fingerprint=patch.patch_object_hash,
+                )
                 attribution_rows = []
                 for target in patch.targets:
                     normalized = self.leases.path_policy.normalize(target)
@@ -270,7 +295,9 @@ class PatchService:
                     """,
                     attribution_rows,
                 )
-            self._update(patch.patch_id, PatchStatus.APPLIED, applied=True)
+                self._update_in_connection(
+                    connection, patch.patch_id, PatchStatus.APPLIED, applied=True
+                )
             self.sessions.set_status(
                 patch.session_id,
                 SessionStatus.ACTIVE,
@@ -278,10 +305,99 @@ class PatchService:
             )
         except subprocess.CalledProcessError as error:
             message = error.stderr.decode("utf-8", errors="replace").strip()
-            self._update(patch.patch_id, PatchStatus.FAILED, error_text=message)
-        finally:
-            self.leases.release(patch.session_id, patch.targets)
+            self._update(
+                patch.patch_id, PatchStatus.FAILED,
+                capture_targets=patch.targets, error_text=message,
+            )
+        except BaseException as error:
+            try:
+                self._record_interrupted(patch, f"{type(error).__name__}: {error}")
+            except BaseException as recovery_error:
+                error.add_note(f"Patch interruption audit failed: {recovery_error}")
+            raise
         return self.get(patch.patch_id)
+
+    def recover_interrupted(
+        self, *, session_id: str | None = None, patch_ids: tuple[int, ...] | None = None
+    ) -> None:
+        for patch in self.list(status=PatchStatus.APPLYING, session_id=session_id):
+            if patch_ids is not None and patch.patch_id not in patch_ids:
+                continue
+            # Older records have no lifetime-lock proof; never guess their owner is dead.
+            if not self._application_lock_path(patch.patch_id).is_file():
+                continue
+            with self._application_lock(patch.patch_id) as acquired:
+                if acquired:
+                    # An orphaned git child can outlive its Python parent.
+                    # Defer until the OS proves that no Git writer remains.
+                    try:
+                        if live_process_ids_named("git"):
+                            continue
+                    except OSError:
+                        continue
+                    self._record_interrupted(
+                        patch, "patch application process exited before bookkeeping completed"
+                    )
+
+    def _record_interrupted(self, patch: PatchRecord, reason: str) -> None:
+        with self.object_store.transaction() as connection:
+            row = connection.execute(
+                "SELECT status FROM patches WHERE patch_id=?", (patch.patch_id,)
+            ).fetchone()
+            if row["status"] != PatchStatus.APPLYING.value:
+                return
+            current = self._capture_objects(patch.targets, connection=connection)
+            self._update_in_connection(
+                connection, patch.patch_id, PatchStatus.NEEDS_REBASE,
+                current_objects=current,
+                error_text=f"{reason}; worktree retained, inspect snapshots before rebasing",
+            )
+            self._application_event(
+                connection, patch.session_id, "patch.application_interrupted",
+                {"patchId": patch.patch_id, "currentObjects": current, "reason": reason},
+            )
+
+    def _application_lock_path(self, patch_id: int) -> Path:
+        return self.object_store.root.parent / "patch-locks" / f"{patch_id}.lock"
+
+    @contextmanager
+    def _application_lock(self, patch_id: int):
+        path = self._application_lock_path(patch_id)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a+b") as stream:
+            if stream.tell() == 0:
+                stream.write(b"\0")
+                stream.flush()
+            stream.seek(0)
+            try:
+                if os.name == "nt":
+                    import msvcrt
+
+                    msvcrt.locking(stream.fileno(), msvcrt.LK_NBLCK, 1)
+                else:
+                    import fcntl
+
+                    fcntl.flock(stream.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except OSError as error:
+                if error.errno not in {errno.EACCES, errno.EAGAIN, errno.EDEADLK}:
+                    raise
+                yield False
+                return
+            try:
+                yield True
+            finally:
+                stream.seek(0)
+                if os.name == "nt":
+                    msvcrt.locking(stream.fileno(), msvcrt.LK_UNLCK, 1)
+                else:
+                    fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
+
+    @staticmethod
+    def _application_event(connection, session_id: str, event_type: str, payload: dict) -> None:
+        connection.execute(
+            "INSERT INTO events(event_type, session_id, payload_json, created_at) VALUES (?, ?, ?, ?)",
+            (event_type, session_id, json.dumps(payload, sort_keys=True), utc_text()),
+        )
 
     def _capture_objects(
         self, targets: tuple[str, ...], *, connection
@@ -311,29 +427,83 @@ class PatchService:
         error_text: str | None = None,
         applied: bool = False,
     ) -> None:
-        now = utc_text()
-        with self.database.transaction() as connection:
+        transaction = (
+            self.object_store.transaction
+            if capture_targets is not None
+            else self.database.transaction
+        )
+        with transaction() as connection:
             if capture_targets is not None:
                 current_objects = self._capture_objects(
                     capture_targets, connection=connection
                 )
-            connection.execute(
-                """
-                UPDATE patches
-                SET status = ?, current_objects_json = COALESCE(?, current_objects_json),
-                    error_text = ?, updated_at = ?, applied_at = CASE WHEN ? THEN ? ELSE applied_at END
-                WHERE patch_id = ?
-                """,
+            self._update_in_connection(
+                connection, patch_id, status, current_objects=current_objects,
+                error_text=error_text, applied=applied,
+            )
+
+    def _update_in_connection(
+        self, connection, patch_id: int, status: PatchStatus, *,
+        current_objects: dict[str, str | None] | None = None,
+        error_text: str | None = None, applied: bool = False,
+    ) -> None:
+        now = utc_text()
+        connection.execute(
+            """
+            UPDATE patches
+            SET status = ?, current_objects_json = COALESCE(?, current_objects_json),
+                error_text = ?, updated_at = ?, applied_at = CASE WHEN ? THEN ? ELSE applied_at END
+            WHERE patch_id = ?
+            """,
+            (
+                status.value,
+                json.dumps(current_objects, sort_keys=True) if current_objects is not None else None,
+                error_text,
+                now,
+                1 if applied else 0,
+                now,
+                patch_id,
+            ),
+        )
+        if status not in {PatchStatus.QUEUED, PatchStatus.APPLYING}:
+            self._release_application_leases_in_connection(connection, patch_id)
+
+    def _release_application_leases_in_connection(self, connection, patch_id: int) -> None:
+        patch = connection.execute(
+            "SELECT session_id, targets_json FROM patches WHERE patch_id=?", (patch_id,)
+        ).fetchone()
+        event = connection.execute(
+            """SELECT payload_json FROM events
+               WHERE event_type='patch.application_started' AND session_id=?
+                 AND json_extract(payload_json, '$.patchId')=?
+               ORDER BY event_id DESC LIMIT 1""",
+            (patch["session_id"], patch_id),
+        ).fetchone()
+        if event is None:
+            return
+        target_keys = {
+            self.leases.path_policy.normalize(target).key
+            for target in json.loads(patch["targets_json"])
+        }
+        released = []
+        for proof in json.loads(event["payload_json"]).get("leases", []):
+            if proof["path_key"] not in target_keys:
+                continue
+            # A later heartbeat or acquisition belongs to the live Session, not this patch.
+            cursor = connection.execute(
+                """DELETE FROM leases WHERE session_id=? AND path_key=? AND base_hash IS ?
+                     AND acquired_at=? AND last_heartbeat_at=? AND expires_at=?""",
                 (
-                    status.value,
-                    json.dumps(current_objects, sort_keys=True) if current_objects is not None else None,
-                    error_text,
-                    now,
-                    1 if applied else 0,
-                    now,
-                    patch_id,
+                    patch["session_id"], proof["path_key"], proof["base_hash"],
+                    proof["acquired_at"], proof["last_heartbeat_at"], proof["expires_at"],
                 ),
             )
+            if cursor.rowcount:
+                released.append(proof["path_key"])
+        self._application_event(
+            connection, patch["session_id"], "patch.application_leases_released",
+            {"patchId": patch_id, "releasedPaths": released},
+        )
 
     @staticmethod
     def _from_row(row) -> PatchRecord:
