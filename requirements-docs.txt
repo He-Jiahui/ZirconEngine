@@ -1,0 +1,6 @@
+# Pinned direct dependencies for the GitHub Pages documentation build.
+# Upgrade these together and verify `python tools/wiki_site.py build --output site`.
+mkdocs==1.6.1
+mkdocs-material==9.7.7
+PyYAML==6.0.2
+pymdown-extensions==10.16.1

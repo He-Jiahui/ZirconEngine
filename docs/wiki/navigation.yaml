@@ -1,0 +1,327 @@
+version: 1
+title: ZirconEngine 文档
+locale: zh-CN
+generated_from: docs/wiki/index.md
+last_reviewed: 2026-09-09
+sections:
+  - id: getting-started
+    title: 开始使用
+    pages:
+      - slug: home
+        path: index.md
+        title: Wiki 首页
+      - slug: concepts
+        path: concepts.md
+        title: 基础概念
+      - slug: getting-started
+        path: getting-started.md
+        title: 快速开始
+      - slug: product-lifecycle
+        path: product-lifecycle.md
+        title: 产品生命周期
+      - slug: feature-status
+        path: feature-status.md
+        title: 功能状态
+  - id: architecture
+    title: 引擎架构
+    pages:
+      - slug: architecture
+        path: architecture/index.md
+        title: 架构总览
+      - slug: core-runtime
+        path: core-runtime/index.md
+        title: 核心运行时
+      - slug: scene-assets
+        path: scene-assets/index.md
+        title: 场景与资产
+      - slug: architecture-system-overview
+        path: architecture/system-overview.md
+        title: 架构系统总览
+      - slug: architecture-layer-boundaries
+        path: architecture/layer-boundaries.md
+        title: 分层与所有权
+      - slug: architecture-module-composition
+        path: architecture/module-and-profile-composition.md
+        title: 模块与产品组合
+      - slug: architecture-framework-module-catalog
+        path: architecture/framework-module-catalog.md
+        title: Framework 模块目录
+      - slug: architecture-lifecycle-data-flow
+        path: architecture/lifecycle-and-data-flow.md
+        title: 生命周期与数据流
+      - slug: core-runtime-lifecycle
+        path: core-runtime/runtime-and-module-lifecycle.md
+        title: 运行时与模块生命周期
+      - slug: core-runtime-services
+        path: core-runtime/service-registry-and-dependencies.md
+        title: 服务注册表与依赖
+      - slug: core-runtime-events
+        path: core-runtime/events-config-and-time.md
+        title: 事件、配置与时间
+      - slug: core-runtime-tasks
+        path: core-runtime/tasks-state-random-and-diagnostics.md
+        title: 任务、状态、随机数与诊断
+      - slug: core-runtime-api-guide
+        path: core-runtime/rust-api-guide.md
+        title: 核心 Rust API 使用指南
+      - slug: core-runtime-manager-handles
+        path: core-runtime/manager-handles-and-resolution.md
+        title: Manager Handle 与解析
+      - slug: core-runtime-module-lifecycle-quick
+        path: core-runtime/module-lifecycle.md
+        title: 模块生命周期速查
+      - slug: core-runtime-services-events-quick
+        path: core-runtime/services-events.md
+        title: 服务与事件速查
+      - slug: core-runtime-time-state-random
+        path: core-runtime/time-state-random.md
+        title: 时间、状态与随机数速查
+      - slug: core-runtime-tasks-diagnostics-quick
+        path: core-runtime/tasks-and-diagnostics.md
+        title: 任务与诊断速查
+      - slug: core-runtime-operations
+        path: core-runtime/operations.md
+        title: Runtime Operation
+      - slug: core-runtime-diagnostic-log
+        path: core-runtime/diagnostic-log.md
+        title: 诊断日志
+      - slug: core-runtime-api-reference
+        path: core-runtime/rust-api-reference.md
+        title: 核心 Rust API 参考
+      - slug: scene-runtime
+        path: scene-assets/scene-runtime.md
+        title: 场景运行时
+      - slug: scene-world
+        path: scene-assets/ecs-world.md
+        title: ECS World
+      - slug: scene-components
+        path: scene-assets/scene-components.md
+        title: 场景组件
+      - slug: scene-dynamic
+        path: scene-assets/dynamic-scenes.md
+        title: 动态场景
+      - slug: scene-assets-project
+        path: scene-assets/project-assets.md
+        title: 项目资产
+      - slug: scene-assets-resource
+        path: scene-assets/resource-runtime.md
+        title: 资源运行时
+      - slug: scene-assets-math
+        path: scene-assets/math-transforms.md
+        title: 数学与变换
+  - id: content
+    title: 内容与表现
+    pages:
+      - slug: graphics
+        path: graphics/index.md
+        title: 图形与渲染
+      - slug: ui
+        path: ui/index.md
+        title: UI、文本与输入
+      - slug: script-animation
+        path: script-animation/index.md
+        title: 脚本、反射与动画
+      - slug: script-vm
+        path: script-animation/vm-host-and-plugins.md
+        title: VM、Host 与插件
+      - slug: script-reflection
+        path: script-animation/reflection-and-macros.md
+        title: 反射与脚本宏
+      - slug: script-dynamic-api
+        path: script-animation/dynamic-api-boundary.md
+        title: 动态 API 交界
+      - slug: script-animation-navigation
+        path: script-animation/animation-navigation.md
+        title: 动画与导航
+      - slug: graphics-architecture
+        path: graphics/architecture.md
+        title: 渲染架构
+      - slug: graphics-framework
+        path: graphics/render-framework.md
+        title: 渲染框架
+      - slug: graphics-render-graph
+        path: graphics/render-graph.md
+        title: 渲染图
+      - slug: graphics-rhi
+        path: graphics/rhi-and-wgpu.md
+        title: RHI 与 WGPU
+      - slug: graphics-scene-renderer
+        path: graphics/scene-renderer.md
+        title: 场景渲染器
+      - slug: graphics-shaders
+        path: graphics/shaders.md
+        title: 着色器
+      - slug: graphics-materials
+        path: graphics/mesh-material-texture.md
+        title: 网格、材质与纹理
+      - slug: graphics-lighting
+        path: graphics/lighting-and-environment.md
+        title: 光照与环境
+      - slug: graphics-visibility
+        path: graphics/visibility-and-post-processing.md
+        title: 可见性与后处理
+      - slug: graphics-ui
+        path: graphics/ui-rendering.md
+        title: UI 渲染交界
+      - slug: graphics-api-reference
+        path: graphics/rust-api-reference.md
+        title: 图形 Rust API 参考
+      - slug: ui-architecture
+        path: ui/architecture.md
+        title: UI 架构与生命周期
+      - slug: ui-tree-events
+        path: ui/tree-and-events.md
+        title: UI 树与事件
+      - slug: ui-templates
+        path: ui/templates-components.md
+        title: 模板、组件与绑定
+      - slug: ui-v2-assets
+        path: ui/v2-assets.md
+        title: UI v2 资产
+      - slug: ui-layout
+        path: ui/layout.md
+        title: 布局与虚拟化
+      - slug: ui-surface
+        path: ui/surface-rendering.md
+        title: 表面与渲染
+      - slug: ui-text
+        path: ui/text.md
+        title: 文本系统
+      - slug: ui-input
+        path: ui/input-platform.md
+        title: 输入与平台
+      - slug: ui-accessibility
+        path: ui/accessibility.md
+        title: 无障碍
+      - slug: ui-style
+        path: ui/style-theme.md
+        title: 样式与主题
+  - id: authoring
+    title: 编辑与扩展
+    pages:
+      - slug: editor
+        path: editor/index.md
+        title: 编辑器
+      - slug: plugins
+        path: plugins/index.md
+        title: 插件
+      - slug: app-runtime-api
+        path: app-runtime-api/index.md
+        title: App 与 Runtime API
+      - slug: editor-architecture
+        path: editor/architecture.md
+        title: 编辑器架构
+      - slug: editor-session
+        path: editor/host-project-session.md
+        title: 编辑器宿主与会话
+      - slug: editor-commands
+        path: editor/commands-transactions.md
+        title: 命令与事务
+      - slug: editor-scene
+        path: editor/scene-authoring.md
+        title: 场景作者态
+      - slug: editor-viewport
+        path: editor/viewport-gizmo.md
+        title: Viewport 与 Gizmo
+      - slug: editor-workbench
+        path: editor/workbench-ui.md
+        title: Workbench 与 UI
+      - slug: editor-assets
+        path: editor/asset-editors.md
+        title: 资产编辑器
+      - slug: editor-gateway
+        path: editor/runtime-gateway.md
+        title: Runtime Gateway
+      - slug: editor-api-reference
+        path: editor/rust-api-reference.md
+        title: 编辑器 Rust API 参考
+      - slug: plugins-inventory
+        path: plugins/inventory.md
+        title: 插件清单
+      - slug: plugins-sdk
+        path: plugins/plugin-sdk.md
+        title: 插件 SDK
+      - slug: plugins-manifests
+        path: plugins/catalogs-and-manifests.md
+        title: 插件清单与目录
+      - slug: plugins-abi
+        path: plugins/native-abi-and-distribution.md
+        title: 原生 ABI 与分发
+      - slug: plugins-lifecycle
+        path: plugins/lifecycle-and-capabilities.md
+        title: 插件生命周期
+      - slug: plugins-importers
+        path: plugins/asset-importers.md
+        title: 资产导入器
+      - slug: plugins-runtime-families
+        path: plugins/runtime-families.md
+        title: 运行时插件族
+      - slug: plugins-rendering-families
+        path: plugins/rendering-families.md
+        title: 渲染插件族
+      - slug: plugins-editor-families
+        path: plugins/editor-and-ui-families.md
+        title: 编辑器与 UI 插件族
+      - slug: app-bootstrap
+        path: app-runtime-api/bootstrap-and-entry.md
+        title: 应用入口与导出启动
+      - slug: app-dynamic-api
+        path: app-runtime-api/dynamic-runtime-abi.md
+        title: 动态运行时与 ABI
+      - slug: app-session
+        path: app-runtime-api/runtime-session-and-host-output.md
+        title: 运行时会话与宿主输出
+      - slug: app-world-sync
+        path: app-runtime-api/world-sync.md
+        title: 世界同步 API
+      - slug: app-serialization
+        path: app-runtime-api/serialization-contracts.md
+        title: 序列化与版本化
+      - slug: app-errors
+        path: app-runtime-api/compatibility-and-errors.md
+        title: 兼容性与错误
+  - id: tools
+    title: 工具与质量
+    pages:
+      - slug: hub-tooling
+        path: hub-tooling/index.md
+        title: Hub 与工具链
+      - slug: wiki-publishing
+        path: hub-tooling/wiki-publishing.md
+        title: GitHub Pages Wiki 发布
+      - slug: testing-platform
+        path: testing-platform/index.md
+        title: 测试与平台
+      - slug: rust-api
+        path: rust-api.md
+        title: Rust API 约定
+      - slug: api-index
+        path: api-index.md
+        title: Rust API 索引
+      - slug: contributing-docs
+        path: contributing-docs.md
+        title: Wiki 文档维护
+      - slug: hub-overview
+        path: hub-tooling/zircon-hub.md
+        title: Zircon Hub
+      - slug: cargo-zircon
+        path: hub-tooling/cargo-zircon.md
+        title: cargo-zircon
+      - slug: export-packaging
+        path: hub-tooling/export-and-packaging.md
+        title: 导出与打包
+      - slug: session-coordinator
+        path: hub-tooling/session-coordinator.md
+        title: Session Coordinator
+      - slug: testing-feature-profiles
+        path: testing-platform/feature-profiles.md
+        title: Feature 与 Profile
+      - slug: testing-validation
+        path: testing-platform/validation-workflow.md
+        title: 验证工作流
+      - slug: testing-diagnostics
+        path: testing-platform/diagnostics-performance.md
+        title: 诊断与性能
+      - slug: testing-mvp
+        path: testing-platform/mvp-acceptance.md
+        title: MVP 验收

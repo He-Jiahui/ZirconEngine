@@ -124,10 +124,17 @@ __pycache__/
 !templates/projects/**/.zircon/play/.gitignore
 !templates/projects/**/.zircon/thumbnails/.gitignore
 
-# logs 
+# logs
 *.log
 *.exit
 *.txt
+
+# Documentation toolchain is intentionally versioned despite the broad text-file rule.
+!requirements-docs.txt
+
+# Local MkDocs output and temporary validation environment.
+/site/
+/.wiki-venv/
 
 examples/*
 !examples/vampire/
