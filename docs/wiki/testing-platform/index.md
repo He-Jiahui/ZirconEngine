@@ -31,6 +31,7 @@ ZirconEngine 的测试不只是一组 `cargo test`：feature/profile 选择决�
 | [验证工作流](validation-workflow.md) | Windows validator、target policy、测试分层和 CI 对齐 |
 | [诊断与性能](diagnostics-performance.md) | 日志、指标、基准和失败证据 |
 | [MVP 验收](mvp-acceptance.md) | RenderableEmpty 产品闭环和退出条件 |
+| [视觉证据画廊](reference/visual-evidence-gallery.md) | 截图、参考图、SHA-256 和教程方案图 |
 
 ## 证据等级
 

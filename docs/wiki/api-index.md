@@ -32,6 +32,8 @@ doc_type: api-index
 
 这是按“调用者要解决的问题”组织的索引，不是未经筛选的 rustdoc dump。稳定性以所在 crate 的 re-export、feature gate 和本 Wiki 的状态标签为准；`pub(crate)`、测试 helper、内部锁和 ABI 私有字段不属于公共调用面。
 
+完整的逐 crate 符号清单、模块 feature 和 documented/partial/internal 覆盖判定见[公开 API 参考](api-reference/index.md)与[覆盖矩阵](api-reference/coverage-matrix.md)。以下索引用于快速定位；参考页则按字段、错误、所有权、线程和 Rust 调用形状展开。
+
 ## Crate 入口
 
 | crate | 主要入口 | 用途 |
@@ -123,6 +125,19 @@ doc_type: api-index
 | `HubRuntimeSession` / `HubViewModel` | `zircon_hub::tauri_app` | Tauri 状态和动作 |
 
 详见[插件](plugins/index.md)和[Hub/工具链](hub-tooling/index.md)。
+
+## 深入参考入口
+
+| 领域 | 入口 | 重点 |
+| --- | --- | --- |
+| Runtime core | [CoreRuntime 参考](core-runtime/reference/index.md) | 构造、句柄、模块、任务、操作、诊断 |
+| App/Host | [App 接口参考](app-runtime-api/reference/app-entry-runner-api.md) | Entry、Session、Window、Input、Shutdown、Export |
+| 场景/资产 | [World 查询参考](scene-assets/reference/world-entity-query.md) | ECS、快照、ProjectManager、Registry、Importer |
+| 图形 | [RenderFramework 参考](graphics/reference/render-framework-api.md) | RenderGraph、RHI、Shader、资源与 GPU 诊断 |
+| UI | [UI v2 参考](ui/reference/v2-assets-and-retained-tree.md) | 保留树、布局、文本、输入、无障碍 |
+| 编辑器 | [EditorHost 参考](editor/reference/host-session-project.md) | 会话、文档、事务、Viewport、Workbench |
+| 插件 | [Plugin API 参考](plugins/reference/index.md) | Manifest、Native ABI、Capability、SDK |
+| 工具链 | [Hub API 参考](hub-tooling/reference/cargo-zircon-cli.md) | CLI、构建、Catalog、Receipt、自动化 |
 
 ## 调用前检查
 

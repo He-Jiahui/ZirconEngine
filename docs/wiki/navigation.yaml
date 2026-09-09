@@ -385,3 +385,495 @@ sections:
       - slug: testing-mvp
         path: testing-platform/mvp-acceptance.md
         title: MVP 验收
+  - id: api-reference
+    title: 公开 API 参考
+    pages:
+      - slug: api-reference-app
+        path: api-reference/app.md
+        title: 'zircon_app API'
+      - slug: api-reference-coverage-matrix
+        path: api-reference/coverage-matrix.md
+        title: 'API 覆盖矩阵'
+      - slug: api-reference-editor
+        path: api-reference/editor.md
+        title: 'zircon_editor API'
+      - slug: api-reference-host-hub
+        path: api-reference/host-hub.md
+        title: 'Runtime Host 与 Hub API'
+      - slug: api-reference-index
+        path: api-reference/index.md
+        title: 'Rust API 参考'
+      - slug: api-reference-plugin-sdk
+        path: api-reference/plugin-sdk.md
+        title: 'Plugin SDK API'
+      - slug: api-reference-runtime-interface
+        path: api-reference/runtime-interface.md
+        title: 'Runtime Interface API 清单'
+      - slug: api-reference-runtime-modules
+        path: api-reference/runtime-modules.md
+        title: 'zircon_runtime API 模块清单'
+  - id: app-runtime-reference
+    title: App 与 Runtime 接口参考
+    pages:
+      - slug: app-runtime-api-reference-app-entry-runner-api
+        path: app-runtime-api/reference/app-entry-runner-api.md
+        title: 'EntryProfile、EntryConfig 与 EntryRunner'
+      - slug: app-runtime-api-reference-app-export-bootstrap-distribution
+        path: app-runtime-api/reference/app-export-bootstrap-distribution.md
+        title: '导出启动、产物发现与分发'
+      - slug: app-runtime-api-reference-app-input-host-requests
+        path: app-runtime-api/reference/app-input-host-requests.md
+        title: '键盘、指针、手柄、IME 与文件拖放'
+      - slug: app-runtime-api-reference-app-plugin-composition-api
+        path: app-runtime-api/reference/app-plugin-composition-api.md
+        title: '插件组、模块组合与 ProductComposition'
+      - slug: app-runtime-api-reference-app-product-host-config
+        path: app-runtime-api/reference/app-product-host-config.md
+        title: 'ProductHostConfig 解析与能力准入'
+      - slug: app-runtime-api-reference-app-runtime-session-frame-loop
+        path: app-runtime-api/reference/app-runtime-session-frame-loop.md
+        title: 'RuntimeSession 与宿主帧循环'
+      - slug: app-runtime-api-reference-app-shutdown-errors-exit
+        path: app-runtime-api/reference/app-shutdown-errors-exit.md
+        title: '关闭协调、故障账本与退出码'
+      - slug: app-runtime-api-reference-app-window-surface-lifecycle
+        path: app-runtime-api/reference/app-window-surface-lifecycle.md
+        title: '窗口、Viewport 与 Surface 生命周期'
+      - slug: app-runtime-api-reference-buffer-allocation
+        path: app-runtime-api/reference/buffer-allocation.md
+        title: '字节载体、所有权与预算'
+      - slug: app-runtime-api-reference-handles-lifecycle
+        path: app-runtime-api/reference/handles-lifecycle.md
+        title: 'Session、Viewport 与 Operation Handle'
+      - slug: app-runtime-api-reference-host-input-window
+        path: app-runtime-api/reference/host-input-window.md
+        title: '输入、窗口、IME 与 Clipboard Host Request'
+      - slug: app-runtime-api-reference-plugin-host-api
+        path: app-runtime-api/reference/plugin-host-api.md
+        title: '插件 Entry、Host API 与事件镜像'
+      - slug: app-runtime-api-reference-profiling-diagnostics
+        path: app-runtime-api/reference/profiling-diagnostics.md
+        title: 'Profiling 与诊断 DTO'
+      - slug: app-runtime-api-reference-runtime-api-v8
+        path: app-runtime-api/reference/runtime-api-v8.md
+        title: 'ZrRuntimeApiV8 表与握手'
+      - slug: app-runtime-api-reference-serialization-compatibility
+        path: app-runtime-api/reference/serialization-compatibility.md
+        title: '序列化、状态码与兼容策略'
+      - slug: app-runtime-api-reference-ui-accessibility-camera
+        path: app-runtime-api/reference/ui-accessibility-camera.md
+        title: 'UI、Accessibility、Transform 与 Camera DTO'
+      - slug: app-runtime-api-reference-world-query-watch
+        path: app-runtime-api/reference/world-query-watch.md
+        title: 'World Query、Watch 与 Invalidation'
+  - id: best-practices-reference
+    title: 最佳实践参考
+    pages:
+      - slug: best-practices-reference-api-ownership-and-errors
+        path: best-practices/reference/api-ownership-and-errors.md
+        title: 'API 所有权、句柄与错误决策指南'
+      - slug: best-practices-reference-asset-identity-generation-cache
+        path: best-practices/reference/asset-identity-generation-cache.md
+        title: '资源身份、代际与缓存实践'
+      - slug: best-practices-reference-editor-transactions-dirty-state
+        path: best-practices/reference/editor-transactions-dirty-state.md
+        title: '编辑器事务、脏状态与保存实践'
+      - slug: best-practices-reference-lifecycle-cancellation-and-backpressure
+        path: best-practices/reference/lifecycle-cancellation-and-backpressure.md
+        title: '生命周期、取消与背压实践'
+      - slug: best-practices-reference-plugin-abi-security
+        path: best-practices/reference/plugin-abi-security.md
+        title: '插件 ABI、安全与能力实践'
+      - slug: best-practices-reference-render-frame-budgets
+        path: best-practices/reference/render-frame-budgets.md
+        title: '渲染资源、帧预算与提交实践'
+      - slug: best-practices-reference-serialization-versioning
+        path: best-practices/reference/serialization-versioning.md
+        title: '序列化、版本迁移与兼容性实践'
+      - slug: best-practices-reference-ui-retained-tree-performance
+        path: best-practices/reference/ui-retained-tree-performance.md
+        title: 'UI 保留树、布局与文本性能实践'
+      - slug: best-practices-testing-observability-release
+        path: best-practices/testing-observability-release.md
+        title: '测试、可观测性与发布实践'
+  - id: core-runtime-reference
+    title: 核心运行时接口参考
+    pages:
+      - slug: core-runtime-reference-diagnostic-log-api
+        path: core-runtime/reference/diagnostic-log-api.md
+        title: '诊断日志 API'
+      - slug: core-runtime-reference-framework-events-config-time
+        path: core-runtime/reference/framework-events-config-time.md
+        title: '事件、配置与时间框架'
+      - slug: core-runtime-reference-handles-and-admission
+        path: core-runtime/reference/handles-and-admission.md
+        title: 'CoreHandle、CoreWeak 与服务准入'
+      - slug: core-runtime-reference-index
+        path: core-runtime/reference/index.md
+        title: 'CoreRuntime 公开接口参考'
+      - slug: core-runtime-reference-manager-resolver
+        path: core-runtime/reference/manager-resolver.md
+        title: 'ManagerResolver 与类型化句柄'
+      - slug: core-runtime-reference-module-descriptor-lifecycle
+        path: core-runtime/reference/module-descriptor-lifecycle.md
+        title: 'ModuleDescriptor 与生命周期排序'
+      - slug: core-runtime-reference-platform-plugin-boundaries
+        path: core-runtime/reference/platform-plugin-boundaries.md
+        title: '平台能力与插件桥边界'
+      - slug: core-runtime-reference-runtime-construction
+        path: core-runtime/reference/runtime-construction.md
+        title: 'Runtime 构造、激活与关闭'
+      - slug: core-runtime-reference-runtime-operation-service
+        path: core-runtime/reference/runtime-operation-service.md
+        title: 'RuntimeOperation 服务'
+      - slug: core-runtime-reference-task-graph-scheduler
+        path: core-runtime/reference/task-graph-scheduler.md
+        title: '任务图、JobScheduler 与取消'
+  - id: editor-reference
+    title: 编辑器接口参考
+    pages:
+      - slug: editor-reference-commands-registry-keymap
+        path: editor/reference/commands-registry-keymap.md
+        title: 'Command Descriptor、Registry、Palette 与 Keymap'
+      - slug: editor-reference-document-asset-editors
+        path: editor/reference/document-asset-editors.md
+        title: 'Document、Asset Editor、Dirty 与 Save'
+      - slug: editor-reference-host-session-project
+        path: editor/reference/host-session-project.md
+        title: 'EditorHost、Session 与 ProjectAuthority'
+      - slug: editor-reference-operation-invocation
+        path: editor/reference/operation-invocation.md
+        title: 'OperationPath 与调用评估'
+      - slug: editor-reference-plugins-contributions-diagnostics
+        path: editor/reference/plugins-contributions-diagnostics.md
+        title: 'Editor Plugin、Contributions 与 Diagnostics'
+      - slug: editor-reference-runtime-gateway-world-sync
+        path: editor/reference/runtime-gateway-world-sync.md
+        title: 'Runtime Gateway、Session、Frame 与 World Sync'
+      - slug: editor-reference-scene-selection-transform
+        path: editor/reference/scene-selection-transform.md
+        title: '场景选择、编辑模式与变换'
+      - slug: editor-reference-transactions-history
+        path: editor/reference/transactions-history.md
+        title: 'Transaction Engine、History、Undo/Redo 与 Save Token'
+      - slug: editor-reference-viewport-pick-gizmo
+        path: editor/reference/viewport-pick-gizmo.md
+        title: 'Viewport、Pick、Gizmo 与呈现'
+      - slug: editor-reference-workbench-layout-panels
+        path: editor/reference/workbench-layout-panels.md
+        title: 'Workbench、ViewRegistry、WindowRegistry 与布局'
+  - id: graphics-reference
+    title: 图形接口参考
+    pages:
+      - slug: graphics-reference-assets-material-mesh-api
+        path: graphics/reference/assets-material-mesh-api.md
+        title: 'Mesh、Material 与 Texture 资源管线'
+      - slug: graphics-reference-capture-stats-debug-api
+        path: graphics/reference/capture-stats-debug-api.md
+        title: 'Capture、统计与性能诊断 API'
+      - slug: graphics-reference-lighting-postprocess-api
+        path: graphics/reference/lighting-postprocess-api.md
+        title: '光照、环境与后处理 Feature'
+      - slug: graphics-reference-public-enum-limits-catalog
+        path: graphics/reference/public-enum-limits-catalog.md
+        title: '公开枚举、位标志与限制速查'
+      - slug: graphics-reference-render-framework-api
+        path: graphics/reference/render-framework-api.md
+        title: 'RenderFramework 公开接口'
+      - slug: graphics-reference-render-graph-api
+        path: graphics/reference/render-graph-api.md
+        title: 'RenderGraph 构建与编译 API'
+      - slug: graphics-reference-rhi-device-surface-api
+        path: graphics/reference/rhi-device-surface-api.md
+        title: 'RHI 设备与 Surface 会话'
+      - slug: graphics-reference-rhi-resources-pipelines-api
+        path: graphics/reference/rhi-resources-pipelines-api.md
+        title: 'RHI 资源、视图与管线描述符'
+      - slug: graphics-reference-shader-pipeline-api
+        path: graphics/reference/shader-pipeline-api.md
+        title: 'Shader 编译、反射与管线缓存'
+      - slug: graphics-reference-ui-text-bridge-api
+        path: graphics/reference/ui-text-bridge-api.md
+        title: 'UI Surface 与文本渲染桥'
+      - slug: graphics-reference-visibility-culling-api
+        path: graphics/reference/visibility-culling-api.md
+        title: '场景可见性、裁剪与批处理'
+  - id: hub-tooling-reference
+    title: Hub 与工具链接口参考
+    pages:
+      - slug: hub-tooling-reference-account-service
+        path: hub-tooling/reference/account-service.md
+        title: '账户、凭据与本地服务'
+      - slug: hub-tooling-reference-automation-recipes
+        path: hub-tooling/reference/automation-recipes.md
+        title: 'Hub 自动化方案与可复用流程'
+      - slug: hub-tooling-reference-cargo-zircon-cli
+        path: hub-tooling/reference/cargo-zircon-cli.md
+        title: '`cargo-zircon` CLI 与库 API'
+      - slug: hub-tooling-reference-catalog-cloud-api
+        path: hub-tooling/reference/catalog-cloud-api.md
+        title: 'Catalog、Cloud Manifest 与快照 API'
+      - slug: hub-tooling-reference-cli-config-reference
+        path: hub-tooling/reference/cli-config-reference.md
+        title: 'Hub 与 `cargo-zircon` 配置参考'
+      - slug: hub-tooling-reference-engine-builds
+        path: hub-tooling/reference/engine-builds.md
+        title: '引擎安装、源码校验与构建配置'
+      - slug: hub-tooling-reference-hub-state-commands
+        path: hub-tooling/reference/hub-state-commands.md
+        title: 'Hub 状态、命令与 Tauri 边界'
+      - slug: hub-tooling-reference-operations-security
+        path: hub-tooling/reference/operations-security.md
+        title: '工具链故障排查、安全与可观测性'
+      - slug: hub-tooling-reference-packages-receipts
+        path: hub-tooling/reference/packages-receipts.md
+        title: '项目包、设备安装与产品 Receipt'
+      - slug: hub-tooling-reference-process-state
+        path: hub-tooling/reference/process-state.md
+        title: '进程、任务与 Hub 状态协调'
+      - slug: hub-tooling-reference-projects-history
+        path: hub-tooling/reference/projects-history.md
+        title: '项目创建、打开与最近项目'
+  - id: mechanisms-reference
+    title: 引擎机制案例参考
+    pages:
+      - slug: mechanisms-reference-asset-generation-readiness-hot-reload
+        path: mechanisms/reference/asset-generation-readiness-hot-reload.md
+        title: '资产 generation、readiness 与热重载'
+      - slug: mechanisms-reference-diagnostics-observability-recovery
+        path: mechanisms/reference/diagnostics-observability-recovery.md
+        title: '诊断、可观测性与恢复：从症状到证据'
+      - slug: mechanisms-reference-editor-transaction-gateway-save
+        path: mechanisms/reference/editor-transaction-gateway-save.md
+        title: '编辑器事务、命令网关与保存标记'
+      - slug: mechanisms-reference-frame-clock-task-scheduling
+        path: mechanisms/reference/frame-clock-task-scheduling.md
+        title: '帧时钟与任务调度：确定性外框、并发内层'
+      - slug: mechanisms-reference-handle-generation-admission
+        path: mechanisms/reference/handle-generation-admission.md
+        title: 'Handle、generation 与 admission：拒绝悬挂引用'
+      - slug: mechanisms-reference-module-capability-negotiation
+        path: mechanisms/reference/module-capability-negotiation.md
+        title: '模块依赖与能力协商：从 descriptor 到可用服务'
+      - slug: mechanisms-reference-plugin-load-unload-abi
+        path: mechanisms/reference/plugin-load-unload-abi.md
+        title: '插件加载、卸载与 ABI：能力边界案例'
+      - slug: mechanisms-reference-render-extract-present-ui-handoff
+        path: mechanisms/reference/render-extract-present-ui-handoff.md
+        title: 'Render Extract、Present 与 UI handoff'
+      - slug: mechanisms-reference-startup-shutdown-state-machine
+        path: mechanisms/reference/startup-shutdown-state-machine.md
+        title: '从启动到停机：CoreRuntime 状态机案例'
+      - slug: mechanisms-reference-world-sync-backpressure-invalidation
+        path: mechanisms/reference/world-sync-backpressure-invalidation.md
+        title: 'World Sync：查询、失效与背压'
+  - id: plugins-reference
+    title: 插件接口参考
+    pages:
+      - slug: plugins-reference-capabilities-lifecycle
+        path: plugins/reference/capabilities-lifecycle.md
+        title: 'Capability 协商与插件生命周期'
+      - slug: plugins-reference-catalog-inventory-audit
+        path: plugins/reference/catalog-inventory-audit.md
+        title: '插件 Catalog 清单审计指南'
+      - slug: plugins-reference-declaration-runtime
+        path: plugins/reference/declaration-runtime.md
+        title: '声明与运行时 Descriptor'
+      - slug: plugins-reference-editor-contributions
+        path: plugins/reference/editor-contributions.md
+        title: '编辑器插件与贡献批次'
+      - slug: plugins-reference-family-extension-patterns
+        path: plugins/reference/family-extension-patterns.md
+        title: '五类运行时插件扩展模式'
+      - slug: plugins-reference-importer-contract
+        path: plugins/reference/importer-contract.md
+        title: 'Asset Importer 插件契约'
+      - slug: plugins-reference-index
+        path: plugins/reference/index.md
+        title: '插件 API 参考手册'
+      - slug: plugins-reference-manifest-modules
+        path: plugins/reference/manifest-modules.md
+        title: 'Package Manifest、模块与 Feature Bundle'
+      - slug: plugins-reference-native-abi
+        path: plugins/reference/native-abi.md
+        title: 'Native ABI v3/v4 逐字段参考'
+      - slug: plugins-reference-native-commands-bridges
+        path: plugins/reference/native-commands-bridges.md
+        title: 'Native Command、Event 与 Bridge 字节协议'
+      - slug: plugins-reference-public-symbol-index
+        path: plugins/reference/public-symbol-index.md
+        title: 'Plugin SDK 公开符号索引'
+      - slug: plugins-reference-registration-bridges
+        path: plugins/reference/registration-bridges.md
+        title: '运行时注册、调度与桥接接口'
+      - slug: plugins-reference-runtime-exports-selection
+        path: plugins/reference/runtime-exports-selection.md
+        title: 'Runtime 导出宏与选择流程'
+      - slug: plugins-reference-testing-packaging-security
+        path: plugins/reference/testing-packaging-security.md
+        title: '插件测试、打包与安全验收'
+  - id: scene-assets-reference
+    title: 场景与资产接口参考
+    pages:
+      - slug: scene-assets-reference-asset-uri-identity
+        path: scene-assets/reference/asset-uri-identity.md
+        title: 'AssetUri、UUID、元数据与依赖'
+      - slug: scene-assets-reference-component-storage-change
+        path: scene-assets/reference/component-storage-change.md
+        title: '组件注册、存储与变更跟踪'
+      - slug: scene-assets-reference-dynamic-scene-snapshot
+        path: scene-assets/reference/dynamic-scene-snapshot.md
+        title: '动态场景、快照与实例化'
+      - slug: scene-assets-reference-importer-contracts
+        path: scene-assets/reference/importer-contracts.md
+        title: 'AssetImporter 契约与扩展'
+      - slug: scene-assets-reference-project-manager-import
+        path: scene-assets/reference/project-manager-import.md
+        title: 'ProjectManifest 与 ProjectManager'
+      - slug: scene-assets-reference-resource-registry-readiness
+        path: scene-assets/reference/resource-registry-readiness.md
+        title: 'ResourceRegistry、句柄与资源就绪'
+      - slug: scene-assets-reference-serialization-recovery
+        path: scene-assets/reference/serialization-recovery.md
+        title: '场景序列化、持久化与恢复'
+      - slug: scene-assets-reference-transforms-math
+        path: scene-assets/reference/transforms-math.md
+        title: 'Transform、层级与数学'
+      - slug: scene-assets-reference-watcher-incremental-generation
+        path: scene-assets/reference/watcher-incremental-generation.md
+        title: 'Watcher、增量导入与 Generation'
+      - slug: scene-assets-reference-world-entity-query
+        path: scene-assets/reference/world-entity-query.md
+        title: 'World、Entity 与查询'
+  - id: script-animation-reference
+    title: 脚本、反射、动画与导航接口参考
+    pages:
+      - slug: script-animation-reference-animation-assets-and-manager
+        path: script-animation/reference/animation-assets-and-manager.md
+        title: '动画 Asset、Graph 与 State Machine'
+      - slug: script-animation-reference-animation-sequence-pipeline
+        path: script-animation/reference/animation-sequence-pipeline.md
+        title: 'Animation Sequence 编译与应用'
+      - slug: script-animation-reference-dynamic-api-v8
+        path: script-animation/reference/dynamic-api-v8.md
+        title: 'Dynamic API V8 与脚本调用边界'
+      - slug: script-animation-reference-hot-reload-and-state-migration
+        path: script-animation/reference/hot-reload-and-state-migration.md
+        title: '脚本热重载、状态迁移与诊断'
+      - slug: script-animation-reference-navigation-operations
+        path: script-animation/reference/navigation-operations.md
+        title: 'Navigation Operation 与脚本调用'
+      - slug: script-animation-reference-navigation-runtime
+        path: script-animation/reference/navigation-runtime.md
+        title: 'Navigation Runtime、NavMesh 与 Agent'
+      - slug: script-animation-reference-reflection-macro-authoring
+        path: script-animation/reference/reflection-macro-authoring.md
+        title: '反射与 Host 宏的编写指南'
+      - slug: script-animation-reference-reflection-schema-catalog
+        path: script-animation/reference/reflection-schema-catalog.md
+        title: '反射 derive、schema 与 Catalog'
+      - slug: script-animation-reference-script-animation-integration
+        path: script-animation/reference/script-animation-integration.md
+        title: 'Script 与 Animation 集成方案'
+      - slug: script-animation-reference-script-host-contracts
+        path: script-animation/reference/script-host-contracts.md
+        title: 'Script Host、模块与函数合同'
+      - slug: script-animation-reference-scripting-performance-security
+        path: script-animation/reference/scripting-performance-security.md
+        title: '脚本、动画与导航的性能和安全基线'
+      - slug: script-animation-reference-vm-backend-and-manager
+        path: script-animation/reference/vm-backend-and-manager.md
+        title: 'VM Backend 与插件管理器'
+  - id: testing-platform-reference
+    title: 测试、平台与诊断参考
+    pages:
+      - slug: testing-platform-reference-ci-failure-triage
+        path: testing-platform/reference/ci-failure-triage.md
+        title: 'CI 失败分诊与本地复现'
+      - slug: testing-platform-reference-diagnostics-and-profiling
+        path: testing-platform/reference/diagnostics-and-profiling.md
+        title: '诊断、性能与采集证据'
+      - slug: testing-platform-reference-feature-profile-matrix
+        path: testing-platform/reference/feature-profile-matrix.md
+        title: 'Feature/Profile 矩阵参考'
+      - slug: testing-platform-reference-test-layers-and-contracts
+        path: testing-platform/reference/test-layers-and-contracts.md
+        title: '测试分层与契约参考'
+      - slug: testing-platform-reference-visual-acceptance-evidence
+        path: testing-platform/reference/visual-acceptance-evidence.md
+        title: '资产、渲染与 UI 验收证据'
+      - slug: testing-platform-reference-visual-evidence-gallery
+        path: testing-platform/reference/visual-evidence-gallery.md
+        title: '视觉证据画廊与教程参考图'
+      - slug: testing-platform-reference-wiki-source-guards
+        path: testing-platform/reference/wiki-source-guards.md
+        title: 'Wiki 与源码守卫'
+      - slug: testing-platform-reference-windows-wsl-validation
+        path: testing-platform/reference/windows-wsl-validation.md
+        title: 'Windows 与 WSL 验证'
+  - id: tutorials-advanced
+    title: 进阶教程
+    pages:
+      - slug: tutorials-advanced-animation-navigation-runtime
+        path: tutorials/advanced/animation-navigation-runtime.md
+        title: '动画序列与导航运行时'
+      - slug: tutorials-advanced-asset-import-hot-reload
+        path: tutorials/advanced/asset-import-hot-reload.md
+        title: '资产导入、依赖就绪与热重载'
+      - slug: tutorials-advanced-custom-runtime-module-service
+        path: tutorials/advanced/custom-runtime-module-service.md
+        title: '自定义运行时模块与服务'
+      - slug: tutorials-advanced-dynamic-session-world-sync
+        path: tutorials/advanced/dynamic-session-world-sync.md
+        title: '动态会话与 World Sync'
+      - slug: tutorials-advanced-editor-plugin-command-transaction
+        path: tutorials/advanced/editor-plugin-command-transaction.md
+        title: '编辑器插件命令与可撤销事务'
+      - slug: tutorials-advanced-headless-server-profile
+        path: tutorials/advanced/headless-server-profile.md
+        title: '无头服务器 Profile'
+      - slug: tutorials-advanced-native-plugin-packaging
+        path: tutorials/advanced/native-plugin-packaging.md
+        title: '原生插件脚手架、验证与打包'
+      - slug: tutorials-advanced-project-export-hub-automation
+        path: tutorials/advanced/project-export-hub-automation.md
+        title: '项目导出、产品 Receipt 与 Hub 自动化'
+      - slug: tutorials-advanced-render-viewport-frame-capture
+        path: tutorials/advanced/render-viewport-frame-capture.md
+        title: '创建视口、提取帧并捕获预览图像'
+      - slug: tutorials-advanced-ui-template-binding-ime
+        path: tutorials/advanced/ui-template-binding-ime.md
+        title: 'UI 模板、绑定与 IME 输入'
+  - id: ui-reference
+    title: UI 接口参考
+    pages:
+      - slug: ui-reference-accessibility-debugging-and-production-checklist
+        path: ui/reference/accessibility-debugging-and-production-checklist.md
+        title: 'UI 可访问性、诊断与上线检查'
+      - slug: ui-reference-components-bindings-style-and-theme
+        path: ui/reference/components-bindings-style-and-theme.md
+        title: 'UI 组件、绑定、样式与主题'
+      - slug: ui-reference-event-routing-focus-and-hit-testing
+        path: ui/reference/event-routing-focus-and-hit-testing.md
+        title: 'UI 事件路由、焦点与命中测试'
+      - slug: ui-reference-input-actions-window-and-gamepad
+        path: ui/reference/input-actions-window-and-gamepad.md
+        title: '键盘、指针、手柄与窗口输入'
+      - slug: ui-reference-layout-taffy-containers-and-virtual-lists
+        path: ui/reference/layout-taffy-containers-and-virtual-lists.md
+        title: 'UI 布局、容器与虚拟列表'
+      - slug: ui-reference-rich-text-links-tables-and-semantic-model
+        path: ui/reference/rich-text-links-tables-and-semantic-model.md
+        title: '富文本、链接、表格与语义投影'
+      - slug: ui-reference-surface-frame-render-extraction
+        path: ui/reference/surface-frame-render-extraction.md
+        title: 'UI Surface、帧更新与渲染提取'
+      - slug: ui-reference-text-font-shaping-editing-and-ime
+        path: ui/reference/text-font-shaping-editing-and-ime.md
+        title: '文本、字体整形、可编辑控件与 IME'
+      - slug: ui-reference-v2-assets-and-retained-tree
+        path: ui/reference/v2-assets-and-retained-tree.md
+        title: 'UI V2 资产、编译文档与保留树'
+      - slug: ui-reference-window-host-requests-and-scaling
+        path: ui/reference/window-host-requests-and-scaling.md
+        title: 'Window、Host Request 与 DPI 缩放'

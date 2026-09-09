@@ -34,6 +34,7 @@ ZirconEngine 是一个以 Rust 为主、采用 Runtime/Editor 分离和插件化
 | 按产品生命周期理解启动、帧和关停 | [产品生命周期](product-lifecycle.md) |
 | 查看当前实现、实验和 MVP 状态 | [功能状态](feature-status.md) |
 | 直接查找 Rust 类型、函数和 feature | [Rust API 索引](api-index.md) |
+| 逐 crate 核对公开符号、feature 与覆盖状态 | [公开 API 参考](api-reference/index.md) |
 | 为 Wiki 网站导入目录和元数据 | [导航清单](navigation.yaml) |
 | 按步骤完成一项引擎任务 | [教程集合](tutorials/index.md) |
 | 理解状态机、数据流和所有权交接 | [引擎机制指南](mechanisms/index.md) |
@@ -62,32 +63,45 @@ flowchart LR
 - [核心运行时](core-runtime/index.md)：CoreRuntime、模块生命周期、服务解析、事件、时间、任务、Runtime Operation 和诊断日志。
 - [场景与资产](scene-assets/index.md)：ECS World、实体/组件、变换、资源注册、项目和持久化。
 - [引擎机制指南](mechanisms/index.md)：模块激活、服务解析、帧数据、事件、资产就绪和 UI/ABI 交接。
+- [核心运行时接口参考](core-runtime/reference/index.md)：构造、句柄、模块生命周期、任务图、操作服务和诊断 API。
+- [场景与资产接口参考](scene-assets/reference/world-entity-query.md)：World/ECS、资产身份、导入、资源就绪、快照与恢复。
 
 ### 教程与方案
 
 - [教程集合](tutorials/index.md)：从启动 Runtime、导入项目资产，到编辑器撤销和动态插件会话。
 - [工程最佳实践](best-practices/index.md)：Rust 句柄与错误、插件 ABI、编辑器事务、渲染资源生命周期。
 - [引擎方案配方](recipes/index.md)：渲染一帧、导入并消费资源、编辑器作者态、宿主世界同步。
+- [进阶教程](tutorials/advanced/custom-runtime-module-service.md)：从自定义模块、无头服务器到导出、热重载和 UI/IME 的完整工作流。
 
 ### 内容与表现
 
 - [图形与渲染](graphics/index.md)：RHI、WGPU、Render Graph、场景渲染、材质、纹理、Shader 和环境光。
 - [UI、文本与输入](ui/index.md)：UI 树、布局、模板、绑定、文本 shaping、平台输入和无障碍。
 - [脚本、反射与动画](script-animation/index.md)：Host API、反射注册、动态 API、动画和导航接口。
+- [图形接口参考](graphics/reference/render-framework-api.md)：RenderFramework、RenderGraph、RHI、Shader、材质和诊断。
+- [UI 接口参考](ui/reference/v2-assets-and-retained-tree.md)：UI v2 资产、保留树、布局、输入、文本和无障碍。
+- [脚本与动画接口参考](script-animation/reference/vm-backend-and-manager.md)：VM、反射、Dynamic API V8、动画、导航与热重载。
 
 ### 编辑与扩展
 
 - [编辑器](editor/index.md)：作者态会话、命令/事务、场景工具、Viewport、Workbench 和资产编辑器。
 - [插件](plugins/index.md)：Plugin SDK、linked/native/dist 路径、manifest、能力协商和插件族。
 - [App 与 Runtime API](app-runtime-api/index.md)：入口 profile、动态库会话、ABI DTO、宿主输出和世界同步。
+- [编辑器接口参考](editor/reference/host-session-project.md)：Host/Session、命令事务、文档资产、Viewport 和 Workbench。
+- [插件接口参考](plugins/reference/index.md)：Descriptor、Manifest、ABI、能力协商、导入器和安全验收。
+- [App/Host 接口参考](app-runtime-api/reference/app-entry-runner-api.md)：Entry、ProductHost、Session、窗口输入和导出分发。
 
 ### 工具与质量
 
 - [Hub 与工具链](hub-tooling/index.md)：Zircon Hub、`cargo zircon`、导出/打包和 Session Coordinator。
 - [GitHub Pages Wiki 发布](hub-tooling/wiki-publishing.md)：本地预览、严格构建、Pages artifact 和自动部署。
 - [测试与平台](testing-platform/index.md)：feature/profile 矩阵、Windows 优先验证、诊断、性能和 MVP 验收。
+- [视觉证据画廊](testing-platform/reference/visual-evidence-gallery.md)：编辑器、RenderGraph、UI、文本、光照和 Hub 截图，以及可复用教程方案图。
 - [Rust API 参考](rust-api.md)：命名、错误、句柄、ABI 安全和示例约定。
 - [贡献文档](contributing-docs.md)：如何维护本 Wiki、frontmatter 和自动生成网站导航。
+- [Hub 与工具链接口参考](hub-tooling/reference/cargo-zircon-cli.md)：项目、构建、Catalog、Receipt、CLI、账户和 Tauri 状态。
+- [测试、平台与诊断参考](testing-platform/reference/feature-profile-matrix.md)：feature/profile、契约测试、Windows 验证、性能和 CI 分诊。
+- [最佳实践参考](best-practices/reference/api-ownership-and-errors.md)：所有权、背压、缓存、事务、渲染预算、ABI 安全与版本迁移。
 
 ## 版本与状态
 
