@@ -35,6 +35,23 @@ ZirconEngine 是一个以 Rust 为主、采用 Runtime/Editor 分离和插件化
 | 查看当前实现、实验和 MVP 状态 | [功能状态](feature-status.md) |
 | 直接查找 Rust 类型、函数和 feature | [Rust API 索引](api-index.md) |
 | 为 Wiki 网站导入目录和元数据 | [导航清单](navigation.yaml) |
+| 按步骤完成一项引擎任务 | [教程集合](tutorials/index.md) |
+| 理解状态机、数据流和所有权交接 | [引擎机制指南](mechanisms/index.md) |
+| 设计可维护的模块、插件和渲染代码 | [工程最佳实践](best-practices/index.md) |
+| 组合一条可落地的生产工作流 | [引擎方案配方](recipes/index.md) |
+
+## 推荐阅读路线
+
+```mermaid
+flowchart LR
+  A[概念与快速开始] --> B[分步教程]
+  B --> C[机制与不变量]
+  C --> D[工程最佳实践]
+  D --> E[方案配方]
+  E --> F[Rust API 与源码]
+```
+
+路线图中的每一步都可以独立阅读：教程解决“怎么做”，机制页解释“为什么这样做”，最佳实践约束“怎样长期维护”，方案配方则把多个模块组合成可验收的工作流。
 
 ## 文档分区
 
@@ -44,6 +61,13 @@ ZirconEngine 是一个以 Rust 为主、采用 Runtime/Editor 分离和插件化
 - [Framework 模块目录](architecture/framework-module-catalog.md)：逐项查找 27 个跨模块契约及其 Rust 入口。
 - [核心运行时](core-runtime/index.md)：CoreRuntime、模块生命周期、服务解析、事件、时间、任务、Runtime Operation 和诊断日志。
 - [场景与资产](scene-assets/index.md)：ECS World、实体/组件、变换、资源注册、项目和持久化。
+- [引擎机制指南](mechanisms/index.md)：模块激活、服务解析、帧数据、事件、资产就绪和 UI/ABI 交接。
+
+### 教程与方案
+
+- [教程集合](tutorials/index.md)：从启动 Runtime、导入项目资产，到编辑器撤销和动态插件会话。
+- [工程最佳实践](best-practices/index.md)：Rust 句柄与错误、插件 ABI、编辑器事务、渲染资源生命周期。
+- [引擎方案配方](recipes/index.md)：渲染一帧、导入并消费资源、编辑器作者态、宿主世界同步。
 
 ### 内容与表现
 

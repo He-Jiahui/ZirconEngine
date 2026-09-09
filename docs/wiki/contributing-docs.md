@@ -25,6 +25,7 @@ doc_type: testing-guide
 | `category-index` | 分区导航、读者路径和状态矩阵 |
 | `module-detail` | 一个 crate/module 的稳定职责、边界和 API |
 | `workflow-detail` | 启动、导入、编辑、保存、导出等操作流程 |
+| `mechanism-guide` | 状态机、数据流、代际和跨边界所有权机制 |
 | `testing-guide` | 可重复验证、平台限制和故障排查 |
 | `milestone-detail` | 与计划退出条件绑定的状态说明 |
 
@@ -60,6 +61,18 @@ doc_type: module-detail
 ## 网站导入
 
 `navigation.yaml` 提供稳定的 slug、分区、标题和前置阅读关系。网站生成器可以把 Markdown frontmatter 作为页面元数据，把 `navigation.yaml` 作为侧边栏/搜索索引的初始输入。生成器应保留相对链接，并对缺失的站内页面发出错误；代码、测试和计划路径的暂时缺失由元数据 warning 标出。
+
+## 图例、示例与教程
+
+站点使用 Material for MkDocs 的 `pymdownx.superfences` 自定义 fence 渲染 Mermaid。流程图只表达一个边界内的状态转换或所有权流转；节点名称应和源码中的类型、状态或事件一致，复杂细节仍放在正文表格中。没有 Mermaid 渲染能力的导出器至少应保留同一段落中的文字说明，不要让图成为唯一信息来源。
+
+Rust 示例分为三种层级：
+
+- **可复制入口**：只使用 crate root 的公开 re-export，展示 `Result`、feature 和资源/句柄释放。
+- **契约形状**：用最小伪代码说明字段、错误或 ABI slot，明确标注“示意”，避免读者误以为能直接编译。
+- **源码定位**：给出真实实现和测试链接，读者可以沿链接核对签名和版本。
+
+教程页必须包含前置条件、目标结果、逐步操作、失败处理和验收清单；方案配方页还要列出跨模块数据流、可观测性和恢复路径。新增页面应先挂到对应 category index，再写入本文件和 `navigation.yaml`，确保网页、搜索和离线 Markdown 的入口一致。
 
 ## 提交前检查
 

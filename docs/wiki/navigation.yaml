@@ -16,6 +16,21 @@ sections:
       - slug: getting-started
         path: getting-started.md
         title: 快速开始
+      - slug: tutorials
+        path: tutorials/index.md
+        title: 教程集合
+      - slug: tutorial-runtime-startup
+        path: tutorials/runtime-module-startup.md
+        title: 从零启动 CoreRuntime 并接入一个模块
+      - slug: tutorial-project-asset-import
+        path: tutorials/project-asset-import.md
+        title: 打开项目并完成一次资产导入
+      - slug: tutorial-editor-command-undo
+        path: tutorials/editor-command-undo.md
+        title: 把编辑器操作接入命令、事务与撤销
+      - slug: tutorial-dynamic-session-plugin
+        path: tutorials/dynamic-session-plugin-onboarding.md
+        title: 为动态会话选择并接入运行时插件
       - slug: product-lifecycle
         path: product-lifecycle.md
         title: 产品生命周期
@@ -28,6 +43,21 @@ sections:
       - slug: architecture
         path: architecture/index.md
         title: 架构总览
+      - slug: mechanisms
+        path: mechanisms/index.md
+        title: 引擎机制指南
+      - slug: mechanism-module-service
+        path: mechanisms/module-activation-and-service-resolution.md
+        title: 模块激活与服务解析机制
+      - slug: mechanism-frame-data-time
+        path: mechanisms/frame-data-event-time-flow.md
+        title: 帧数据、事件与时间流
+      - slug: mechanism-asset-readiness
+        path: mechanisms/asset-import-readiness-residency.md
+        title: 资产导入、就绪与驻留机制
+      - slug: mechanism-ui-abi
+        path: mechanisms/ui-render-and-dynamic-abi-handoff.md
+        title: UI 渲染抽取与动态 ABI 交接
       - slug: core-runtime
         path: core-runtime/index.md
         title: 核心运行时
@@ -280,6 +310,21 @@ sections:
       - slug: app-errors
         path: app-runtime-api/compatibility-and-errors.md
         title: 兼容性与错误
+      - slug: best-practices
+        path: best-practices/index.md
+        title: 工程最佳实践
+      - slug: best-practices-handles
+        path: best-practices/rust-handles-errors-and-ownership.md
+        title: Rust API、句柄与错误所有权实践
+      - slug: best-practices-plugin-abi
+        path: best-practices/plugin-manifest-capabilities-native-abi.md
+        title: 插件清单、能力与原生 ABI 打包实践
+      - slug: best-practices-editor-transactions
+        path: best-practices/editor-transactions-undo-save.md
+        title: 编辑器事务、撤销与保存实践
+      - slug: best-practices-rendering
+        path: best-practices/rendering-resource-lifetime-performance.md
+        title: 渲染资源生命周期与性能实践
   - id: tools
     title: 工具与质量
     pages:
@@ -289,6 +334,21 @@ sections:
       - slug: wiki-publishing
         path: hub-tooling/wiki-publishing.md
         title: GitHub Pages Wiki 发布
+      - slug: recipes
+        path: recipes/index.md
+        title: 引擎方案配方
+      - slug: recipe-render-scene
+        path: recipes/render-scene-frame.md
+        title: 提交并呈现一帧场景
+      - slug: recipe-asset-consume
+        path: recipes/asset-import-and-consume.md
+        title: 安全导入资源并在运行时消费
+      - slug: recipe-editor-session
+        path: recipes/editor-authoring-session.md
+        title: 开启编辑器项目并提交场景作者态修改
+      - slug: recipe-world-sync
+        path: recipes/world-sync-host-integration.md
+        title: 宿主中实现世界查询与增量同步
       - slug: testing-platform
         path: testing-platform/index.md
         title: 测试与平台
