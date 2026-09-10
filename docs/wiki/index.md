@@ -96,7 +96,7 @@ flowchart LR
 - [Hub 与工具链](hub-tooling/index.md)：Zircon Hub、`cargo zircon`、导出/打包和 Session Coordinator。
 - [GitHub Pages Wiki 发布](hub-tooling/wiki-publishing.md)：本地预览、严格构建、Pages artifact 和自动部署。
 - [测试与平台](testing-platform/index.md)：feature/profile 矩阵、Windows 优先验证、诊断、性能和 MVP 验收。
-- [视觉证据画廊](testing-platform/reference/visual-evidence-gallery.md)：编辑器、RenderGraph、UI、文本、光照和 Hub 截图，以及可复用教程方案图。
+- [真实截图证据画廊](testing-platform/reference/visual-evidence-gallery.md)：只收录编辑器、Runtime、文本、光照和 Hub 的真实截图，并提供不计入证据的执行顺序说明。
 - [Rust API 参考](rust-api.md)：命名、错误、句柄、ABI 安全和示例约定。
 - [贡献文档](contributing-docs.md)：如何维护本 Wiki、frontmatter 和自动生成网站导航。
 - [Hub 与工具链接口参考](hub-tooling/reference/cargo-zircon-cli.md)：项目、构建、Catalog、Receipt、CLI、账户和 Tauri 状态。

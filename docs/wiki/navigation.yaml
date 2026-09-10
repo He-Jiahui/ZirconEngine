@@ -804,7 +804,7 @@ sections:
         title: '资产、渲染与 UI 验收证据'
       - slug: testing-platform-reference-visual-evidence-gallery
         path: testing-platform/reference/visual-evidence-gallery.md
-        title: '视觉证据画廊与教程参考图'
+        title: '真实截图证据画廊'
       - slug: testing-platform-reference-wiki-source-guards
         path: testing-platform/reference/wiki-source-guards.md
         title: 'Wiki 与源码守卫'

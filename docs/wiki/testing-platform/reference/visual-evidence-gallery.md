@@ -1,18 +1,18 @@
 ---
 related_code:
+  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_toolbar_breakpoints/visual_artifacts.rs
+  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot/chrome_artifacts.rs
+  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot/component_atlas
   - zircon_runtime/tests/zui_native_visual_acceptance.rs
   - zircon_runtime/tests/runtime_text_multilingual_product_framebuffer.rs
   - zircon_runtime/tests/virtual_geometry_visbuffer_overlay_contract.rs
-  - zircon_editor/src/tests/workbench
-  - zircon_editor/tests/integration_contracts
   - tools/capture-editor-ui-visual.ps1
-  - tools/zircon_pbr_visual_oracle.py
 implementation_files:
   - docs/tests/editor
   - docs/tests/runtime
   - docs/tests/workflow-control-center
-  - docs/ui-and-layout
   - tools/capture-editor-ui-visual.ps1
+  - .codex/skills/zircon-project-skills/capture-hub-window-screenshot/scripts/capture-hub-window.ps1
 plan_sources:
   - docs/plans/mvp/index.md
   - docs/plans/milestone-validation-policy.md
@@ -22,227 +22,151 @@ tests:
   - zircon_editor/tests/editor_asset_index_projection.rs
   - zircon_editor/tests/integration_contracts/workbench_window_template.rs
 doc_type: evidence-reference
-title: 视觉证据画廊与教程参考图
+title: 真实截图证据画廊
 status: source-audited
 ---
 
-# 视觉证据画廊与教程参考图
+# 真实截图证据画廊
 
-本页集中存放当前仓库中可以追溯到源码、测试或设计稿的截图，并给出与教程对应的阅读顺序。图片不是装饰：每张图都标注来源、尺寸、SHA-256 和证据等级。**设计参考图只能说明目标布局，不能替代运行时验收；运行时截图也不能单独证明资产来源、保存和重开成功。**
+本页只收录由现有 Rust 测试实际渲染、Runtime framebuffer 实际导出，或由运行中的原生窗口实际捕获的 PNG。概念图、布局图、设计稿和流程图都不属于视觉证据，不能进入 `docs/wiki/assets/evidence/`，也不会出现在下方索引中。每张图均记录原始路径、尺寸、SHA-256、生成路径和适用边界。
+
+真实截图仍不是完整验收结论。证据链必须是“源码/测试 -> 命令或 receipt -> 实际渲染或窗口状态 -> PNG -> 语义断言与人工复核”；其中只有 PNG 是视觉证据，测试、receipt 和断言负责证明它来自可重放的状态。
 
 ## 快速选择
 
-| 你正在验证什么 | 先看图片 | 再看页面 | 最低证据等级 |
+| 你正在验证什么 | 先看真实截图 | 再看页面 | 最低证据等级 |
 | --- | --- | --- | --- |
-| 编辑器窗口和资产浏览器 | [编辑器工作台](#editor-workbench-reference)、[资产浏览器](#asset-browser-acceptance) | [Workbench 布局](../../editor/reference/workbench-layout-panels.md)、[资产导入教程](../../tutorials/advanced/asset-import-hot-reload.md) | 行为 + 视觉 |
-| RenderGraph 和帧呈现 | [RenderGraph 参考图](#rendergraph-reference)、[光照截图](#forward-deferred-acceptance) | [RenderFramework API](../../graphics/reference/render-framework-api.md)、[帧捕获教程](../../tutorials/advanced/render-viewport-frame-capture.md) | 编译 + 行为 |
-| UI Binding、文本和 IME | [UI Binding 参考图](#ui-binding-reference)、[富文本截图](#rich-text-acceptance) | [UI V2](../../ui/reference/v2-assets-and-retained-tree.md)、[文本与 IME](../../ui/reference/text-font-shaping-editing-and-ime.md) | 行为 + 产品帧 |
-| 导入、热重载和恢复 | [资产浏览器](#asset-browser-acceptance) | [资产热重载](../../tutorials/advanced/asset-import-hot-reload.md)、[资产就绪机制](../../mechanisms/asset-import-readiness-residency.md) | 资源状态 + 视觉 |
-| Hub/控制台工作流 | [控制中心](#workflow-control-center-acceptance) | [Hub CLI API](../../hub-tooling/reference/cargo-zircon-cli.md)、[Receipt 教程](../../tutorials/advanced/project-export-hub-automation.md) | 结构化 receipt |
-
-## 证据等级和阅读规则
-
-```mermaid
-flowchart LR
-    A[源码与测试路径] --> B[命令/环境 receipt]
-    B --> C[运行时状态与 generation]
-    C --> D[真实 framebuffer / window capture]
-    D --> E[语义断言与人工复核]
-    A -.设计目标.-> F[参考图]
-    F -.不能替代.-> E
-```
-
-图中的实线是可追溯的验收链；虚线表示设计图只用于说明布局或交互目标。阅读截图时同时记录：
-
-1. 输入资源和源文件 fingerprint；
-2. Cargo profile、feature、平台、adapter 和 viewport 物理尺寸；
-3. 生成截图的测试或捕获命令、运行号、时间戳和 SHA-256；
-4. 失败时保留的日志、receipt、fixture 与上一张 last-good 图。
+| 编辑器窗口和资产浏览器 | [完整 Workbench](#editor-workbench-run-mode-acceptance)、[资产浏览器](#asset-browser-acceptance) | [Workbench 布局](../../editor/reference/workbench-layout-panels.md)、[资产导入教程](../../tutorials/advanced/asset-import-hot-reload.md) | 编辑器测试渲染 + 行为断言 |
+| 图形运行时和帧呈现 | [Hybrid GI 诊断](#hybrid-gi-editor-diagnostics-acceptance)、[光照对比](#forward-deferred-acceptance) | [RenderFramework API](../../graphics/reference/render-framework-api.md)、[帧捕获教程](../../tutorials/advanced/render-viewport-frame-capture.md) | 产品帧 + 统计/语义断言 |
+| UI、文本和 IME | [组件图集](#ui-components-acceptance)、[富文本产品帧](#rich-text-acceptance) | [UI V2](../../ui/reference/v2-assets-and-retained-tree.md)、[文本与 IME](../../ui/reference/text-font-shaping-editing-and-ime.md) | 测试渲染 + 产品帧 |
+| 导入、热重载和恢复 | [资产浏览器](#asset-browser-acceptance) | [资产热重载](../../tutorials/advanced/asset-import-hot-reload.md)、[资产就绪机制](../../mechanisms/asset-import-readiness-residency.md) | 资源状态 + 截图 + generation |
+| Hub/控制台工作流 | [控制中心](#workflow-control-center-acceptance) | [Hub CLI API](../../hub-tooling/reference/cargo-zircon-cli.md)、[Receipt 教程](../../tutorials/advanced/project-export-hub-automation.md) | 实际界面截图 + 结构化 receipt |
 
 ## 证据索引
 
-以下表格是本页图片的 machine-readable 入口。`source` 列指向仓库中真正生成或维护图片的位置；`wiki copy` 是为了让 MkDocs 在 `docs/wiki` 内自包含而保存的副本。
+`source` 是仓库内生成或保存原图的位置；`wiki copy` 只是为 MkDocs 页面自包含而保存的字节相同副本。类型中的“测试渲染”表示图像由对应 Rust 测试运行真实渲染路径生成，而不是由设计工具绘制。
 
 | wiki copy | source | 尺寸 | SHA-256 | 类型 | 解释 |
 | --- | --- | ---: | --- | --- | --- |
-| `editor-workbench-reference.png` | `docs/ui-and-layout/workbench.png` | 1672 x 941 | `4AD7706C08138EF422802C0C46B5DE4775237021F474200EFC100DAD577C02D0` | 设计/参考 | 展示 Scene、Inspector、UI Components 和状态栏的目标组合；不是当前运行通过证据。 |
-| `render-graph-reference.png` | `docs/ui-and-layout/editor-workbench-designs/render-graph-workbench.png` | 1672 x 941 | `639B5602942A407903433386336A7E9B48F696FFA55DE7CAE293DE2AC9181169` | 设计/参考 | 展示 pass、barrier、graph summary 和 compile/capture 操作。 |
-| `ui-binding-reference.png` | `docs/ui-and-layout/editor-workbench-designs/ui-binding-workbench.png` | 1672 x 941 | `55257D06BBC02E09AF7481F6E3844A4625FEDCC4E5559502FC333B1F21A657AB` | 设计/参考 | 展示 Binding Contract、Data Sources、trace 和 validation 输出。 |
-| `asset-browser-acceptance.png` | `docs/tests/editor/editor-window-m3-asset-browser-900x620.png` | 900 x 620 | `0779A99A06B66FDCCCCC7013ACB3B228D99473EF61CBB9A29A751D2F83AFCC98` | 运行时/测试 | M3 Asset Browser 截图；需结合对应测试日志和 source asset identity 解读。 |
-| `text-rich-table-acceptance.png` | `docs/tests/runtime/text/runtime_text_multilingual_rich_table_product_framebuffer_20260712.png` | 1080 x 1450 | `0B69036E831C376B6C7235CF5CE05D62331F48BE18D7D93F59D97C6527A1A0AA` | 运行时/产品帧 | 多语言、RTL、富文本表格和 inline object 的 framebuffer 证据。 |
-| `lightmap-forward-deferred-acceptance.png` | `docs/tests/runtime/render/plan11_lightmap_probe_forward_deferred_wgpu_20260713.png` | 1932 x 360 | `386909A40E13EB4C0B8E27B354D05AC0DAEE2113FA2EC9A564F787B9B30FAB22` | 运行时/产品帧 | Forward/Deferred lightmap probe 对比；图像本身不能证明 MAE 或 adapter，需读测试记录。 |
-| `workflow-control-center-acceptance.png` | `docs/tests/workflow-control-center/control-center-1568x1003.png` | 1568 x 1003 | `105D451D5CDA0E90C7769015C71C079037F1ABF7F5AF11BDB62C8F1AAC1034FD` | 工具/工作流 | Session、Failure、验证和日志面板的控制中心截图；不是 Runtime framebuffer。 |
+| `editor-workbench-run-mode-acceptance.png` | `docs/tests/editor/editor-window-m3-workbench-run-mode-1672x941.png` | 1672 x 941 | `02FB8D6447185527245C1CE436E17DC938237CCBCDC1E5628BE88794654F888B` | 编辑器测试渲染 | `capture_full_workbench_run_mode_visual_artifact` 实际绘制 Workbench 保留树后的 PNG。 |
+| `ui-components-workbench-acceptance.png` | `docs/tests/editor/editor-components-workbench-slate-atlas-900x620.png` | 900 x 620 | `BAAF115498884D16B1233F71D67E277809D9E58D1496563DF28AD45613E80184` | 编辑器测试渲染 | `capture_workbench_component_slate_atlas_visual_artifact` 实际绘制组件模板后的 PNG。 |
+| `asset-browser-acceptance.png` | `docs/tests/editor/editor-window-m3-asset-browser-900x620.png` | 900 x 620 | `0779A99A06B66FDCCCCC7013ACB3B228D99473EF61CBB9A29A751D2F83AFCC98` | 编辑器测试渲染 | M3 Asset Browser 实际窗口树快照；须结合资源身份和测试日志解读。 |
+| `hybrid-gi-editor-diagnostics-acceptance.png` | `docs/tests/runtime/render/plan18_hybrid_gi_editor_runtime_diagnostics_actual_20260714.png` | 1688 x 980 | `35A8FF93D8C67E3EEBC6A59F9C251EE9FAB279BC00406753C0D6FD600511844E` | 编辑器产品截图 | Hybrid GI 的 `custom/dynamic-only/medium` 实际诊断界面截图；完整条件见同目录 evidence report。 |
+| `text-rich-table-acceptance.png` | `docs/tests/runtime/text/runtime_text_multilingual_rich_table_product_framebuffer_20260712.png` | 1080 x 1450 | `0B69036E831C376B6C7235CF5CE05D62331F48BE18D7D93F59D97C6527A1A0AA` | Runtime 产品帧 | 多语言、RTL、富文本表格和 inline object 的 framebuffer 证据。 |
+| `lightmap-forward-deferred-acceptance.png` | `docs/tests/runtime/render/plan11_lightmap_probe_forward_deferred_wgpu_20260713.png` | 1932 x 360 | `386909A40E13EB4C0B8E27B354D05AC0DAEE2113FA2EC9A564F787B9B30FAB22` | Runtime 产品帧 | 同一场景的 Forward/Deferred lightmap/probe 实际输出对比。 |
+| `workflow-control-center-acceptance.png` | `docs/tests/workflow-control-center/control-center-1568x1003.png` | 1568 x 1003 | `105D451D5CDA0E90C7769015C71C079037F1ABF7F5AF11BDB62C8F1AAC1034FD` | 工具界面截图 | Session、Failure、验证和日志面板的实际工作流界面截图；不是 Runtime framebuffer。 |
 
-## 编辑器工作台参考图 {#editor-workbench-reference}
+## 编辑器 Workbench 运行模式测试截图 {#editor-workbench-run-mode-acceptance}
 
-![Zircon 编辑器工作台参考布局](../../assets/evidence/editor-workbench-reference.png)
+![Zircon 编辑器 Workbench 运行模式测试截图](../../assets/evidence/editor-workbench-run-mode-acceptance.png)
 
-这张图是 `docs/ui-and-layout/workbench.png` 的副本，适合在阅读编辑器页面时定位 Scene tree、中心 viewport、Inspector、底部 UI Components 和状态栏。它的用途是说明面板之间的空间关系：
+这张 1672 x 941 PNG 由 `capture_full_workbench_run_mode_visual_artifact` 生成。测试建立真实 `BuiltinWorkbenchWindowTemplateSurfaceBridge`，读取其 render extract，调用 `paint_runtime_render_commands_for_test` 绘制字节缓冲，并保存为 PNG；它不是编辑器设计稿或后期合成图。
 
-- Scene/Layer 面板持有作者态选择和层级导航；
-- 中央 viewport 消费 runtime/editor gateway 的可见快照；
-- Inspector 和 History 是同一编辑会话的属性与事务观察面；
-- 底部组件区展示输入、选择、列表和提示等可复用控件。
+图中可复核两行工具栏、模块页签、Scene/Inspector、底部 UI Components、状态栏和 Run Mode 下拉触发器是否同时进入实际绘制结果。它不证明 Save、Compile 或 Run Mode 命令已经提交；这些行为仍需对应 command、transaction、receipt 和重启回归。
 
-不要从图中推断某个按钮已经接通真实 command。要证明 command、save、restart 闭环，应运行 `editor_mvp_authoring` 或对应集成测试，并将截图和 transaction/receipt 关联。
+## 编辑器组件图集测试截图 {#ui-components-acceptance}
 
-## RenderGraph 参考图 {#rendergraph-reference}
+![Zircon 编辑器组件图集测试截图](../../assets/evidence/ui-components-workbench-acceptance.png)
 
-![RenderGraph 工作台参考布局](../../assets/evidence/render-graph-reference.png)
+这张图由 `capture_workbench_component_slate_atlas_visual_artifact` 的真实模板绘制路径输出。它覆盖按钮、输入框、选择控件、列表/树行、表格、菜单、图像容器、提示、对话框和状态栏，因此适合发现控件尺寸、裁切、焦点态或层级问题。
 
-参考图中的 `Passes`、`Resource Barriers`、`Graph Summary` 和 `Render Graph Output` 对应 [RenderGraph 构建 API](../../graphics/reference/render-graph-api.md) 中的概念。实际 Rust 调用仍应遵循：
+它只证明这些组件在给定 fixture 状态下完成绘制。UI Binding、数据源解析和 IME 提交仍必须由 `UiV2DocumentCompiler`、surface diagnostic、输入事件和对应回归测试证明，不能从一张“Valid”界面截图反推成功。
 
-```mermaid
-flowchart TD
-    S[RenderFrameExtract] --> R[RenderGraphBuilder]
-    R --> D[resource declaration]
-    R --> P[pass/access declaration]
-    D --> C[compile]
-    P --> C
-    C --> V[validation + state plan]
-    V --> X[RenderFramework submit/present]
-    X --> Q[query_stats / capture_frame]
-```
+## 资产浏览器测试截图 {#asset-browser-acceptance}
 
-图中的 `Compile` 或 `Capture` 按钮不是 `RenderFramework` 的隐式方法；应用层必须明确使用 `submit_frame_extract`、`present_frame_extract` 和 `capture_frame`，并处理 `RenderFrameworkError`。
+![M3 Asset Browser 测试截图](../../assets/evidence/asset-browser-acceptance.png)
 
-## UI Binding 参考图 {#ui-binding-reference}
+该 PNG 来自 `capture_m3_gui_acceptance_visual_artifacts` 运行时构造的 `asset_browser_window(900, 620)` 和 `save_window_snapshot`。它可用于检查搜索、类型筛选、列表/缩略图切换、导入按钮、资产状态 chip 和状态栏是否在同一真实测试渲染输出中可见。
 
-![UI Binding 工作台参考布局](../../assets/evidence/ui-binding-reference.png)
+完整导入验收还必须记录：
 
-这张参考图把 `inventory_panel`、数据源、绑定状态和 trace 输出放在同一个画面，适合配合 [UI V2 资产与保留树](../../ui/reference/v2-assets-and-retained-tree.md) 以及 [组件、绑定、样式](../../ui/reference/components-bindings-style-and-theme.md) 阅读。绑定问题应按以下链路定位：
-
-```mermaid
-sequenceDiagram
-    participant A as UiV2AssetDocument
-    participant C as UiV2DocumentCompiler
-    participant T as UiV2SurfaceBuilder
-    participant M as model/source
-    participant I as input/IME
-    A->>C: validate + compile
-    C->>T: compiled document + prototype store
-    T->>M: resolve binding source
-    M-->>T: typed value / diagnostic
-    I->>T: focus + composition event
-    T-->>A: snapshot / authoring update
-```
-
-截图里的“Valid”只应在 binding validation receipt 和对应 source generation 一致时采信；不可通过手工改标签把错误状态伪装为 valid。
-
-## 资产浏览器运行时截图 {#asset-browser-acceptance}
-
-![M3 Asset Browser 运行时截图](../../assets/evidence/asset-browser-acceptance.png)
-
-这张 900 x 620 图片来自 `docs/tests/editor/editor-window-m3-asset-browser-900x620.png`。它可用来检查搜索、类型筛选、列表/缩略图切换、导入按钮、资产状态 chip 和底部状态栏是否在同一窗口内可见。完整验收至少还要有：
-
-1. 资源源文件的 URI、大小和 hash；
-2. importer descriptor、derived artifact 和 `AssetLoadState` 的转换日志；
+1. 源文件 URI、大小与 hash；
+2. importer descriptor、derived artifact 和 `AssetLoadState` 转换日志；
 3. editor index 的 `apply_watch_events` 结果；
-4. 保存后重开或热重载后的 generation 没有回退。
+4. 保存、重开或热重载后没有回退的 generation。
 
-推荐教程顺序是[资产导入、依赖就绪与热重载](../../tutorials/advanced/asset-import-hot-reload.md) -> [资源注册与就绪](../../scene-assets/reference/resource-registry-readiness.md) -> [视觉验收证据](visual-acceptance-evidence.md)。
+推荐阅读顺序是[资产导入、依赖就绪与热重载](../../tutorials/advanced/asset-import-hot-reload.md) -> [资源注册与就绪](../../scene-assets/reference/resource-registry-readiness.md) -> [视觉验收证据](visual-acceptance-evidence.md)。
+
+## Hybrid GI 编辑器运行诊断截图 {#hybrid-gi-editor-diagnostics-acceptance}
+
+![Hybrid GI 编辑器运行诊断实际截图](../../assets/evidence/hybrid-gi-editor-diagnostics-acceptance.png)
+
+原图和证据报告 `docs/tests/runtime/render/plan18_hybrid_gi_editor_runtime_diagnostics_20260714.md` 成对保存。报告记录该图为 `custom/dynamic-only/medium`、trace/card/voxel budget 为 `32/64/16`、fallback 为 `none` 的实际产品状态；截图中可以同时复核编辑器 viewport、Inspector 和 Runtime Diagnostics 面板。
+
+它用于观察 Runtime 向编辑器诊断面的数据投影，不等同于证明 RenderGraph 的全部 pass、barrier 或 GPU 完成。验证帧图、资源状态和呈现顺序时，还应阅读 [RenderGraph 构建 API](../../graphics/reference/render-graph-api.md) 与 [RenderFramework API](../../graphics/reference/render-framework-api.md)，并保存 `query_stats`、adapter、viewport 和 capture receipt。
 
 ## 富文本表格运行时截图 {#rich-text-acceptance}
 
 ![多语言富文本表格产品帧](../../assets/evidence/text-rich-table-acceptance.png)
 
-该图来自 `runtime_text_multilingual_rich_table_product_framebuffer_20260712`，可观察 CJK、RTL、emoji、富文本 inline、表格列测量、嵌套列表和垂直文字。它是产品 framebuffer 证据，不是字体设计稿。复核时同时检查：
+该图来自 `runtime_text_multilingual_rich_table_product_framebuffer_20260712` 的实际 framebuffer，可观察 CJK、RTL、emoji、富文本 inline、表格列测量、嵌套列表和垂直文字。复核时同时检查：
 
-- `TextShapeRequest` 的 language/direction/writing mode 与测试输入一致；
-- `TextShapeResult.runs`、glyph cluster 和 visual range 没有被应用层按 byte offset 猜测；
-- fallback font、DPI、viewport 和颜色空间写在 receipt 中；
-- 文本截图与 [文本、字体整形、编辑和 IME](../../ui/reference/text-font-shaping-editing-and-ime.md) 的公开 API 说明一致。
+1. `TextShapeRequest` 的 language、direction 和 writing mode 与测试输入一致；
+2. `TextShapeResult.runs`、glyph cluster 和 visual range 没有被应用层按 byte offset 猜测；
+3. fallback font、DPI、viewport 和颜色空间写在 receipt 中；
+4. 截图与 [文本、字体整形、编辑和 IME](../../ui/reference/text-font-shaping-editing-and-ime.md) 的公开 API 说明一致。
 
 ## Forward/Deferred 光照运行时截图 {#forward-deferred-acceptance}
 
 ![Forward/Deferred lightmap probe 对比](../../assets/evidence/lightmap-forward-deferred-acceptance.png)
 
-这张三联图来自 `plan11_lightmap_probe_forward_deferred_wgpu_20260713.png`。它适合说明同一场景在 Forward/Deferred 路径下如何消费 lightmap/probe 数据，但不能独立证明渲染误差、dispatch 数或 GPU 完成。应把它与 [光照、环境与后处理 API](../../graphics/reference/lighting-postprocess-api.md)、[材质与纹理资产](../../graphics/reference/assets-material-mesh-api.md) 以及测试记录一起阅读。
-
-```mermaid
-flowchart LR
-    G[geometry + normals] --> L[lightmap/probe lookup]
-    L --> F[Forward shading]
-    L --> D[Deferred lighting]
-    F --> O[framebuffer capture]
-    D --> O
-    O --> A[MAE / semantic pixel assertions]
-```
+这张三联产品帧来自 `plan11_lightmap_probe_forward_deferred_wgpu_20260713.png`。它展示同一场景在 Forward/Deferred 路径下消费 lightmap/probe 数据的实际输出，但不能单独证明 MAE、dispatch 数或 GPU fence 完成。应把它与 [光照、环境与后处理 API](../../graphics/reference/lighting-postprocess-api.md)、[材质与纹理资产](../../graphics/reference/assets-material-mesh-api.md) 及测试记录一起阅读。
 
 ## Workflow Control Center 运行截图 {#workflow-control-center-acceptance}
 
 ![Workflow Control Center 运行截图](../../assets/evidence/workflow-control-center-acceptance.png)
 
-控制中心截图证明的是 Hub/Session Coordinator 的可观测表面：当前 session、任务、failure、验证计数和日志状态。它不证明底层 Runtime 或 GPU 已完成。配合 [Hub 自动化方案](../../hub-tooling/reference/automation-recipes.md) 阅读时，按“请求 -> receipt -> 状态 -> 失败链 -> 重试/恢复”顺序核对，而不是只看顶部的绿色或红色标签。
+控制中心截图证明的是 Session Coordinator 的可观测表面：当前 session、任务、failure、验证计数和日志状态。它不证明底层 Runtime 或 GPU 已完成。配合 [Hub 自动化方案](../../hub-tooling/reference/automation-recipes.md) 阅读时，按“请求 -> receipt -> 状态 -> 失败链 -> 重试或恢复”核对，而不是只看顶部颜色标签。
 
-## 教程参考图：四条可复用方案
+## 教程执行顺序（非视觉证据）
 
-### 方案 A：项目资产到可见帧
+本节是文字化操作路径，不含截图，也不产生证据等级。需要视觉证据时，只能回到上方索引中的真实 PNG 或重新运行生成命令。
 
-```mermaid
-flowchart LR
-    A[project manifest] --> B[AssetUri / importer]
-    B --> C[derived artifact]
-    C --> D[AssetLoadState::Ready]
-    D --> E[scene/world snapshot]
-    E --> F[RenderFrameExtract]
-    F --> G[capture_frame]
-    G --> H[PNG + receipt + assertions]
-```
+### 项目资产到可见帧
 
-操作顺序：先运行项目/导入教程，保存 source identity 和 generation；再阅读帧捕获教程，创建 viewport、提交 extract、捕获 RGBA；最后把 PNG、统计快照和测试输出放在同一个 evidence root。任何节点失败都应保留结构化错误，而不是用旧 PNG 代替。
+1. 记录 project manifest、`AssetUri`、importer 和 source fingerprint。
+2. 等待 derived artifact 与 `AssetLoadState::Ready`，保存 generation。
+3. 构造 scene/world snapshot 和 `RenderFrameExtract`，提交后调用 `capture_frame`。
+4. 把 PNG、receipt、统计快照和语义断言一起写入同一个 evidence root。
 
-### 方案 B：UI 模板到 IME
+### UI 模板到 IME
 
-```mermaid
-flowchart TD
-    Z[.zui/TOML] --> L[UiAssetLoader migration report]
-    L --> C[UiDocumentCompiler]
-    C --> S[UiTemplateSurfaceBuilder / UiV2SurfaceBuilder]
-    S --> H[focus + hit test]
-    H --> I[IME preedit/commit]
-    I --> P[UiEditableTextState]
-    P --> R[TextLayoutService::shape]
-    R --> F[UI surface extract]
-```
+1. 由 `UiAssetLoader` 迁移 `.zui`/TOML，再由 `UiV2DocumentCompiler` 校验并编译。
+2. 用 `UiTemplateSurfaceBuilder` 或 `UiV2SurfaceBuilder` 构建实际 surface。
+3. 依次测试 focus、hit test、IME preedit、commit 和 `UiEditableTextState`。
+4. 对默认、聚焦、composition、提交和 validation failure 分别产出真实测试截图与诊断记录。
 
-教程截图应至少覆盖默认、聚焦、composition、提交和 validation failure 五个状态。设计图可以用来对齐控件位置，真实文本截图则用来检查 shaping、DPI 和方向性。
+### 插件到产品 Receipt
 
-### 方案 C：插件到产品 Receipt
+1. Hub/CLI 读取 plugin manifest 并检查或同步。
+2. BuildSet 产出 artifact 和 digest。
+3. 仅当 `ProductReceipt::issue_verified`、verifier report 与 artifact digest 相互匹配时，才可发布。
+4. 工作流界面截图仅补充状态可见性，不能替代 receipt。
 
-```mermaid
-sequenceDiagram
-    participant P as Plugin manifest
-    participant H as Hub/CLI
-    participant B as BuildSet
-    participant R as ProductReceipt
-    P->>H: check/sync manifest
-    H->>B: build request + target/profile
-    B-->>H: artifact + digest
-    H->>R: issue_verified
-    R-->>H: signed/verified receipt
-    H->>H: verify or handoff
-```
+### 编辑器事务与重启恢复
 
-配图只展示工作流 UI；真正的发布依据是 `ProductReceipt::issue_verified`、artifact digest、toolchain 和 verifier report。参见[项目导出、产品 Receipt 与 Hub 自动化](../../tutorials/advanced/project-export-hub-automation.md)。
-
-### 方案 D：编辑器事务与重启恢复
-
-```mermaid
-flowchart LR
-    C[EditCommand] --> T[transaction scope]
-    T --> J[history/journal]
-    J --> S[save token + document generation]
-    S --> X[process restart]
-    X --> R[reopen + replay/restore]
-    R --> V[scene/asset visual evidence]
-```
-
-截图应与 command label、participant document ID、dirty generation、save token 和重启结果关联。不要把“按钮看起来被点击”当作事务已提交；必须能在 history/journal 或测试断言中找到同一个 operation。
+1. 记录 `EditCommand`、transaction scope 和 participant document ID。
+2. 保存 history/journal、dirty generation 与 save token。
+3. 重启后重新打开并 replay/restore。
+4. 将重新得到的场景或资产截图与同一 operation 的结构化断言关联。
 
 ## 如何生成新截图
 
-Windows 编辑器截图优先使用仓库的受控脚本。脚本会校验窗口尺寸、虚拟屏幕定位、颜色/亮度信息和 SHA-256；命令中的 digest 仍必须来自本次构建产物：
+先选择证据类型，再保存命令、原始输出和 hash。不要把 Figma、设计导出、手绘图或 Mermaid 输出放进 `docs/wiki/assets/evidence/`。
+
+编辑器测试渲染截图可从对应 ignored test 重新生成，Cargo 输出必须放在外部目标目录：
+
+```powershell
+cargo test -p zircon_editor --lib capture_full_workbench_run_mode_visual_artifact `
+  --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-visual `
+  -- --ignored --exact --test-threads=1 --nocapture
+
+cargo test -p zircon_editor --lib capture_workbench_component_slate_atlas_visual_artifact `
+  --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-visual `
+  -- --ignored --exact --test-threads=1 --nocapture
+```
+
+原生编辑器窗口截图使用受控脚本；脚本会校验窗口尺寸、虚拟屏幕定位、颜色/亮度信息和 SHA-256：
 
 ```powershell
 pwsh -File tools/capture-editor-ui-visual.ps1 `
@@ -253,14 +177,27 @@ pwsh -File tools/capture-editor-ui-visual.ps1 `
   -ExpectedSourceSha256 <64-hex>
 ```
 
-Runtime framebuffer 证据应由对应测试写出，而不是手工截取播放器窗口。示例：
+Hub 截图必须从运行中的 `Zircon Hub` 原生窗口捕获，而不是浏览器 mock 或静态页面导出：
+
+```powershell
+pwsh -File .codex/skills/zircon-project-skills/capture-hub-window-screenshot/scripts/capture-hub-window.ps1 `
+  -RepoRoot E:\Git\ZirconEngine `
+  -BinaryPath E:\cargo-targets\zircon-hub\debug\zircon_hub.exe `
+  -OutputPath E:\evidence\hub\hub-window.png `
+  -RequireWindowTitle 'Zircon Hub' `
+  -WindowWidth 1440 -WindowHeight 960
+```
+
+Runtime framebuffer 应由对应测试写出，而不是手工截取播放器窗口：
 
 ```powershell
 $env:ZR_F2_BASIC_SCENE_CAPTURE_PNG = 'E:\evidence\runtime\f2-runtime-frame.png'
-cargo +1.94.1 test -p zircon_runtime --test zui_native_visual_acceptance --locked -- --test-threads=1
+cargo +1.94.1 test -p zircon_runtime --test zui_native_visual_acceptance `
+  --locked --target-dir E:\cargo-targets\zircon-runtime-visual `
+  -- --test-threads=1
 ```
 
-每次新增图片都应同步记录：
+每次新增图片都应同时记录：
 
 ```text
 case/profile/platform/adapter:
@@ -275,10 +212,10 @@ known limitations:
 
 ## 证据发布检查单
 
-- [ ] 图片副本位于 `docs/wiki/assets/evidence/`，文件名包含稳定场景语义。
-- [ ] 表格记录原始 source 路径、尺寸、SHA-256 和证据等级。
-- [ ] 设计参考图明确写出“不能替代运行时验收”。
-- [ ] 运行时截图能关联测试、profile、feature、adapter、viewport 和输入资源。
+- [ ] 图片副本位于 `docs/wiki/assets/evidence/`，且原图来自测试渲染、Runtime framebuffer 或原生窗口捕获。
+- [ ] 索引记录原始 source 路径、尺寸、SHA-256、生成测试或捕获路径和证据等级。
+- [ ] 概念图、设计稿、流程图和 mock 不在证据目录、索引或截图段落中。
+- [ ] 截图关联测试、profile、feature、adapter、viewport、输入资源和 receipt。
 - [ ] PNG 不是全黑、全透明或统一颜色；语义像素断言有日志支持。
 - [ ] 失败截图、receipt、日志和 fixture 未被成功重跑覆盖。
 - [ ] 页面中的教程链接、图片路径和导航项都通过 Wiki 严格校验。
