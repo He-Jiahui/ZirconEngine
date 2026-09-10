@@ -4,6 +4,7 @@ version = "0.1.0"
 sdk_api_version = "0.2.0"
 display_name = "Editor Contribution Fixture"
 category = "sdk"
+package_role = "test_fixture"
 description = "Real native editor fixture for the versioned serialized editor contribution ABI."
 maturity = "experimental"
 supported_targets = ["editor_host"]

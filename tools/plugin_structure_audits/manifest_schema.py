@@ -37,7 +37,7 @@ MANIFEST_ROOT_FIELDS = frozenset(
     asset_importers asset_roots capabilities capability_statuses category components
     content_roots default_packaging dependencies description display_name distribution
     event_catalogs feature_extensions geometry_sources id maturity modules optional_features
-    options package_company package_kind package_name package_prefix provides_interfaces
+    options package_company package_kind package_name package_prefix package_role provides_interfaces
     sdk_api_version shader_permutation shading_models supported_platforms supported_targets
     ui_components version
     """.split()
@@ -115,6 +115,7 @@ SUPPORTED_PLATFORM_VALUES = (
 )
 SUPPORTED_PLATFORM_ALIASES = {"windows-x86_64": "windows", "linux-x86_64": "linux", "macos-aarch64": "macos"}
 MATURITY_VALUES = ("stable", "beta", "experimental")
+PACKAGE_ROLE_VALUES = ("production", "developer_tool", "sample", "test_fixture")
 MODULE_KIND_VALUES = ("runtime", "editor", "native", "vm")
 PACKAGING_VALUES = ("source_template", "library_embed", "native_dynamic")
 @dataclass(frozen=True)

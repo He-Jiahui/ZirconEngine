@@ -186,6 +186,70 @@ class PluginStructureAuditManifestSchemaTests(unittest.TestCase):
             violations,
         )
 
+    def test_manifest_schema_accepts_known_package_role(self):
+        violations: list[str] = []
+        manifest = plugin_manifest()
+        manifest["package_role"] = "test_fixture"
+
+        collect_manifest_schema_violations(
+            "zircon_plugins/native_dynamic_fixture/plugin.toml",
+            manifest,
+            violations,
+        )
+
+        self.assertEqual([], violations)
+
+    def test_manifest_schema_accepts_missing_package_role_as_production_default(self):
+        violations: list[str] = []
+        manifest = plugin_manifest()
+
+        collect_manifest_schema_violations(
+            "zircon_plugins/physics/plugin.toml",
+            manifest,
+            violations,
+        )
+
+        self.assertEqual([], violations)
+
+    def test_manifest_schema_rejects_unknown_package_role(self):
+        violations: list[str] = []
+        manifest = plugin_manifest()
+        manifest["package_role"] = "preview"
+
+        collect_manifest_schema_violations(
+            "zircon_plugins/native_dynamic_fixture/plugin.toml",
+            manifest,
+            violations,
+        )
+
+        self.assertEqual(
+            [
+                'zircon_plugins/native_dynamic_fixture/plugin.toml: '
+                'package_role "preview" is unsupported; expected one of '
+                "production, developer_tool, sample, test_fixture"
+            ],
+            violations,
+        )
+
+    def test_manifest_schema_rejects_malformed_package_role(self):
+        violations: list[str] = []
+        manifest = plugin_manifest()
+        manifest["package_role"] = " sample "
+
+        collect_manifest_schema_violations(
+            "zircon_plugins/plugin_sdk_examples/plugin.toml",
+            manifest,
+            violations,
+        )
+
+        self.assertEqual(
+            [
+                "zircon_plugins/plugin_sdk_examples/plugin.toml: "
+                "package_role must be a non-empty trimmed string"
+            ],
+            violations,
+        )
+
     def test_manifest_schema_rejects_padded_required_root_string(self):
         violations: list[str] = []
         manifest = plugin_manifest()

@@ -5,6 +5,7 @@ from typing import Any
 from .manifest_schema import (
     MATURITY_VALUES,
     PACKAGING_VALUES,
+    PACKAGE_ROLE_VALUES,
     SUPPORTED_PLATFORM_ALIASES,
     SUPPORTED_PLATFORM_VALUES,
     SUPPORTED_TARGET_VALUES,
@@ -62,6 +63,7 @@ def collect_root_metadata_schema_violations(
     collect_supported_platform_values(display_path, manifest, violations)
     collect_root_capability_violations(display_path, manifest, violations)
     collect_root_package_kind_violations(display_path, manifest, violations)
+    collect_root_package_role_violations(display_path, manifest, violations)
     collect_root_default_packaging_violations(display_path, manifest, violations)
     from .manifest_schema_layout_coordinates import (
         collect_layout_coordinate_schema_violations,
@@ -212,6 +214,30 @@ def collect_root_package_kind_violations(
                 f"{display_path}: package_kind feature_extension "
                 "should not declare optional_features rows"
             )
+
+
+def collect_root_package_role_violations(
+    display_path: str,
+    manifest: dict[str, Any],
+    violations: list[str],
+) -> None:
+    # PluginPackageManifest deserializes an absent role as production.
+    if "package_role" not in manifest:
+        return
+    value = manifest["package_role"]
+    if not is_non_empty_trimmed_string(value):
+        violations.append(
+            f"{display_path}: package_role must be a non-empty trimmed string"
+        )
+        return
+    collect_allowed_string_value(
+        display_path,
+        "package_role",
+        manifest,
+        "package_role",
+        PACKAGE_ROLE_VALUES,
+        violations,
+    )
 
 
 def root_metadata_table_array_count(
