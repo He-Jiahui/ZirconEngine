@@ -19,6 +19,7 @@ from ..git_finalize import FinalizeResult, GitFinalizeService
 from ..models import CoordinatorError, SessionStatus, utc_text
 from ..notifications import NotificationAttemptRecord, WeComNotificationService
 from ..snapshots import SnapshotRecord, SnapshotService
+from .. import validation_ticket_identity as ticket_identity
 from .milestones import plan_module_name
 
 
@@ -396,7 +397,8 @@ class FailureCloseoutWorkflowService:
             reviewer_thread_id=reviewer_thread_id,
         )
         reviewer = self.sessions.get(reviewer_session_id)
-        if reviewer.status is not SessionStatus.ACTIVE:
+        resume_archived = reviewer.status is SessionStatus.ARCHIVED
+        if reviewer.status is not SessionStatus.ACTIVE and not resume_archived:
             raise CoordinatorError(
                 "failure_closeout_reviewer_not_active",
                 "Failure closeout review must be submitted by an active reviewer Session",
@@ -426,6 +428,19 @@ class FailureCloseoutWorkflowService:
             raise CoordinatorError(
                 "failure_closeout_review_summary_missing",
                 "Failure closeout review requires a non-empty summary",
+            )
+        if resume_archived:
+            # Provenance above binds the caller to this native task; the
+            # Session owner performs the audited atomic reactivation only
+            # after all review input checks have passed.
+            reviewer = self.sessions.reactivate_archived_native_task(
+                session_id=reviewer_session_id,
+                thread_id=reviewer_thread_id,
+            )
+        if reviewer.status is not SessionStatus.ACTIVE:
+            raise CoordinatorError(
+                "failure_closeout_reviewer_not_active",
+                "Failure closeout review must be submitted by an active reviewer Session",
             )
         verdict = "accepted" if counts == (0, 0, 0) else "rejected"
         evidence_id = uuid.uuid4().hex
@@ -1094,6 +1109,11 @@ class FailureCloseoutWorkflowService:
             ticket = connection.execute(
                 "SELECT * FROM validation_tickets WHERE ticket_id=?", (cargo_run_id,)
             ).fetchone()
+            submissions = connection.execute(
+                """SELECT event_id, payload_json FROM validation_ticket_events
+                   WHERE ticket_id=? AND event_type='validation.ticket_submitted'""",
+                (cargo_run_id,),
+            ).fetchall()
             copy_link = connection.execute(
                 """SELECT event_id, payload_json FROM validation_ticket_events
                    WHERE ticket_id=? AND event_type='validation.ticket_copy_linked'
@@ -1139,6 +1159,7 @@ class FailureCloseoutWorkflowService:
                 ticket=ticket,
                 copy_link=copy_link,
                 run_link=run_link,
+                submissions=submissions,
             )
         raise CoordinatorError(
             "failure_closeout_validation_owner_mismatch",
@@ -1203,6 +1224,7 @@ class FailureCloseoutWorkflowService:
         ticket,
         copy_link,
         run_link,
+        submissions,
     ) -> dict[str, object]:
         if (
             copy is None
@@ -1222,6 +1244,11 @@ class FailureCloseoutWorkflowService:
                 "failure_closeout_validation_contract_invalid",
                 "Managed validation-copy evidence requires worker-issued copy and run links",
             )
+        if len(submissions) != 1:
+            raise CoordinatorError(
+                "validation_ticket_identity_revalidation_required",
+                "Ticket requires one immutable submission identity; submit fresh managed validation",
+            )
         session = self.sessions.get(session_id)
         if not session.plan_path or ticket["plan_path"] != session.plan_path:
             raise CoordinatorError(
@@ -1236,12 +1263,10 @@ class FailureCloseoutWorkflowService:
             source_manifest = json.loads(ticket["source_manifest_json"] or "{}")
             toolchain = json.loads(ticket["toolchain_json"] or "{}")
             coverage = json.loads(ticket["coverage_json"] or "{}")
+            submitted = json.loads(submissions[0]["payload_json"] or "{}")
             copy_link_payload = json.loads(copy_link["payload_json"] or "{}")
             run_link_payload = json.loads(run_link["payload_json"] or "{}")
             canonical_manifest = self._canonical_json(source_manifest)
-            canonical_command = self._canonical_json(list(ticket_command))
-            canonical_toolchain = self._canonical_json(toolchain)
-            canonical_coverage = self._canonical_json(coverage)
         except (TypeError, ValueError, json.JSONDecodeError) as error:
             raise CoordinatorError(
                 "failure_closeout_validation_contract_invalid",
@@ -1285,18 +1310,28 @@ class FailureCloseoutWorkflowService:
                 "Managed validation-copy source manifest is malformed",
             )
         manifest_hash = hashlib.sha256(canonical_manifest.encode("utf-8")).hexdigest()
-        dedupe_key = hashlib.sha256(
-            "\n".join(
-                (
-                    manifest_hash,
-                    canonical_command,
-                    canonical_toolchain,
-                    canonical_coverage,
-                    str(session.baseline_epoch or ""),
-                    session.base_head or "",
-                )
-            ).encode("utf-8")
-        ).hexdigest()
+        identity = ticket_identity.normalize_identity(
+            submitted.get("identity") if isinstance(submitted, dict) else None
+        )
+        if (
+            submitted.get("sessionId") != session_id
+            or submitted.get("sourceManifestHash") != manifest_hash
+            or any(
+                field not in submitted or submitted[field] != identity[field]
+                for field in ("baselineEpoch", "baseHead", "validatorVersion", "runtimeIdentityHash")
+            )
+        ):
+            raise CoordinatorError(
+                "failure_closeout_validation_contract_invalid",
+                "Managed validation-copy submission metadata disagrees with its immutable identity",
+            )
+        dedupe_key = ticket_identity.dedupe_key(
+            identity=identity,
+            source_manifest_hash=manifest_hash,
+            command=ticket_command,
+            toolchain=toolchain,
+            coverage=coverage,
+        )
         input_manifest_hash = str(copy["input_manifest_hash"] or "").strip().casefold()
         if (
             manifest_hash != str(ticket["source_manifest_hash"] or "").casefold()
@@ -1318,6 +1353,7 @@ class FailureCloseoutWorkflowService:
             "toolchain": toolchain,
             "coverage": coverage,
             "planPath": str(ticket["plan_path"]),
+            "submissionEventId": int(submissions[0]["event_id"]),
             "copyLinkEventId": int(copy_link["event_id"]),
             "runLinkEventId": int(run_link["event_id"]),
         }

@@ -14,8 +14,10 @@ from .models import (
     ALLOWED_STATUS_TRANSITIONS,
     CoordinatorError,
     InvalidStatusTransition,
+    NATIVE_TASK_RESUME_REASON,
     SessionRecord,
     SessionStatus,
+    STALE_RETENTION_ARCHIVE_REASON,
     parse_utc,
     utc_now,
     utc_text,
@@ -246,6 +248,124 @@ class SessionService:
                     "UPDATE sessions SET last_heartbeat_at = ?, updated_at = ? WHERE session_id = ?",
                     (now, now, session_id),
                 )
+            session = self._changed_session(connection, session_id)
+        return session
+
+    def reactivate_archived_native_task(
+        self, *, session_id: str, thread_id: str
+    ) -> SessionRecord:
+        """Resume only an automatically archived Session proven to be live natively.
+
+        This is deliberately separate from ``set_status``: an archived Session
+        cannot be reopened by a caller that merely guesses its identifier.  The
+        coordinator must observe the same native Codex task, bound to the same
+        Session and repository, before the atomic status transition is allowed.
+        Existing scopes, leases, and unfinished ticket rows are left untouched.
+        """
+        if not session_id.strip() or not thread_id.strip():
+            raise ValueError("session_id and thread_id cannot be empty")
+        if session_id != thread_id:
+            raise CoordinatorError(
+                "session_reactivation_identity_mismatch",
+                "Native task identity must equal the archived Session identity",
+            )
+        now = utc_text()
+        with self.database.transaction() as connection:
+            row = connection.execute(
+                """
+                SELECT sessions.*, codex_sessions.source_location AS codex_source_location,
+                       codex_sessions.state AS codex_state, codex_sessions.cwd AS codex_cwd,
+                       codex_sessions.bound_session_id AS codex_bound_session_id
+                FROM sessions
+                LEFT JOIN codex_sessions ON codex_sessions.thread_id = sessions.session_id
+                WHERE sessions.session_id = ?
+                """,
+                (session_id,),
+            ).fetchone()
+            if row is None:
+                raise CoordinatorError("session_not_found", f"Unknown Session {session_id}")
+            status = SessionStatus(row["status"])
+            if status is not SessionStatus.ARCHIVED:
+                raise CoordinatorError(
+                    "session_reactivation_not_archived",
+                    "Native-task recovery requires an archived Session",
+                    details={"sessionId": session_id, "status": status.value},
+                )
+            if (
+                row["status_reason"] != STALE_RETENTION_ARCHIVE_REASON
+                or row["completed_at"] is not None
+            ):
+                raise CoordinatorError(
+                    "session_reactivation_terminal",
+                    "Only an automatic stale-retention archive without completion may resume",
+                    details={
+                        "sessionId": session_id,
+                        "statusReason": row["status_reason"],
+                        "completedAt": row["completed_at"],
+                    },
+                )
+            try:
+                raw_cwd = row["codex_cwd"]
+                cwd_matches = (
+                    isinstance(raw_cwd, str)
+                    and bool(raw_cwd.strip())
+                    and Path(raw_cwd).resolve() == self.repo_root
+                )
+            except (OSError, ValueError, TypeError):
+                cwd_matches = False
+            if (
+                row["codex_source_location"] != "active"
+                or row["codex_state"] not in {"active", "idle"}
+                or row["codex_bound_session_id"] != session_id
+                or not cwd_matches
+            ):
+                raise CoordinatorError(
+                    "session_reactivation_provenance_invalid",
+                    "Native task provenance is not live, bound, and rooted in this repository",
+                    details={
+                        "sessionId": session_id,
+                        "sourceLocation": row["codex_source_location"],
+                        "state": row["codex_state"],
+                        "boundSessionId": row["codex_bound_session_id"],
+                    },
+                )
+            updated = connection.execute(
+                """
+                UPDATE sessions
+                SET status = ?, status_reason = ?, updated_at = ?, last_heartbeat_at = ?
+                WHERE session_id = ? AND status = ?
+                  AND status_reason = ? AND completed_at IS NULL
+                """,
+                (
+                    SessionStatus.ACTIVE.value,
+                    NATIVE_TASK_RESUME_REASON,
+                    now,
+                    now,
+                    session_id,
+                    SessionStatus.ARCHIVED.value,
+                    STALE_RETENTION_ARCHIVE_REASON,
+                ),
+            )
+            if updated.rowcount != 1:
+                raise CoordinatorError(
+                    "session_reactivation_raced",
+                    "Archived Session changed while native-task recovery was being admitted",
+                )
+            self._event(
+                connection,
+                session_id,
+                "session.reactivated",
+                {
+                    "from": SessionStatus.ARCHIVED.value,
+                    "to": SessionStatus.ACTIVE.value,
+                    "reason": NATIVE_TASK_RESUME_REASON,
+                    "threadId": thread_id,
+                    "sourceLocation": row["codex_source_location"],
+                    "state": row["codex_state"],
+                    "boundSessionId": row["codex_bound_session_id"],
+                    "cwd": str(row["codex_cwd"]),
+                },
+            )
             session = self._changed_session(connection, session_id)
         return session
 

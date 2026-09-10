@@ -32,6 +32,12 @@ class SessionStatus(StrEnum):
     CANCELLED = "cancelled"
 
 
+# Only the automatic stale-retention archive is eligible for native-task
+# recovery.  Intentional terminal archives keep their terminal semantics.
+STALE_RETENTION_ARCHIVE_REASON = "stale retention elapsed"
+NATIVE_TASK_RESUME_REASON = "native task resumed after stale retention"
+
+
 class WorkflowState(StrEnum):
     REGISTERED = "registered"
     ACTIVE = "active"
