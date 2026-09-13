@@ -178,6 +178,43 @@ class ValidatePlanFailureHandoffsTests(unittest.TestCase):
         errors = self.validate_fixture(lambda fixture: fixture.seed())
         self.assertEqual([], errors)
 
+    def test_letter_suffixed_plans_preserve_open_and_returned_lifecycle(self) -> None:
+        for origin_id, fixing_id in (("01", "09c"), ("09a", "09d"), ("09A", "09C"), ("09cc", "99zk")):
+            for kind in ("failure", "fixed"):
+                with self.subTest(origin=origin_id, fixing=fixing_id, kind=kind):
+                    with tempfile.TemporaryDirectory() as temp_dir:
+                        root = Path(temp_dir)
+                        fixture = HandoffFixture(root)
+                        fixture.origin_plan = root / f"docs/plans/editor/{origin_id}-editor.md"
+                        fixture.fixing_plan = root / f"docs/plans/runtime/{fixing_id}-runtime.md"
+                        fixture.origin_child = fixture.origin_plan.parent / origin_id.lower()
+                        fixture.fixing_child = fixture.fixing_plan.parent / fixing_id.lower()
+                        artifact = fixture.seed(kind=kind)
+
+                        self.assertEqual([], validate_repository(root))
+                        records, errors = parse_handoff_records(root)
+                        self.assertEqual([], errors)
+                        self.assertEqual(1, len(records))
+                        self.assertEqual(artifact.resolve(), records[0].artifact_path)
+                        self.assertEqual(fixture.fixing_child.resolve(), records[0].fixing_child_dir)
+                        expected_key = "|".join((
+                            fixture.origin_plan.resolve().as_posix().casefold(),
+                            fixture.fixing_plan.resolve().as_posix().casefold(),
+                            "provider-lookup",
+                        ))
+                        self.assertEqual(expected_key, records[0].lifecycle_key)
+
+    def test_plan_identifiers_reject_noncanonical_width_and_suffix(self) -> None:
+        for plan_id in ("9", "009", "09_", "alpha", "09\u0130", "09\u0131", "09\u017f", "09\u212a", "\u0660\u0669"):
+            with self.subTest(plan_id=plan_id):
+                def configure(fixture: HandoffFixture) -> None:
+                    fixture.fixing_plan = fixture.root / f"docs/plans/runtime/{plan_id}-runtime.md"
+                    fixture.fixing_child = fixture.fixing_plan.parent / plan_id
+                    fixture.seed()
+
+                errors = self.validate_fixture(configure)
+                self.assertTrue(any("must name a numbered child plan" in error for error in errors), errors)
+
     def test_exports_structured_records_for_coordinator_import(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)

@@ -7,8 +7,8 @@ from pathlib import Path
 from .models import CoordinatorError
 
 
-PLAN_DEFINITION = re.compile(r"^(\d{2}[a-z]?)-.+\.md$", re.IGNORECASE)
-NUMBERED_CHILD_DIR = re.compile(r"^\d{2}[a-z]?$", re.IGNORECASE)
+PLAN_DEFINITION = re.compile(r"^(\d{2}[a-z]*)-.+\.md$", re.ASCII | re.IGNORECASE)
+NUMBERED_CHILD_DIR = re.compile(r"^\d{2}[a-z]*$", re.ASCII | re.IGNORECASE)
 
 
 @dataclass(frozen=True, slots=True)

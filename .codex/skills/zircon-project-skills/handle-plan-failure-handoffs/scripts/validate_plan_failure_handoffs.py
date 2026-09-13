@@ -17,7 +17,7 @@ DATE_FIRST_HANDOFF = re.compile(
     r"^\d{4}-\d{2}-\d{2}-(?:[a-z0-9]+-)*(?:failure|fixed)-handoff\.md$",
     re.IGNORECASE,
 )
-PLAN_NAME = re.compile(r"^(\d+)-.+\.md$")
+PLAN_NAME = re.compile(r"^(\d{2}[a-z]*)-.+\.md$", re.ASCII | re.IGNORECASE)
 SLUG = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 MARKDOWN_LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 WINDOWS_ABSOLUTE = re.compile(r"^[A-Za-z]:[\\/]")
@@ -124,7 +124,7 @@ def _derived_child_dir(
     if not match:
         errors.append(f"{_relative(artifact, root)}: {field} must name a numbered child plan")
         return None
-    return plan.parent / match.group(1)
+    return plan.parent / match.group(1).lower()
 
 
 def _parse_date(value: str, *, field: str, artifact: Path, root: Path, errors: list[str]) -> None:

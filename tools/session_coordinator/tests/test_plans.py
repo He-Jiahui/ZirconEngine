@@ -4,7 +4,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tools.session_coordinator.plans import PlanRepository
+from tools.session_coordinator.models import CoordinatorError
+from tools.session_coordinator.plans import NUMBERED_CHILD_DIR, PLAN_DEFINITION, PlanRepository
 
 
 class PlanRepositoryTests(unittest.TestCase):
@@ -49,6 +50,38 @@ class PlanRepositoryTests(unittest.TestCase):
         self.assertEqual("protected_plan_definition", definition.code)
         self.assertFalse(sibling.allowed)
         self.assertEqual("outside_registered_child", sibling.code)
+
+    def test_plan_identifiers_allow_ascii_letter_suffixes(self) -> None:
+        for plan_id in ("09a", "09C", "09d", "09cc", "99zk", "99ZZ"):
+            with self.subTest(plan_id=plan_id):
+                path = self.plan.parent / f"{plan_id}-renderer.md"
+                path.write_text("# Renderer\n", encoding="utf-8")
+                owner = self.repository.resolve_owner(path)
+                self.assertEqual(plan_id.lower(), owner.plan_id)
+                self.assertEqual(plan_id.lower(), Path(owner.child_dir).name)
+                self.assertIsNotNone(NUMBERED_CHILD_DIR.fullmatch(plan_id))
+        for plan_id in ("09\u0130", "09\u0131", "09\u017f", "09\u212a", "\u0660\u0669", "09_", "9", "009"):
+            with self.subTest(plan_id=plan_id):
+                path = self.plan.parent / f"{plan_id}-renderer.md"
+                path.write_text("# Invalid identifier\n", encoding="utf-8")
+                self.assertIsNone(PLAN_DEFINITION.fullmatch(path.name))
+                self.assertIsNone(NUMBERED_CHILD_DIR.fullmatch(plan_id))
+                with self.assertRaises(CoordinatorError) as rejected:
+                    self.repository.resolve_owner(path)
+                self.assertEqual("not_numbered_plan", rejected.exception.code)
+
+    def test_handoff_and_coordinator_share_plan_identifier_grammar(self) -> None:
+        from tools.session_coordinator.database import Database
+        from tools.session_coordinator.failures import FailureGraphService
+
+        validator = FailureGraphService(Database(self.root / "state.sqlite3"), self.root)._validator_module()
+        for plan_id in ("01", "09a", "09C", "09cc", "99zk", "09\u0130", "09\u0131", "09\u017f", "09\u212a", "\u0660\u0669", "09_", "9", "009"):
+            with self.subTest(plan_id=plan_id):
+                filename = f"{plan_id}-renderer.md"
+                self.assertEqual(
+                    bool(PLAN_DEFINITION.fullmatch(filename)),
+                    bool(validator.PLAN_NAME.fullmatch(filename)),
+                )
 
     def test_maintenance_mode_is_explicit_and_still_repo_bounded(self) -> None:
         maintained = self.repository.authorize_write(
