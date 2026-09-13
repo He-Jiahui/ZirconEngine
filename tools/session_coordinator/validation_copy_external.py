@@ -23,6 +23,7 @@ _CARGO_TOPOLOGY_FILES = (
 )
 _FULL_GIT_COMMIT = re.compile(r"^[0-9a-f]{40}$", re.IGNORECASE)
 EXTERNAL_REPOSITORY_ROOT = "@repo-root"
+EXTERNAL_GIT_PROBE_TIMEOUT_SECONDS = 60.0
 
 
 def _relative_path(value: object, *, code: str) -> str:
@@ -162,7 +163,11 @@ class ExternalGitSource:
             archive_byte_count,
         )
 
-    def pinned(self) -> "ExternalGitSource":
+    def pinned(
+        self,
+        *,
+        timeout_seconds: float = EXTERNAL_GIT_PROBE_TIMEOUT_SECONDS,
+    ) -> "ExternalGitSource":
         if self.archive_hash is not None:
             return self
         if not self.repo_root.is_dir():
@@ -171,13 +176,26 @@ class ExternalGitSource:
                 "External Git repository root does not exist",
                 details={"repoRoot": str(self.repo_root)},
             )
-        result = subprocess.run(
-            trusted_git_command(self.repo_root, "rev-parse", "--verify", f"{self.commit}^{{commit}}"),
-            cwd=self.repo_root,
-            check=False,
-            capture_output=True,
-            text=True,
-        )
+        try:
+            result = subprocess.run(
+                trusted_git_command(
+                    self.repo_root,
+                    "rev-parse",
+                    "--verify",
+                    f"{self.commit}^{{commit}}",
+                ),
+                cwd=self.repo_root,
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=timeout_seconds,
+            )
+        except subprocess.TimeoutExpired as error:
+            raise CoordinatorError(
+                "validation_copy_external_commit_timeout",
+                "External Git commit identity could not be verified before the deadline",
+                details={"repoRoot": str(self.repo_root), "commit": self.commit},
+            ) from error
         if result.returncode != 0:
             raise CoordinatorError(
                 "validation_copy_external_commit_missing",

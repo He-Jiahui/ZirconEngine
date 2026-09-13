@@ -1309,6 +1309,9 @@ class FailureCloseoutWorkflowService:
                 "failure_closeout_validation_contract_invalid",
                 "Managed validation-copy source manifest is malformed",
             )
+        validation_support_paths = self._validation_support_paths(
+            coverage, source_manifest
+        )
         manifest_hash = hashlib.sha256(canonical_manifest.encode("utf-8")).hexdigest()
         identity = ticket_identity.normalize_identity(
             submitted.get("identity") if isinstance(submitted, dict) else None
@@ -1350,6 +1353,7 @@ class FailureCloseoutWorkflowService:
             "inputManifestHash": input_manifest_hash,
             "sourceManifestHash": manifest_hash,
             "sourceManifest": source_manifest,
+            "validationSupportPaths": list(validation_support_paths),
             "toolchain": toolchain,
             "coverage": coverage,
             "planPath": str(ticket["plan_path"]),
@@ -1431,10 +1435,24 @@ class FailureCloseoutWorkflowService:
                 for path, digest in source_manifest.items()
                 if contract["evidenceKind"] == "cargo"
                 or not str(path).casefold().startswith("docs/plans/")
+                and str(path).casefold()
+                not in {
+                    str(support_path).casefold()
+                    for support_path in contract.get("validationSupportPaths", [])
+                }
             }
             if isinstance(source_manifest, dict)
             else {}
         )
+        support_paths = {
+            str(path).casefold()
+            for path in contract.get("validationSupportPaths", [])
+        }
+        if support_paths & {str(path).casefold() for path in expected_source}:
+            raise CoordinatorError(
+                "failure_closeout_validation_support_overlap",
+                "Validation-only support paths cannot overlap the closeout snapshot",
+            )
         if normalized_source != {
             path: str(digest).casefold() for path, digest in expected_source.items()
         }:
@@ -1451,6 +1469,64 @@ class FailureCloseoutWorkflowService:
                 "Managed validation compatibility or environment changed after prepare",
             )
         return command
+
+    def _validation_support_paths(
+        self,
+        coverage: object,
+        source_manifest: dict[str, object],
+    ) -> tuple[str, ...]:
+        """Validate the explicit overlay closure that is not a commit input.
+
+        Validation copies may need a few current, Session-owned files solely to
+        import and execute the focused test.  They remain part of the immutable
+        ticket manifest, but must be declared explicitly so closeout can keep its
+        exact commit manifest separate from that read-only validation closure.
+        """
+        if not isinstance(coverage, dict):
+            return ()
+        raw_paths = coverage.get("validationSupportPaths")
+        if raw_paths is None:
+            return ()
+        if not isinstance(raw_paths, (list, tuple)):
+            raise CoordinatorError(
+                "failure_closeout_validation_support_paths_invalid",
+                "coverage.validationSupportPaths must be a string array",
+            )
+        manifest_by_key = {
+            str(path).casefold(): (str(path), digest)
+            for path, digest in source_manifest.items()
+        }
+        normalized: dict[str, str] = {}
+        for raw_path in raw_paths:
+            if not isinstance(raw_path, str) or not self._is_canonical_manifest_path(raw_path):
+                raise CoordinatorError(
+                    "failure_closeout_validation_support_paths_invalid",
+                    "coverage.validationSupportPaths contains an unsafe path",
+                    details={"path": raw_path},
+                )
+            key = raw_path.casefold()
+            if key in normalized:
+                raise CoordinatorError(
+                    "failure_closeout_validation_support_paths_invalid",
+                    "coverage.validationSupportPaths must not contain duplicate paths",
+                    details={"path": raw_path},
+                )
+            manifest_entry = manifest_by_key.get(key)
+            if manifest_entry is None:
+                raise CoordinatorError(
+                    "failure_closeout_validation_support_paths_invalid",
+                    "Every validation support path must be present in sourceManifest",
+                    details={"path": raw_path},
+                )
+            manifest_path, digest = manifest_entry
+            if digest is None:
+                raise CoordinatorError(
+                    "failure_closeout_validation_support_paths_invalid",
+                    "Validation support paths cannot be deletion tombstones",
+                    details={"path": manifest_path},
+                )
+            normalized[key] = manifest_path
+        return tuple(sorted(normalized.values(), key=str.casefold))
 
     def _notify(
         self,

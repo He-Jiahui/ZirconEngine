@@ -5,10 +5,10 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-import re
+import time
 from collections.abc import Callable
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Mapping
 from uuid import uuid4
@@ -16,19 +16,28 @@ from uuid import uuid4
 from .database import Database
 from .cargo_command_policy import normalize_cargo_ticket_command
 from .models import CoordinatorError, utc_text
-from .portable_paths import normalize_portable_relative_path, portable_path_key
+from . import validation_ticket_inputs as ticket_inputs
+from . import validation_ticket_identity as ticket_identity
 from .snapshots import ObjectStore
 from .validation_copy_external import ExternalGitSource
 from .validation_external_pins import (
-    discover_pinned_external_sources,
+    discover_and_seal_pinned_external_sources,
     external_sources_from_coverage,
     merge_external_sources_into_coverage,
-    seal_pinned_external_sources,
+)
+from .validation_ticket_policy import (
+    FAILURE_REUSABLE_EVENT,
+    FAILURE_REUSED_EVENT,
+    FailureReusePolicy,
+    deterministic_failure,
+    execution_environment_identity,
+    reuse_blocker,
+    submission_details,
+    terminal_diagnostic,
+    validator_identity,
 )
 
 
-_SAFE_PATH = re.compile(r"^(?!/)(?![A-Za-z]:)[^\\]+$")
-_SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _NONTERMINAL = frozenset({"queued", "materializing", "running"})
 _TERMINAL = frozenset({"passed", "failed", "snapshot_stale"})
 _TRANSITIONS = {
@@ -115,6 +124,11 @@ class ValidationTicket:
     command: tuple[str, ...]
     toolchain: Mapping[str, object]
     coverage: Mapping[str, object]
+    blockers: tuple[Mapping[str, object], ...] = ()
+    original_failure_ticket_id: str | None = None
+    reuse_reason: str | None = None
+    timings: Mapping[str, object] | None = None
+    diagnostic: Mapping[str, object] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -122,6 +136,8 @@ class ValidationTicketReceipt:
     ticket: ValidationTicket
     request_id: str
     reused: bool
+    original_failure_ticket_id: str | None = None
+    reuse_reason: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -145,14 +161,45 @@ class ValidationTicketService:
         *,
         repo_root: str | Path | None = None,
         object_store: ObjectStore | None = None,
+        validator_version: str | None = None,
+        runtime_identity: Callable[[tuple[str, ...], Path], str] | None = None,
+        failure_reuse_policy: FailureReusePolicy | None = None,
     ):
         if (repo_root is None) != (object_store is None):
             raise ValueError("repo_root and object_store must be configured together")
         self.database = database
         self.repo_root = Path(repo_root).resolve() if repo_root is not None else None
         self.object_store = object_store
+        self.validator_version = validator_version or validator_identity()
+        self.runtime_identity = runtime_identity
+        self.failure_reuse_policy = failure_reuse_policy or FailureReusePolicy()
 
     def submit(
+        self,
+        *,
+        session_id: str,
+        request_id: str,
+        source_manifest: Mapping[str, str | None],
+        command: tuple[str, ...] | list[str],
+        toolchain: Mapping[str, object],
+        coverage: Mapping[str, object],
+        overlay_ownership_preflight: Callable[[str, tuple[str, ...]], object] | None = None,
+        force_rerun_reason: str | None = None,
+    ) -> ValidationTicketReceipt:
+        from .validation_preflight import enrich_admission_error
+
+        try:
+            return self._submit(
+                session_id=session_id, request_id=request_id,
+                source_manifest=source_manifest, command=command,
+                toolchain=toolchain, coverage=coverage,
+                overlay_ownership_preflight=overlay_ownership_preflight,
+                force_rerun_reason=force_rerun_reason,
+            )
+        except CoordinatorError as error:
+            raise enrich_admission_error(error) from error
+
+    def _submit(
         self,
         *,
         session_id: str,
@@ -164,11 +211,19 @@ class ValidationTicketService:
         overlay_ownership_preflight: (
             Callable[[str, tuple[str, ...]], object] | None
         ) = None,
+        force_rerun_reason: str | None = None,
     ) -> ValidationTicketReceipt:
+        started = time.monotonic()
         normalized_session = self._require_text("session_id", session_id)
         normalized_request = self._require_text("request_id", request_id)
+        force_reason = (
+            self._require_text("force_rerun_reason", force_rerun_reason)
+            if force_rerun_reason is not None else None
+        )
+        if force_reason is not None and len(force_reason) > 1024:
+            raise CoordinatorError("validation_force_rerun_reason_invalid", "Force rerun reason exceeds 1024 characters")
         with self.database.connect() as connection:
-            existing = self._request_receipt(connection, normalized_request)
+            existing = self._request_receipt(connection, normalized_request, normalized_session)
             if existing is not None:
                 return existing
         manifest = self._manifest(source_manifest)
@@ -184,11 +239,12 @@ class ValidationTicketService:
         captured_sources: tuple[tuple[str, str, bytes], ...] = ()
         captured_external_sources: tuple[tuple[str, str, bytes], ...] = ()
         captured_context: _SubmissionContext | None = None
+        runtime_identity: str | None = None
         if self.object_store is not None:
             # Source I/O can cover hundreds of paths. Keep it outside the global
             # SQLite writer transaction, then repeat mutable admission below.
             with self.database.connect() as connection:
-                existing = self._request_receipt(connection, normalized_request)
+                existing = self._request_receipt(connection, normalized_request, normalized_session)
                 if existing is not None:
                     return existing
                 captured_context = self._submission_preflight(
@@ -216,18 +272,42 @@ class ValidationTicketService:
                         for path, _expected_hash, content in captured_sources
                     }
                 )
-                discovered = discover_pinned_external_sources(
-                    self.repo_root,
-                    baseline_commit=captured_context.base_head,
-                    overlay_files=overlay_files,
-                    command=normalized_command,
+                from .build_policy import pinned_development_command
+
+                normalized_command, link_mode = pinned_development_command(
+                    normalized_command, self.repo_root, captured_context.base_head,
+                    overlay_files, str(normalized_toolchain.get("linkMode", "auto")),
                 )
-                discovered, captured_external_sources = seal_pinned_external_sources(
-                    list(discovered)
+                normalized_toolchain = {**normalized_toolchain, "linkMode": link_mode}
+                discovered, captured_external_sources = (
+                    discover_and_seal_pinned_external_sources(
+                        self.repo_root,
+                        baseline_commit=captured_context.base_head,
+                        overlay_files=overlay_files,
+                        command=normalized_command,
+                    )
                 )
                 normalized_coverage = merge_external_sources_into_coverage(
                     normalized_coverage, discovered
                 )
+                from .validation_preflight import preflight_pinned_cargo
+
+                archives = {digest: content for _path, digest, content in captured_external_sources}
+                runtime_identity = preflight_pinned_cargo(
+                    self.repo_root,
+                    baseline_commit=captured_context.base_head,
+                    overlay_files=overlay_files,
+                    command=normalized_command,
+                    external_sources=tuple(ExternalGitSource.from_payload(item) for item in discovered),
+                    external_archive_loader=archives.__getitem__,
+                    runtime_identity=self.runtime_identity,
+                    planner_parent=self.object_store.root.parent,
+                )
+
+        failure_reuse_eligible = runtime_identity is not None or (
+            captured_context is not None and bool(captured_context.base_head)
+            and not validation_uses_cargo_lane(normalized_command, normalized_toolchain)
+        )
 
         manifest_json = self._canonical(manifest)
         command_json = self._canonical(normalized_command)
@@ -236,8 +316,9 @@ class ValidationTicketService:
         manifest_hash = hashlib.sha256(manifest_json.encode("utf-8")).hexdigest()
 
         captured_objects = (*captured_sources, *captured_external_sources)
+        now = utc_text()
         with self._submission_transaction(captured_objects) as connection:
-            existing = self._request_receipt(connection, normalized_request)
+            existing = self._request_receipt(connection, normalized_request, normalized_session)
             if existing is not None:
                 return existing
             submission = self._submission_preflight(
@@ -258,18 +339,20 @@ class ValidationTicketService:
                         "currentBaseHead": submission.base_head,
                     },
                 )
-            dedupe_key = hashlib.sha256(
-                "\n".join(
-                    (
-                        manifest_hash,
-                        command_json,
-                        toolchain_json,
-                        coverage_json,
-                        str(submission.baseline_epoch or ""),
-                        submission.base_head or "",
-                    )
-                ).encode("utf-8")
-            ).hexdigest()
+            identity = ticket_identity.create_identity(
+                baseline_epoch=submission.baseline_epoch,
+                base_head=submission.base_head,
+                validator_version=self.validator_version,
+                runtime_identity=runtime_identity,
+                execution_environment_hash=execution_environment_identity(),
+            )
+            dedupe_key = ticket_identity.dedupe_key(
+                identity=identity,
+                source_manifest_hash=manifest_hash,
+                command=normalized_command,
+                toolchain=normalized_toolchain,
+                coverage=normalized_coverage,
+            )
 
             reusable = connection.execute(
                 """
@@ -279,6 +362,11 @@ class ValidationTicketService:
                 """,
                 (dedupe_key,),
             ).fetchone()
+            prior_failure = (
+                self.failure_reuse_policy.lookup(connection, dedupe_key)
+                if reusable is None and force_reason is None and failure_reuse_eligible
+                else None
+            )
             if reusable is not None:
                 ticket_id = str(reusable["ticket_id"])
                 reused = True
@@ -339,6 +427,14 @@ class ValidationTicketService:
                         "sourceManifestHash": manifest_hash,
                         "baselineEpoch": submission.baseline_epoch,
                         "baseHead": submission.base_head,
+                        "validatorVersion": self.validator_version,
+                        "failureReuseEligible": failure_reuse_eligible,
+                        "runtimeIdentityHash": identity["runtimeIdentityHash"],
+                        "identity": identity,
+                        "originalFailureTicketId": prior_failure[0] if prior_failure else None,
+                        "reuseReason": prior_failure[1] if prior_failure else None,
+                        "forceRerunReason": force_reason,
+                        "admissionMs": max(0, int((time.monotonic() - started) * 1000)),
                     },
                     now,
                 )
@@ -373,21 +469,52 @@ class ValidationTicketService:
                 """,
                 (normalized_request, ticket_id, normalized_session, now),
             )
+            if prior_failure is not None:
+                original_id, reason = prior_failure
+                self._event(connection, ticket_id, FAILURE_REUSED_EVENT, {
+                    "originalFailureTicketId": original_id, "reuseReason": reason,
+                    "requestId": normalized_request,
+                }, now)
+                connection.execute(
+                    "UPDATE validation_tickets SET status='failed', updated_at=? WHERE ticket_id=?",
+                    (now, ticket_id),
+                )
+                self._event(connection, ticket_id, "validation.ticket_status_changed", {
+                    "from": "queued", "to": "failed", "evidence": {
+                        "phase": "failure_reuse", "originalFailureTicketId": original_id,
+                        "reuseReason": reason, "blockers": [reuse_blocker(original_id, reason)],
+                    },
+                }, now)
+                self._release_source_pin(connection, ticket_id)
+                reused = True
+            if force_reason is not None:
+                self._event(connection, ticket_id, "validation.ticket_rerun_requested", {
+                    "requestId": normalized_request, "sessionId": normalized_session,
+                    "forceRerunReason": force_reason, "coalesced": reused,
+                }, now)
             return ValidationTicketReceipt(
-                self._get_in_connection(connection, ticket_id), normalized_request, reused
+                self._get_in_connection(connection, ticket_id), normalized_request, reused,
+                prior_failure[0] if prior_failure else None,
+                prior_failure[1] if prior_failure else None,
             )
 
     def _request_receipt(
-        self, connection, request_id: str
+        self, connection, request_id: str, session_id: str
     ) -> ValidationTicketReceipt | None:
         row = connection.execute(
-            "SELECT ticket_id FROM validation_ticket_requests WHERE request_id=?",
+            "SELECT ticket_id, session_id FROM validation_ticket_requests WHERE request_id=?",
             (request_id,),
         ).fetchone()
         if row is None:
             return None
+        if str(row["session_id"]) != session_id:
+            raise CoordinatorError("validation_request_owner_mismatch", "Request ID belongs to a different Session")
         ticket = self._get_in_connection(connection, str(row["ticket_id"]))
-        return ValidationTicketReceipt(ticket, request_id, reused=False)
+        return ValidationTicketReceipt(
+            ticket, request_id, reused=ticket.original_failure_ticket_id is not None,
+            original_failure_ticket_id=ticket.original_failure_ticket_id,
+            reuse_reason=ticket.reuse_reason,
+        )
 
     def _submission_preflight(
         self,
@@ -457,6 +584,13 @@ class ValidationTicketService:
                 now,
             )
             if status in _TERMINAL:
+                submitted = submission_details(connection, normalized_ticket)
+                reason = deterministic_failure(
+                    normalized_evidence,
+                    compiler_identity_verified=bool(submitted.get("runtimeIdentityHash")),
+                ) if status == "failed" else None
+                if reason and submitted.get("failureReuseEligible"):
+                    self._event(connection, normalized_ticket, FAILURE_REUSABLE_EVENT, {"reason": reason}, now)
                 self._release_source_pin(connection, normalized_ticket)
             return self._get_in_connection(connection, normalized_ticket)
 
@@ -485,21 +619,42 @@ class ValidationTicketService:
         with self.database.connect() as connection:
             return self._get_in_connection(connection, self._require_text("ticket_id", ticket_id))
 
+    def verify_runtime_identity(self, ticket: ValidationTicket, source_root: Path) -> None:
+        if self.runtime_identity is None:
+            return
+        with self.database.connect() as connection:
+            expected = submission_details(connection, ticket.ticket_id).get("runtimeIdentityHash")
+        if expected is None:
+            return
+        actual = self.runtime_identity(ticket.command, source_root)
+        if hashlib.sha256(actual.encode()).hexdigest() != expected:
+            raise CoordinatorError(
+                "validation_ticket_toolchain_changed",
+                "The managed toolchain changed after submission; submit a fresh validation ticket",
+            )
+
     def claim_next(self) -> ValidationTicket | None:
         """Atomically reserve the oldest queued ticket for one worker."""
         now = utc_text()
+        from .validation_failure_gate import record_blockers
+
         with self.database.transaction() as connection:
-            row = connection.execute(
+            rows = connection.execute(
                 """
                 SELECT ticket_id FROM validation_tickets
                 WHERE status='queued'
                 ORDER BY created_at, ticket_id
-                LIMIT 1
                 """
-            ).fetchone()
-            if row is None:
+            ).fetchall()
+            ticket_id = None
+            for row in rows:
+                candidate = self._get_in_connection(connection, str(row["ticket_id"]))
+                record_blockers(connection, candidate.ticket_id, candidate.blockers, now)
+                if not candidate.blockers:
+                    ticket_id = candidate.ticket_id
+                    break
+            if ticket_id is None:
                 return None
-            ticket_id = str(row["ticket_id"])
             cursor = connection.execute(
                 """
                 UPDATE validation_tickets SET status='materializing', updated_at=?
@@ -517,6 +672,25 @@ class ValidationTicketService:
                 now,
             )
             return self._get_in_connection(connection, ticket_id)
+
+    def defer_for_dependencies(self, ticket_id: str) -> bool:
+        from .validation_failure_gate import record_blockers
+
+        with self.database.transaction() as connection:
+            ticket = self._get_in_connection(connection, ticket_id)
+            if ticket.status != "materializing" or not ticket.blockers:
+                return False
+            now = utc_text()
+            record_blockers(connection, ticket_id, ticket.blockers, now)
+            connection.execute(
+                "UPDATE validation_tickets SET status='queued', updated_at=? WHERE ticket_id=?",
+                (now, ticket_id),
+            )
+            self._event(connection, ticket_id, "validation.ticket_status_changed", {
+                "from": "materializing", "to": "queued",
+                "evidence": {"phase": "dependency_wait", "blockers": list(ticket.blockers)},
+            }, now)
+            return True
 
     def active_ticket(self) -> ValidationTicket | None:
         tickets = self.active_tickets(limit=1)
@@ -639,51 +813,22 @@ class ValidationTicketService:
     ) -> tuple[int, int]:
         if self.object_store is None:
             return 0, 0
-        # Validate the whole submission before ObjectStore.put() creates files.
-        # A later stale path must not leave earlier objects orphaned by rollback.
-        created_paths = {
-            expected_hash: self.object_store.path_for_hash(expected_hash)
-            for _path, expected_hash, _content in captured
-            if not self.object_store.path_for_hash(expected_hash).exists()
-        }
-        try:
-            for _path, expected_hash, content in captured:
-                stored_hash = self.object_store.put(content, connection=connection)
-                if stored_hash != expected_hash:
-                    raise AssertionError("content-addressed validation source hash changed")
-        except BaseException:
-            for target in created_paths.values():
-                target.unlink(missing_ok=True)
-            raise
+        for _path, expected_hash, content in captured:
+            stored_hash = self.object_store.put(content, connection=connection)
+            if stored_hash != expected_hash:
+                raise AssertionError("content-addressed validation source hash changed")
         return len(captured), sum(len(content) for _path, _hash, content in captured)
 
     @contextmanager
     def _submission_transaction(
         self, captured: tuple[tuple[str, str, bytes], ...]
     ):
-        new_hashes: set[str] = set()
-        if self.object_store is not None:
-            new_hashes = {
-                expected_hash
-                for _path, expected_hash, _content in captured
-                if not self.object_store.path_for_hash(expected_hash).exists()
-            }
-        try:
+        if self.object_store is None:
             with self.database.transaction() as connection:
                 yield connection
-        except BaseException:
-            if self.object_store is not None and new_hashes:
-                with self.database.transaction() as cleanup_connection:
-                    for object_hash in new_hashes:
-                        exists = cleanup_connection.execute(
-                            "SELECT 1 FROM objects WHERE object_hash=?",
-                            (object_hash,),
-                        ).fetchone()
-                        if exists is None:
-                            self.object_store.path_for_hash(object_hash).unlink(
-                                missing_ok=True
-                            )
-            raise
+            return
+        with self.object_store.transaction() as connection:
+            yield connection
 
     def _source_path(self, relative_path: str) -> Path:
         if self.repo_root is None:
@@ -811,116 +956,14 @@ class ValidationTicketService:
             ),
         )
 
-    @staticmethod
-    def _require_text(field: str, value: object) -> str:
-        if not isinstance(value, str) or not value.strip():
-            raise CoordinatorError("validation_ticket_input_invalid", f"{field} must be non-empty text")
-        return value.strip()
+    _require_text = staticmethod(ticket_inputs.require_text)
+    _manifest = staticmethod(ticket_inputs.manifest)
 
-    def _manifest(
-        self, value: Mapping[str, str | None]
-    ) -> dict[str, str | None]:
-        if not isinstance(value, Mapping) or not value:
-            raise CoordinatorError("validation_ticket_manifest_invalid", "source_manifest must be non-empty")
-        normalized: dict[str, str | None] = {}
-        path_keys: set[str] = set()
-        for raw_path, raw_hash in value.items():
-            path = normalize_portable_relative_path(
-                raw_path,
-                code="validation_ticket_manifest_invalid",
-                message="source_manifest path is unsafe",
-            )
-            folded = path.casefold()
-            path_key = portable_path_key(path)
-            protected = (
-                folded == ".git"
-                or folded.startswith(".git/")
-                or folded == "target"
-                or folded.startswith("target/")
-                or folded == ".codex/state"
-                or folded.startswith(".codex/state/")
-            )
-            if (
-                protected
-                or path_key in path_keys
-            ):
-                raise CoordinatorError("validation_ticket_manifest_invalid", "source_manifest path is unsafe")
-            path_keys.add(path_key)
-            if raw_hash is None:
-                normalized[path] = None
-            elif isinstance(raw_hash, str) and _SHA256.fullmatch(raw_hash.casefold()):
-                normalized[path] = raw_hash.casefold()
-            else:
-                raise CoordinatorError(
-                    "validation_ticket_manifest_invalid",
-                    "source_manifest values must be SHA-256 or null deletion tombstones",
-                )
-        return dict(sorted(normalized.items(), key=lambda item: item[0].casefold()))
+    _command = staticmethod(ticket_inputs.command)
+    _mapping = staticmethod(ticket_inputs.mapping)
+    _json_value = staticmethod(ticket_inputs.json_value)
 
-    def _command(self, value: tuple[str, ...] | list[str]) -> tuple[str, ...]:
-        if not isinstance(value, (tuple, list)) or not value:
-            raise CoordinatorError("validation_ticket_command_invalid", "command must be a non-empty string sequence")
-        command = tuple(self._require_text("command", item) for item in value)
-        return command
-
-    @classmethod
-    def _mapping(cls, field: str, value: Mapping[str, object]) -> dict[str, object]:
-        if not isinstance(value, Mapping):
-            raise CoordinatorError("validation_ticket_input_invalid", f"{field} must be an object")
-        result = cls._json_value(field, value, set())
-        if not isinstance(result, dict):
-            raise AssertionError("mapping normalization must preserve object shape")
-        return result
-
-    @classmethod
-    def _json_value(cls, field: str, value: object, active: set[int]) -> object:
-        if isinstance(value, Mapping):
-            identity = id(value)
-            if identity in active:
-                raise CoordinatorError(
-                    "validation_ticket_input_invalid",
-                    f"{field} must not contain a circular JSON value",
-                )
-            active.add(identity)
-            try:
-                result: dict[str, object] = {}
-                for key, item in value.items():
-                    if not isinstance(key, str):
-                        raise CoordinatorError(
-                            "validation_ticket_input_invalid",
-                            f"{field} object keys must be strings",
-                        )
-                    result[key] = cls._json_value(field, item, active)
-                return result
-            finally:
-                active.remove(identity)
-        if isinstance(value, (list, tuple)):
-            identity = id(value)
-            if identity in active:
-                raise CoordinatorError(
-                    "validation_ticket_input_invalid",
-                    f"{field} must not contain a circular JSON value",
-                )
-            active.add(identity)
-            try:
-                return [cls._json_value(field, item, active) for item in value]
-            finally:
-                active.remove(identity)
-        try:
-            json.dumps(value, allow_nan=False)
-        except (TypeError, ValueError) as error:
-            raise CoordinatorError("validation_ticket_input_invalid", f"{field} must be JSON serializable") from error
-        return value
-
-    @staticmethod
-    def _canonical(value: object) -> str:
-        return json.dumps(
-            value,
-            sort_keys=True,
-            separators=(",", ":"),
-            ensure_ascii=True,
-            allow_nan=False,
-        )
+    _canonical = staticmethod(ticket_inputs.canonical)
 
     def _get_in_connection(self, connection, ticket_id: str) -> ValidationTicket:
         row = connection.execute("SELECT * FROM validation_tickets WHERE ticket_id=?", (ticket_id,)).fetchone()
@@ -946,7 +989,7 @@ class ValidationTicketService:
             else None
         )
         raw_head = submission_payload.get("baseHead")
-        return ValidationTicket(
+        ticket = ValidationTicket(
             ticket_id=str(row["ticket_id"]),
             session_id=str(row["session_id"]),
             plan_path=str(row["plan_path"]),
@@ -958,6 +1001,22 @@ class ValidationTicketService:
             command=tuple(json.loads(str(row["command_json"]))),
             toolchain=json.loads(str(row["toolchain_json"])),
             coverage=json.loads(str(row["coverage_json"])),
+            original_failure_ticket_id=submission_payload.get("originalFailureTicketId"),
+            reuse_reason=submission_payload.get("reuseReason"),
+        )
+        from .validation_failure_gate import blockers
+        from .validation_timings import ticket_timings
+
+        original_id = ticket.original_failure_ticket_id
+        return replace(
+            ticket,
+            blockers=(
+                (reuse_blocker(original_id, ticket.reuse_reason or ""),)
+                if original_id else tuple(blockers(connection, ticket))
+                if ticket.status in {"queued", "materializing"} else ()
+            ),
+            timings=ticket_timings(connection, ticket_id),
+            diagnostic=terminal_diagnostic(connection, original_id or ticket_id),
         )
 
     @staticmethod

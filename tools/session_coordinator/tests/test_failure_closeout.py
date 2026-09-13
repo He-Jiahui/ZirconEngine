@@ -29,6 +29,7 @@ from tools.session_coordinator.sessions import SessionService
 from tools.session_coordinator.snapshots import ObjectStore, SnapshotService
 from tools.session_coordinator.tests.failure_fixture import FailureGraphFixture
 from tools.session_coordinator.tests.helpers import init_repo
+from tools.session_coordinator.validation_tickets import ValidationTicketService
 from tools.session_coordinator.workflows.failure_closeouts import FailureCloseoutWorkflowService
 
 
@@ -476,7 +477,10 @@ class FailureCloseoutWorkflowTests(unittest.TestCase):
         return command
 
     def _insert_green_copy_validation(
-        self, *, source_manifest: dict[str, str | None] | None = None
+        self,
+        *,
+        source_manifest: dict[str, str | None] | None = None,
+        coverage: dict[str, object] | None = None,
     ):
         command = [
             "python",
@@ -491,28 +495,25 @@ class FailureCloseoutWorkflowTests(unittest.TestCase):
         canonical = lambda value: json.dumps(
             value, sort_keys=True, separators=(",", ":"), ensure_ascii=True
         )
-        manifest_json = canonical(source_manifest)
         command_json = canonical(command)
-        toolchain_json = canonical({"cargo": "not_required", "python": "3.14"})
-        coverage_json = canonical(
-            {"kind": "focused", "dependencyRoots": ["tools/session_coordinator"]}
-        )
-        manifest_hash = hashlib.sha256(manifest_json.encode("utf-8")).hexdigest()
-        session = self.sessions.get(self.session_id)
-        dedupe_key = hashlib.sha256(
-            "\n".join(
-                (
-                    manifest_hash,
-                    command_json,
-                    toolchain_json,
-                    coverage_json,
-                    str(session.baseline_epoch or ""),
-                    session.base_head or "",
-                )
-            ).encode("utf-8")
-        ).hexdigest()
+        tickets = ValidationTicketService(self.database)
+        with mock.patch("tools.session_coordinator.validation_tickets.uuid4") as ticket_id:
+            ticket_id.return_value.hex = "copy-run-green"
+            tickets.submit(
+                session_id=self.session_id,
+                request_id="copy-green-request",
+                source_manifest=source_manifest,
+                command=command,
+                toolchain={"cargo": "not_required", "python": "3.14"},
+                coverage=coverage
+                or {"kind": "focused", "dependencyRoots": ["tools/session_coordinator"]},
+            )
+        tickets.transition("copy-run-green", "passed", evidence={"exitCode": 0})
         now = utc_text()
         with self.database.transaction() as connection:
+            dedupe_key = connection.execute(
+                "SELECT dedupe_key FROM validation_tickets WHERE ticket_id='copy-run-green'"
+            ).fetchone()[0]
             connection.execute(
                 """INSERT INTO validation_copies(
                        job_id, session_id, job_root, source_root, target_root,
@@ -529,25 +530,6 @@ class FailureCloseoutWorkflowTests(unittest.TestCase):
                    ) VALUES ('copy-run-green', 'copy-green', ?, ?, 0,
                              '', 'OK', ?, ?)""",
                 (self.session_id, command_json, now, now),
-            )
-            connection.execute(
-                """INSERT INTO validation_tickets(
-                       ticket_id, session_id, plan_path, status, dedupe_key,
-                       source_manifest_hash, source_manifest_json, command_json,
-                       toolchain_json, coverage_json, created_at, updated_at
-                   ) VALUES ('copy-run-green', ?, ?, 'passed', ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (
-                    self.session_id,
-                    self.fixing.path.relative_to(self.repo).as_posix(),
-                    dedupe_key,
-                    manifest_hash,
-                    manifest_json,
-                    command_json,
-                    toolchain_json,
-                    coverage_json,
-                    now,
-                    now,
-                ),
             )
             connection.execute(
                 """INSERT INTO validation_ticket_events(
@@ -655,14 +637,116 @@ class FailureCloseoutWorkflowTests(unittest.TestCase):
             "failure_closeout_validation_source_drift", rejected.exception.code
         )
 
+    def test_validation_copy_ticket_accepts_declared_validation_support_paths(self) -> None:
+        support_path = "src/validation-support.py"
+        source_manifest = {
+            path: self.snapshot.manifest[path] for path in self.paths
+        }
+        source_manifest[support_path] = "a" * 64
+        command, _dedupe_key = self._insert_green_copy_validation(
+            source_manifest=source_manifest,
+            coverage={
+                "kind": "focused",
+                "dependencyRoots": ["tools/session_coordinator"],
+                "validationSupportPaths": [support_path],
+            },
+        )
+        prepared = self.service.prepare(
+            session_id=self.session_id,
+            snapshot_id=self.snapshot.snapshot_id,
+            lifecycle_key=self.lifecycle_key,
+            validation_command=command,
+            validation_job_id="copy-green",
+            validation_run_id="copy-run-green",
+            executor_thread_id="executor-thread",
+            actor=self.session_id,
+        )
+
+        evidence = self.service.bind_validation(
+            session_id=self.session_id,
+            closeout_id=prepared.closeout_id,
+            job_id="copy-green",
+            cargo_run_id="copy-run-green",
+            actor=self.session_id,
+        )
+
+        self.assertEqual("accepted", evidence.verdict)
+
+    def test_validation_copy_ticket_rejects_undeclared_validation_support_path(self) -> None:
+        support_path = "src/validation-support.py"
+        command, _dedupe_key = self._insert_green_copy_validation(
+            coverage={
+                "kind": "focused",
+                "dependencyRoots": ["tools/session_coordinator"],
+                "validationSupportPaths": [support_path],
+            },
+        )
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.prepare(
+                session_id=self.session_id,
+                snapshot_id=self.snapshot.snapshot_id,
+                lifecycle_key=self.lifecycle_key,
+                validation_command=command,
+                validation_job_id="copy-green",
+                validation_run_id="copy-run-green",
+                executor_thread_id="executor-thread",
+                actor=self.session_id,
+            )
+
+        self.assertEqual(
+            "failure_closeout_validation_support_paths_invalid",
+            rejected.exception.code,
+        )
+
+    def test_validation_copy_ticket_rejects_support_path_overlapping_snapshot(self) -> None:
+        support_path = self.paths[0]
+        source_manifest = {
+            path: self.snapshot.manifest[path] for path in self.paths
+        }
+        command, _dedupe_key = self._insert_green_copy_validation(
+            source_manifest=source_manifest,
+            coverage={
+                "kind": "focused",
+                "dependencyRoots": ["tools/session_coordinator"],
+                "validationSupportPaths": [support_path],
+            },
+        )
+        prepared = self.service.prepare(
+            session_id=self.session_id,
+            snapshot_id=self.snapshot.snapshot_id,
+            lifecycle_key=self.lifecycle_key,
+            validation_command=command,
+            validation_job_id="copy-green",
+            validation_run_id="copy-run-green",
+            executor_thread_id="executor-thread",
+            actor=self.session_id,
+        )
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.bind_validation(
+                session_id=self.session_id,
+                closeout_id=prepared.closeout_id,
+                job_id="copy-green",
+                cargo_run_id="copy-run-green",
+                actor=self.session_id,
+            )
+
+        self.assertEqual(
+            "failure_closeout_validation_support_overlap", rejected.exception.code
+        )
+
     def test_validation_copy_ticket_rejects_noncanonical_source_path(self) -> None:
+        command, _dedupe_key = self._insert_green_copy_validation()
         source_manifest = {
             path: self.snapshot.manifest[path] for path in self.paths
         }
         source_manifest["docs/plans/../Cargo.toml"] = "c" * 64
-        command, _dedupe_key = self._insert_green_copy_validation(
-            source_manifest=source_manifest
-        )
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE validation_tickets SET source_manifest_json=? WHERE ticket_id='copy-run-green'",
+                (json.dumps(source_manifest),),
+            )
 
         with self.assertRaises(CoordinatorError) as rejected:
             self.service.prepare(
@@ -1431,6 +1515,39 @@ class FailureCloseoutWorkflowTests(unittest.TestCase):
             summary="one moderate finding",
         )
         self.assertEqual("rejected", review.verdict)
+
+    def test_review_reactivates_the_designated_native_reviewer_after_stale_archive(self) -> None:
+        prepared = self._prepare()
+        self.sessions.set_status("reviewer-b", SessionStatus.STALE, reason="heartbeat expired")
+        # archive_stale uses a strict cutoff; age the row after capturing the
+        # current timestamp so the fixture remains independent of wall-clock
+        # granularity.
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE sessions SET updated_at='2000-01-01T00:00:00+00:00' "
+                "WHERE session_id='reviewer-b'"
+            )
+        self.assertEqual(["reviewer-b"], self.sessions.archive_stale(older_than_seconds=1))
+
+        review = self.service.record_review(
+            session_id=self.session_id,
+            closeout_id=prepared.closeout_id,
+            reviewer_session_id="reviewer-b",
+            reviewer_thread_id="reviewer-b",
+            critical_count=0,
+            important_count=0,
+            moderate_count=0,
+            summary="resumed native reviewer confirms C0/I0/M0",
+        )
+
+        self.assertEqual("accepted", review.verdict)
+        self.assertEqual(SessionStatus.ACTIVE, self.sessions.get("reviewer-b").status)
+        with self.database.connect() as connection:
+            event = connection.execute(
+                "SELECT event_type FROM events WHERE session_id='reviewer-b' "
+                "ORDER BY event_id DESC LIMIT 1"
+            ).fetchone()
+        self.assertEqual("session.reactivated", event["event_type"])
 
     def test_review_rejects_borrowed_reviewer_session_identity(self) -> None:
         prepared = self._prepare()

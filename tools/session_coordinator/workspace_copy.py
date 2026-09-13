@@ -4,11 +4,14 @@ import hashlib
 import io
 import json
 import os
+import re
 import shutil
 import subprocess
 import tarfile
 import threading
+import time
 import uuid
+from collections import OrderedDict
 from contextlib import nullcontext
 from dataclasses import dataclass, field, replace
 from pathlib import Path, PurePosixPath
@@ -45,7 +48,11 @@ from .windows_job_process import (
     terminate_and_close_process_job,
 )
 from .trusted_tools import trusted_git_command
-from .validation_copies import CargoInputClosurePlanner, ExternalGitSource
+from .validation_copies import (
+    CargoInputClosure,
+    CargoInputClosurePlanner,
+    ExternalGitSource,
+)
 from .validation_copy_external import (
     external_archive_pathspecs,
     extract_external_archive,
@@ -55,12 +62,213 @@ from .pinned_cargo_planner import (
     PinnedCargoInputClosurePlanner,
     PinnedCargoPlannerView,
 )
+from .validation_copy_diagnostics import record_metadata_cache
 from .workspace_copy_terminal import (
     ValidationCopyTerminalLifecycle,
     ValidationRunEvidence,
 )
 
 _ARCHIVE_COMMAND_CHAR_LIMIT = 24_000
+_MATERIALIZATION_DIAGNOSTIC_TAIL_LIMIT = 4_096
+_ANSI_ESCAPE_SEQUENCE = re.compile(r"\x1b(?:\[[0-?]*[ -/]*[@-~]|[@-_])")
+_DIAGNOSTIC_SECRET_ASSIGNMENT = re.compile(
+    r"\b(api[_-]?key|access[_-]?token|client[_-]?secret|password)\b"
+    r"(\s*[:=]\s*)[^\r\n]*",
+    re.IGNORECASE,
+)
+_DIAGNOSTIC_QUERY_SECRET = re.compile(
+    r"([?&](?:api[_-]?key|access[_-]?token|key|token)=)[^&\s]+",
+    re.IGNORECASE,
+)
+_CARGO_CLOSURE_CACHE_LIMIT = 8
+_CARGO_CLOSURE_CACHE_VERSION = "cargo-closure-v1"
+
+
+@dataclass
+class _CargoClosureFlight:
+    """Single-flight state for one immutable Cargo topology key."""
+
+    event: threading.Event
+    result: CargoInputClosure | None = None
+    error: BaseException | None = None
+
+
+_CARGO_CLOSURE_CACHE: OrderedDict[str, CargoInputClosure] = OrderedDict()
+_CARGO_CLOSURE_INFLIGHT: dict[str, _CargoClosureFlight] = {}
+_CARGO_CLOSURE_CACHE_LOCK = threading.Lock()
+_CARGO_CLOSURE_CACHE_STATS = {
+    "hits": 0,
+    "misses": 0,
+    "waits": 0,
+    "evictions": 0,
+    "dynamicChecks": 0,
+    "invalidations": 0,
+}
+
+
+def _clear_cargo_closure_cache_for_tests() -> None:
+    """Reset process-local planner state; intended for isolated unit tests."""
+
+    with _CARGO_CLOSURE_CACHE_LOCK:
+        _CARGO_CLOSURE_CACHE.clear()
+        _CARGO_CLOSURE_INFLIGHT.clear()
+        for key in _CARGO_CLOSURE_CACHE_STATS:
+            _CARGO_CLOSURE_CACHE_STATS[key] = 0
+
+
+def cargo_closure_cache_stats() -> dict[str, int]:
+    """Return a stable, read-only snapshot for operator diagnostics."""
+
+    with _CARGO_CLOSURE_CACHE_LOCK:
+        return {
+            **{key: int(value) for key, value in _CARGO_CLOSURE_CACHE_STATS.items()},
+            "entries": len(_CARGO_CLOSURE_CACHE),
+            "inflight": len(_CARGO_CLOSURE_INFLIGHT),
+        }
+
+
+def _cargo_closure_cache_key(
+    *,
+    repo_root: Path,
+    baseline_commit: str,
+    command: tuple[str, ...],
+    descriptors: tuple[ExternalGitSource, ...],
+    overlays: tuple[str, ...],
+    overlay_files: Mapping[str, bytes | None],
+    discover_external_sources: bool,
+) -> str:
+    """Build a content identity for a reusable pinned closure."""
+
+    overlay_identity: list[dict[str, str | None]] = []
+    for path in sorted(set(overlays), key=str.casefold):
+        content = overlay_files.get(path)
+        overlay_identity.append(
+            {
+                "path": path,
+                "sha256": (
+                    None
+                    if content is None
+                    else hashlib.sha256(content).hexdigest()
+                ),
+            }
+        )
+    descriptor_identity = [
+        source.to_payload()
+        for source in sorted(descriptors, key=lambda value: value.mount_path.casefold())
+    ]
+    payload = {
+        "version": _CARGO_CLOSURE_CACHE_VERSION,
+        "repoRoot": str(repo_root),
+        "baselineCommit": baseline_commit,
+        "command": list(command),
+        "overlays": overlay_identity,
+        "externalSources": descriptor_identity,
+        "discoverExternalSources": discover_external_sources,
+    }
+    return hashlib.sha256(
+        json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+
+def _cached_cargo_closure(
+    cache_key: str,
+    planner: Callable[[], CargoInputClosure],
+    *,
+    validator: Callable[[CargoInputClosure], bool] | None = None,
+) -> CargoInputClosure:
+    """Run one planner per key and let concurrent callers share its result."""
+
+    while True:
+        with _CARGO_CLOSURE_CACHE_LOCK:
+            cached = _CARGO_CLOSURE_CACHE.get(cache_key)
+            if cached is None:
+                flight = _CARGO_CLOSURE_INFLIGHT.get(cache_key)
+                if flight is None:
+                    flight = _CargoClosureFlight(threading.Event())
+                    _CARGO_CLOSURE_INFLIGHT[cache_key] = flight
+                    owner = True
+                    _CARGO_CLOSURE_CACHE_STATS["misses"] += 1
+                else:
+                    owner = False
+                    _CARGO_CLOSURE_CACHE_STATS["waits"] += 1
+                break
+
+        valid = True
+        if validator is not None:
+            with _CARGO_CLOSURE_CACHE_LOCK:
+                _CARGO_CLOSURE_CACHE_STATS["dynamicChecks"] += 1
+            try:
+                valid = validator(cached)
+            except (OSError, ValueError, CoordinatorError):
+                valid = False
+        with _CARGO_CLOSURE_CACHE_LOCK:
+            if _CARGO_CLOSURE_CACHE.get(cache_key) is not cached:
+                continue
+            if not valid:
+                _CARGO_CLOSURE_CACHE.pop(cache_key, None)
+                _CARGO_CLOSURE_CACHE_STATS["invalidations"] += 1
+                continue
+            _CARGO_CLOSURE_CACHE.move_to_end(cache_key)
+            _CARGO_CLOSURE_CACHE_STATS["hits"] += 1
+            return cached
+
+    if not owner:
+        flight.event.wait()
+        if flight.error is not None:
+            raise flight.error
+        if flight.result is not None:
+            return flight.result
+        raise RuntimeError("Cargo closure planner completed without a result")
+
+    try:
+        result = planner()
+    except BaseException as error:
+        with _CARGO_CLOSURE_CACHE_LOCK:
+            flight.error = error
+            _CARGO_CLOSURE_INFLIGHT.pop(cache_key, None)
+        flight.event.set()
+        raise
+
+    with _CARGO_CLOSURE_CACHE_LOCK:
+        _CARGO_CLOSURE_CACHE[cache_key] = result
+        _CARGO_CLOSURE_CACHE.move_to_end(cache_key)
+        while len(_CARGO_CLOSURE_CACHE) > _CARGO_CLOSURE_CACHE_LIMIT:
+            _CARGO_CLOSURE_CACHE.popitem(last=False)
+            _CARGO_CLOSURE_CACHE_STATS["evictions"] += 1
+        flight.result = result
+        _CARGO_CLOSURE_INFLIGHT.pop(cache_key, None)
+    flight.event.set()
+    return result
+
+
+def _dynamic_cargo_closure_is_current(
+    closure: CargoInputClosure,
+    explicit_descriptors: tuple[ExternalGitSource, ...],
+) -> bool:
+    """Verify that auto-discovered sibling repositories still have the same HEAD."""
+
+    explicit = {
+        (str(source.repo_root).casefold(), source.commit.casefold())
+        for source in explicit_descriptors
+    }
+    for source in closure.external_sources:
+        identity = (str(source.repo_root).casefold(), source.commit.casefold())
+        if identity in explicit:
+            continue
+        try:
+            result = subprocess.run(
+                trusted_git_command(source.repo_root, "rev-parse", "HEAD"),
+                cwd=source.repo_root,
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            return False
+        if result.returncode != 0 or result.stdout.strip().casefold() != source.commit.casefold():
+            return False
+    return True
 
 
 def _archive_member_destination(
@@ -110,6 +318,7 @@ class WorkspaceCopyRecord:
     terminal_evidence: ValidationRunEvidence | None = None
     error_details: dict[str, object] = field(default_factory=dict)
     materialization_kind: str | None = None
+    metadata_cache: dict[str, object] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -128,6 +337,7 @@ class WorkspaceCopyRecord:
             "errorDetails": dict(self.error_details),
             "materializationPhase": self.materialization_phase,
             "materializationKind": self.materialization_kind,
+            "metadataCache": dict(self.metadata_cache),
             "terminalEvidence": (
                 self.terminal_evidence.to_dict()
                 if self.terminal_evidence is not None
@@ -762,7 +972,7 @@ class WorkspaceCopyService:
         external_sources: tuple[dict[str, object], ...]
         | list[dict[str, object]] = (),
         metadata_runner=None,
-        discover_external_sources: bool = False,
+        discover_external_sources: bool = True,
         baseline_commit: str | None = None,
     ) -> WorkspaceCopyRecord:
         command_tuple = tuple(str(part) for part in command if str(part))
@@ -825,6 +1035,7 @@ class WorkspaceCopyService:
         metadata_runner=None,
         sealed_overlay_manifest: Mapping[str, str | None] | None = None,
         planner_parent: Path | None = None,
+        metadata_observation: Callable[[Mapping[str, object]], None] | None = None,
     ):
         """Plan Cargo inputs from an immutable topology view.
 
@@ -848,9 +1059,6 @@ class WorkspaceCopyService:
                 command,
                 external_sources=descriptors,
                 discover_external_sources=discover_external_sources,
-                external_archive_loader=(
-                    self._object_store.get if self._object_store is not None else None
-                ),
                 overlay_paths=overlays,
                 baseline_commit=baseline_commit,
             )
@@ -858,45 +1066,89 @@ class WorkspaceCopyService:
             overlays,
             sealed_overlay_manifest=sealed_overlay_manifest,
         )
-        # A planner view is intentionally ephemeral and contains manifests/config
-        # plus target topology, not the full source tree. Production workers pass
-        # their already-registered job root so artifact governance can see the
-        # temporary directory for the entire metadata operation.
-        owns_planner_parent = planner_parent is None
-        if planner_parent is None:
-            root = max(
-                self.target_roots,
-                key=lambda value: shutil.disk_usage(value.anchor or value.parent).free,
-            )
-            verify_root = self._managed_verify_root(root)
-            verify_root.mkdir(parents=True, exist_ok=True)
-            planner_parent = verify_root / f".cargo-planner-{uuid.uuid4().hex}"
-            planner_parent.mkdir(parents=True, exist_ok=False)
-        else:
-            planner_parent = Path(planner_parent).resolve()
-            self._validate_job_root(planner_parent)
-            planner_parent.mkdir(parents=True, exist_ok=True)
-        try:
-            with PinnedCargoPlannerView(
-                self.repo_root,
-                planner_parent,
-                baseline_commit=baseline_commit,
-                overlay_files=overlay_files,
-                external_sources=descriptors,
-                discover_external_sources=discover_external_sources,
-            ) as view:
-                return PinnedCargoInputClosurePlanner(
-                    view,
-                ).plan_pinned(
-                    command,
+        cache_key = _cargo_closure_cache_key(
+            repo_root=self.repo_root,
+            baseline_commit=baseline_commit,
+            command=command,
+            descriptors=descriptors,
+            overlays=overlays,
+            overlay_files=overlay_files,
+            discover_external_sources=discover_external_sources,
+        )
+
+        def plan_from_pinned_view():
+            # A planner view is intentionally ephemeral and contains
+            # manifests/config plus target topology, not the full source tree.
+            # Production workers pass their already-registered job root so
+            # artifact governance can see the temporary directory for the
+            # entire metadata operation.
+            owns_planner_parent = planner_parent is None
+            active_planner_parent = planner_parent
+            if active_planner_parent is None:
+                root = max(
+                    self.target_roots,
+                    key=lambda value: shutil.disk_usage(
+                        value.anchor or value.parent
+                    ).free,
+                )
+                verify_root = self._managed_verify_root(root)
+                verify_root.mkdir(parents=True, exist_ok=True)
+                active_planner_parent = (
+                    verify_root / f".cargo-planner-{uuid.uuid4().hex}"
+                )
+                active_planner_parent.mkdir(parents=True, exist_ok=False)
+            else:
+                active_planner_parent = Path(active_planner_parent).resolve()
+                self._validate_job_root(active_planner_parent)
+                active_planner_parent.mkdir(parents=True, exist_ok=True)
+            try:
+                with PinnedCargoPlannerView(
+                    self.repo_root,
+                    active_planner_parent,
+                    baseline_commit=baseline_commit,
+                    overlay_files=overlay_files,
                     external_sources=descriptors,
                     discover_external_sources=discover_external_sources,
-                    overlay_paths=overlays,
-                    baseline_commit=baseline_commit,
+                    external_archive_loader=(
+                        self._object_store.get
+                        if self._object_store is not None
+                        else None
+                    ),
+                ) as view:
+                    planner = PinnedCargoInputClosurePlanner(view)
+                    try:
+                        return planner.plan_pinned(
+                            command,
+                            external_sources=descriptors,
+                            discover_external_sources=discover_external_sources,
+                            overlay_paths=overlays,
+                            baseline_commit=baseline_commit,
+                        )
+                    finally:
+                        observation = planner.metadata_cache_result
+                        if metadata_observation is not None and isinstance(observation, Mapping):
+                            metadata_observation(observation)
+            finally:
+                if owns_planner_parent and active_planner_parent is not None:
+                    shutil.rmtree(active_planner_parent, ignore_errors=False)
+
+        if sealed_overlay_manifest is not None:
+            # Ticket validation must recheck the source closure and toolchain.
+            # The topology-only metadata cache owns reuse on this path.
+            return plan_from_pinned_view()
+        return _cached_cargo_closure(
+            cache_key,
+            plan_from_pinned_view,
+            validator=(
+                (
+                    lambda closure: _dynamic_cargo_closure_is_current(
+                        closure, descriptors
+                    )
                 )
-        finally:
-            if owns_planner_parent:
-                shutil.rmtree(planner_parent, ignore_errors=False)
+                if discover_external_sources
+                else None
+            ),
+        )
 
     def _cargo_planner_overlay_files(
         self,
@@ -941,7 +1193,7 @@ class WorkspaceCopyService:
         external_sources: tuple[dict[str, object], ...]
         | list[dict[str, object]] = (),
         metadata_runner=None,
-        discover_external_sources: bool = False,
+        discover_external_sources: bool = True,
         sealed_overlay_manifest: Mapping[str, str | None] | None = None,
         baseline_commit: str | None = None,
     ) -> WorkspaceCopyRecord:
@@ -1210,6 +1462,10 @@ class WorkspaceCopyService:
                 metadata_runner=metadata_runner,
                 sealed_overlay_manifest=sealed_overlay_manifest,
                 planner_parent=Path(str(row["job_root"])),
+                metadata_observation=lambda value: record_metadata_cache(
+                    self.database, job_id, self._materialization_worker_id,
+                    value, self._mutation_gate,
+                ),
             )
             paths = tuple(
                 sorted(set(closure.repository_paths) | set(overlays), key=str.casefold)
@@ -1356,6 +1612,16 @@ class WorkspaceCopyService:
         if not command_tuple:
             raise CoordinatorError(
                 "validation_copy_command_empty", "Validation command cannot be empty"
+            )
+        with self.database.connect() as connection:
+            route_row = connection.execute(
+                "SELECT * FROM validation_copies WHERE job_id = ?", (job_id,)
+            ).fetchone()
+        if route_row is not None and route_row["materialization_kind"] == "cargo":
+            return self._run_managed_cargo_copy(
+                session_id=session_id,
+                row=route_row,
+                command=command_tuple,
             )
         self._reserve_local_run(job_id)
         try:
@@ -1810,6 +2076,7 @@ class WorkspaceCopyService:
         command: tuple[str, ...],
         run_id: str,
         environment: Mapping[str, str] | None,
+        source_manifest: Mapping[str, str] | None = None,
     ) -> dict[str, object]:
         if row["session_id"] != session_id:
             raise CoordinatorError(
@@ -1844,13 +2111,18 @@ class WorkspaceCopyService:
                 "stderrTail": existing.stderr,
             }
         execution_command = self._cargo_command_for_materialized_copy(row, command)
+        advance_arguments: dict[str, object] = {
+            "session_id": session_id,
+            "copy_job_id": str(row["job_id"]),
+            "source_root": Path(str(row["source_root"])).resolve(),
+            "input_manifest_hash": row["input_manifest_hash"],
+            "command": execution_command,
+            "validation_run_id": run_id,
+        }
+        if source_manifest is not None:
+            advance_arguments["source_manifest"] = source_manifest
         progress = self._cargo_execution.advance(
-            session_id=session_id,
-            copy_job_id=str(row["job_id"]),
-            source_root=Path(str(row["source_root"])).resolve(),
-            input_manifest_hash=row["input_manifest_hash"],
-            command=execution_command,
-            validation_run_id=run_id,
+            **advance_arguments,
         )
         result = {"jobId": str(row["job_id"]), "runId": run_id, **progress}
         if progress.get("status") != "completed":
@@ -1872,6 +2144,130 @@ class WorkspaceCopyService:
             "stdoutTail": evidence.stdout,
             "stderrTail": evidence.stderr,
         }
+
+    def _run_managed_cargo_copy(
+        self,
+        *,
+        session_id: str,
+        row,
+        command: tuple[str, ...],
+    ) -> ValidationRunEvidence:
+        job_id = str(row["job_id"])
+        if row["session_id"] != session_id:
+            raise CoordinatorError(
+                "validation_copy_foreign_session",
+                "Validation copy belongs to another Session",
+            )
+        if row["status"] != "materialized":
+            raise CoordinatorError(
+                "validation_copy_not_materialized",
+                "Validation copy is already running or unavailable",
+            )
+        if self._cargo_execution is None:
+            raise CoordinatorError(
+                "validation_copy_cargo_execution_unavailable",
+                "Cargo validation copy has no managed Cargo executor",
+            )
+        self._require_materialized_cargo_command(row, command)
+        source_manifest = self._materialized_cargo_source_manifest(row)
+        job_root = Path(str(row["job_root"])).resolve()
+        self._reserve_local_run(job_id)
+        try:
+            while True:
+                progress = self._advance_cargo_execution(
+                    session_id=session_id,
+                    row=row,
+                    command=command,
+                    run_id=job_id,
+                    environment=None,
+                    source_manifest=source_manifest,
+                )
+                status = str(progress.get("status") or "")
+                if status == "completed":
+                    evidence = self._terminal.latest_for_job(
+                        session_id=session_id, job_id=job_id
+                    )
+                    if evidence is None or evidence.run_id != job_id:
+                        raise CoordinatorError(
+                            "validation_copy_terminal_evidence_missing",
+                            "Managed Cargo completed without durable validation evidence",
+                        )
+                    self._cleanup_terminal_copy(session_id, job_root)
+                    return evidence
+                if status not in {"waiting", "running"}:
+                    raise CoordinatorError(
+                        "validation_copy_cargo_run_state_invalid",
+                        f"Managed Cargo validation returned {status or 'unknown'}",
+                    )
+                time.sleep(0.25)
+        finally:
+            self._release_local_run(job_id)
+
+    @staticmethod
+    def _require_materialized_cargo_command(row, command: tuple[str, ...]) -> None:
+        raw_request = row["materialization_request_json"]
+        if not raw_request:
+            return
+        try:
+            request = json.loads(str(raw_request))
+        except (TypeError, ValueError, json.JSONDecodeError) as error:
+            raise CoordinatorError(
+                "validation_copy_cargo_request_invalid",
+                "Cargo validation copy lost its materialization command",
+            ) from error
+        planned = request.get("command") if isinstance(request, Mapping) else None
+        if planned is not None and planned != list(command):
+            raise CoordinatorError(
+                "validation_copy_cargo_command_mismatch",
+                "Cargo validation command differs from the command used to seal its inputs",
+            )
+
+    @staticmethod
+    def _materialized_cargo_source_manifest(row) -> dict[str, str]:
+        try:
+            manifest = json.loads(str(row["manifest_json"]))
+        except (TypeError, ValueError, json.JSONDecodeError) as error:
+            raise CoordinatorError(
+                "validation_copy_manifest_invalid",
+                "Cargo validation copy manifest is not valid JSON",
+            ) from error
+        if not isinstance(manifest, list) or not all(
+            isinstance(path, str) for path in manifest
+        ):
+            raise CoordinatorError(
+                "validation_copy_manifest_invalid",
+                "Cargo validation copy manifest must be a string array",
+            )
+        source_root = Path(str(row["source_root"])).resolve()
+        priorities = {
+            "cargo.toml": 0,
+            "cargo.lock": 1,
+            "rust-toolchain.toml": 2,
+            "rust-toolchain": 3,
+            ".cargo/config.toml": 4,
+            ".cargo/config": 5,
+        }
+        candidates = sorted(
+            manifest,
+            key=lambda path: (priorities.get(path.replace("\\", "/").casefold(), 10), path.casefold()),
+        )
+        for relative in candidates:
+            candidate = (source_root / Path(relative)).resolve(strict=False)
+            if not candidate.is_relative_to(source_root) or not candidate.is_file():
+                continue
+            try:
+                content = candidate.read_bytes()
+            except OSError as error:
+                raise CoordinatorError(
+                    "validation_copy_cargo_source_manifest_unavailable",
+                    "A sealed Cargo source identity could not be read",
+                    details={"path": relative},
+                ) from error
+            return {relative.replace("\\", "/"): hashlib.sha256(content).hexdigest()}
+        raise CoordinatorError(
+            "validation_copy_cargo_source_manifest_missing",
+            "Cargo validation copy contains no file that can bind managed execution",
+        )
 
     def _cargo_command_for_materialized_copy(
         self, row, command: tuple[str, ...]
@@ -2272,19 +2668,40 @@ class WorkspaceCopyService:
             reject("reservation", str(reservation["reservation_id"]))
 
         cargo_jobs = connection.execute(
-            """SELECT job_id, status, process_tree_live_pids_json
+            """SELECT job_id, status, cleanup_status, pid, started_at,
+                      command_json, process_tree_exited_at,
+                      process_tree_live_pids_json
                FROM cargo_jobs WHERE source_copy_job_id=?""",
             (row["job_id"],),
         ).fetchall()
         for cargo_job in cargo_jobs:
-            try:
-                live_pids = json.loads(
-                    str(cargo_job["process_tree_live_pids_json"])
-                )
-            except (TypeError, ValueError, json.JSONDecodeError):
-                live_pids = None
-            if cargo_job["status"] != "released" or live_pids != []:
+            if not WorkspaceCopyService._cargo_job_is_cleanup_terminal(cargo_job):
                 reject("job", str(cargo_job["job_id"]))
+
+    @staticmethod
+    def _cargo_job_is_cleanup_terminal(row) -> bool:
+        """Accept only a released job or a fully reconciled orphan job."""
+        try:
+            live_pids = json.loads(str(row["process_tree_live_pids_json"]))
+        except (TypeError, ValueError, json.JSONDecodeError):
+            return False
+        if live_pids != []:
+            return False
+        if row["status"] == "released":
+            return True
+        return (
+            row["status"] == "orphaned"
+            and row["cleanup_status"] == "deleted"
+            and row["process_tree_exited_at"] is not None
+            and (
+                row["pid"] is not None
+                or row["started_at"] is not None
+                or (
+                    isinstance(row["command_json"], str)
+                    and row["command_json"] != "[]"
+                )
+            )
+        )
 
     def recover_interrupted_jobs(
         self, *, process_alive=process_is_alive, startup: bool = True
@@ -2413,23 +2830,35 @@ class WorkspaceCopyService:
                           WHERE reservation.source_copy_job_id=copy.job_id
                             AND reservation.status NOT IN ('released', 'expired')
                       )
-                      AND NOT EXISTS(
-                          SELECT 1 FROM cargo_jobs job
-                          WHERE job.source_copy_job_id=copy.job_id
-                            AND (
-                                job.status <> 'released'
-                                OR CASE
-                                    WHEN json_valid(job.process_tree_live_pids_json)
-                                    THEN (
-                                        json_type(job.process_tree_live_pids_json) <> 'array'
-                                        OR json_array_length(
-                                            job.process_tree_live_pids_json
-                                        ) <> 0
-                                    )
-                                    ELSE 1
-                                END
-                            )
-                      )
+                       AND NOT EXISTS(
+                           SELECT 1 FROM cargo_jobs job
+                           WHERE job.source_copy_job_id=copy.job_id
+                             AND (
+                                 NOT (
+                                     job.status = 'released'
+                                     OR (
+                                         job.status = 'orphaned'
+                                         AND COALESCE(job.cleanup_status, '') = 'deleted'
+                                         AND job.process_tree_exited_at IS NOT NULL
+                                         AND (
+                                             job.pid IS NOT NULL
+                                             OR job.started_at IS NOT NULL
+                                             OR COALESCE(job.command_json, '[]') <> '[]'
+                                         )
+                                     )
+                                 )
+                                 OR CASE
+                                     WHEN json_valid(job.process_tree_live_pids_json)
+                                     THEN (
+                                         json_type(job.process_tree_live_pids_json) <> 'array'
+                                         OR json_array_length(
+                                             job.process_tree_live_pids_json
+                                         ) <> 0
+                                     )
+                                     ELSE 1
+                                 END
+                             )
+                       )
                     GROUP BY copy.job_id, copy.created_at
                     ORDER BY copy.created_at, copy.job_id
                     LIMIT ?""",
@@ -2679,6 +3108,17 @@ class WorkspaceCopyService:
         error_details = json.loads(str(row["error_details_json"] or "{}"))
         if not isinstance(error_details, dict):
             error_details = {}
+        raw_metadata_cache = json.loads(str(row["metadata_cache_json"] or "{}"))
+        if isinstance(raw_metadata_cache, list):
+            metadata_cache = (
+                dict(raw_metadata_cache[-1])
+                if raw_metadata_cache and isinstance(raw_metadata_cache[-1], Mapping)
+                else {}
+            )
+        elif isinstance(raw_metadata_cache, Mapping):
+            metadata_cache = dict(raw_metadata_cache)
+        else:
+            metadata_cache = {}
         return WorkspaceCopyRecord(
             str(row["job_id"]),
             str(row["session_id"]),
@@ -2695,6 +3135,7 @@ class WorkspaceCopyService:
             materialization_phase,
             error_details=error_details,
             materialization_kind=row["materialization_kind"],
+            metadata_cache=metadata_cache,
         )
 
     def _begin_materialization(self, job_id: str) -> None:
@@ -2817,7 +3258,29 @@ class WorkspaceCopyService:
         paths = details.get("paths")
         if isinstance(paths, (list, tuple)):
             durable["paths"] = [str(path) for path in paths[:64]]
+        stderr_tail = WorkspaceCopyService._materialization_diagnostic_tail(
+            details.get("stderr")
+        )
+        if stderr_tail:
+            durable["stderrTail"] = stderr_tail
         return durable
+
+    @staticmethod
+    def _materialization_diagnostic_tail(value: object) -> str:
+        if not isinstance(value, str):
+            return ""
+        normalized = value.replace("\r\n", "\n").replace("\r", "\n")
+        normalized = _ANSI_ESCAPE_SEQUENCE.sub("", normalized)
+        normalized = _DIAGNOSTIC_SECRET_ASSIGNMENT.sub(
+            r"\1\2<redacted>", normalized
+        )
+        normalized = _DIAGNOSTIC_QUERY_SECRET.sub(r"\1<redacted>", normalized)
+        sanitized = "".join(
+            character
+            for character in normalized
+            if character in "\n\t" or (ord(character) >= 32 and ord(character) != 127)
+        )
+        return sanitized[-_MATERIALIZATION_DIAGNOSTIC_TAIL_LIMIT:]
 
     def _extract_baseline_manifest(
         self, record: WorkspaceCopyRecord, attribution: dict[str, str | None]
@@ -3320,7 +3783,7 @@ class WorkspaceCopyService:
         self, baseline_commit: str, roots: tuple[str, ...]
     ) -> tuple[str, ...]:
         command = [
-            "git",
+            *trusted_git_command(self.repo_root),
             "ls-tree",
             "-r",
             "--name-only",
