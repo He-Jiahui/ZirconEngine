@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import subprocess
+import threading
 from pathlib import Path
 
 
@@ -17,6 +18,7 @@ _MANAGED_SCCACHE_PORTS = {
     ("E:", "zirconbuilds"): 42267,
     ("F:", "zirconbuilds"): 42268,
 }
+_CARGO_HOME_LAYOUT_LOCK = threading.Lock()
 
 
 def managed_cargo_storage_root(target_directory: str | Path) -> Path:
@@ -48,6 +50,10 @@ def managed_cargo_cache_paths(target_directory: str | Path) -> tuple[Path, Path]
     return cache_root / "cargo-home", cache_root / "sccache"
 
 
+def managed_cargo_metadata_home_path(target_directory: str | Path) -> Path:
+    return managed_cargo_storage_root(target_directory) / "cache" / "cargo-metadata-home"
+
+
 def prepare_isolated_cargo_home(
     target_directory: str | Path,
     control_home: str | Path,
@@ -56,16 +62,51 @@ def prepare_isolated_cargo_home(
     shared_home, _sccache = managed_cargo_cache_paths(target_directory)
     shared_home.mkdir(parents=True, exist_ok=True)
     isolated = Path(control_home).absolute()
+    _prepare_cargo_home_layout(isolated, shared_home, share_consumable_sources=False)
+    return isolated
+
+
+def prepare_shared_metadata_cargo_home(target_directory: str | Path) -> Path:
+    """Return the stable Cargo home used only by non-building metadata commands."""
+    shared_home, _sccache = managed_cargo_cache_paths(target_directory)
+    shared_home.mkdir(parents=True, exist_ok=True)
+    metadata_home = managed_cargo_metadata_home_path(target_directory)
+    _prepare_cargo_home_layout(metadata_home, shared_home, share_consumable_sources=True)
+    return metadata_home
+
+
+def _prepare_cargo_home_layout(
+    home: Path,
+    shared_home: Path,
+    *,
+    share_consumable_sources: bool,
+) -> None:
+    with _CARGO_HOME_LAYOUT_LOCK:
+        _prepare_cargo_home_layout_locked(
+            home,
+            shared_home,
+            share_consumable_sources=share_consumable_sources,
+        )
+
+
+def _prepare_cargo_home_layout_locked(
+    home: Path,
+    shared_home: Path,
+    *,
+    share_consumable_sources: bool,
+) -> None:
+    isolated = home.absolute()
+    if isolated.is_symlink() or isolated.is_junction():
+        raise OSError(f"private Cargo home cannot be a filesystem link: {isolated}")
     isolated.mkdir(parents=True, exist_ok=True)
     for config_name in ("config", "config.toml"):
         if os.path.lexists(isolated / config_name):
             raise OSError(
                 f"isolated Cargo home contains forbidden configuration: {isolated / config_name}"
             )
-    # Share verified downloads/indexes, but never extracted registry sources or
-    # Git checkouts that build scripts could mutate. Cargo verifies registry
-    # archive checksums and Git object identities while each job expands them
-    # into its own control home.
+    # Share verified downloads/indexes in every mode. Build jobs get private
+    # extracted sources because build scripts may mutate them; metadata jobs
+    # explicitly opt into the stable source view below and never run scripts.
     for relative in (
         Path("registry/cache"),
         Path("registry/index"),
@@ -76,20 +117,37 @@ def prepare_isolated_cargo_home(
         link = isolated / relative
         link.parent.mkdir(parents=True, exist_ok=True)
         _ensure_directory_link(link, shared_directory)
-    (isolated / "registry/src").mkdir(parents=True, exist_ok=True)
-    (isolated / "git/checkouts").mkdir(parents=True, exist_ok=True)
+    for relative in (Path("registry/src"), Path("git/checkouts")):
+        directory = isolated / relative
+        if share_consumable_sources:
+            shared_directory = shared_home / relative
+            shared_directory.mkdir(parents=True, exist_ok=True)
+            _ensure_directory_link(directory, shared_directory)
+        else:
+            if directory.is_symlink() or directory.is_junction():
+                raise OSError(f"private Cargo source directory cannot be a filesystem link: {directory}")
+            directory.mkdir(parents=True, exist_ok=True)
     for lock_name in (".package-cache", ".package-cache-mutate"):
         shared_lock = shared_home / lock_name
         shared_lock.touch(exist_ok=True)
         isolated_lock = isolated / lock_name
-        if os.path.lexists(isolated_lock):
-            if not os.path.samefile(isolated_lock, shared_lock):
-                raise OSError(
-                    f"isolated Cargo cache lock has an unexpected identity: {isolated_lock}"
-                )
-        else:
-            os.link(shared_lock, isolated_lock)
-    return isolated
+        _ensure_file_link(isolated_lock, shared_lock)
+
+
+def _ensure_file_link(link: Path, target: Path) -> None:
+    if os.path.lexists(link):
+        if not os.path.samefile(link, target):
+            raise OSError(
+                f"isolated Cargo cache lock has an unexpected identity: {link}"
+            )
+        return
+    try:
+        os.link(target, link)
+    except FileExistsError:
+        if not os.path.samefile(link, target):
+            raise OSError(
+                f"isolated Cargo cache lock has an unexpected identity: {link}"
+            )
 
 
 def _ensure_directory_link(link: Path, target: Path) -> None:
@@ -101,6 +159,8 @@ def _ensure_directory_link(link: Path, target: Path) -> None:
         os.symlink(target, link, target_is_directory=True)
         return
     except OSError:
+        if link.is_dir() and link.resolve() == target.resolve():
+            return
         if os.name != "nt":
             raise
     system_root = Path(os.environ.get("SystemRoot", r"C:\Windows")).resolve()
@@ -115,7 +175,7 @@ def _ensure_directory_link(link: Path, target: Path) -> None:
         encoding="utf-8",
         errors="replace",
     )
-    if result.returncode != 0 or not link.is_dir() or link.resolve() != target.resolve():
+    if not link.is_dir() or link.resolve() != target.resolve():
         raise OSError(
             f"could not create isolated Cargo cache junction {link}: {result.stderr.strip()}"
         )

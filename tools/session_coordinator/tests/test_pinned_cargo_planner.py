@@ -1,24 +1,24 @@
 from __future__ import annotations
 
+import hashlib
+import io
+import subprocess
+import tarfile
 import tempfile
 import tomllib
 import unittest
-import subprocess
 from pathlib import Path
 from unittest import mock
 
-from tools.session_coordinator.artifact_governance import ArtifactGovernanceService
-from tools.session_coordinator.database import Database
-from tools.session_coordinator.migrations import migrate
 from tools.session_coordinator.pinned_cargo_planner import (
     PinnedCargoInputClosurePlanner,
     PinnedCargoPlannerView,
+    _cargo_manifest_topology_paths,
     _run_cargo_metadata,
 )
+from tools.session_coordinator.pinned_metadata_cache import PinnedMetadataCache
 from tools.session_coordinator.tests.helpers import init_repo
-from tools.session_coordinator.sessions import SessionService
 from tools.session_coordinator.validation_copy_external import ExternalGitSource
-from tools.session_coordinator.workspace_copy import WorkspaceCopyService
 
 
 class PinnedCargoPlannerTests(unittest.TestCase):
@@ -32,8 +32,21 @@ class PinnedCargoPlannerTests(unittest.TestCase):
         self._write_workspace_dependency("dep_a")
         self._commit("test: add cargo workspace")
         self.baseline_commit = self._git_output("rev-parse", "HEAD")
+        self.cache_patch = mock.patch(
+            "tools.session_coordinator.pinned_cargo_planner._PINNED_METADATA_CACHE",
+            new=PinnedMetadataCache(),
+        )
+        self.cache_patch.start()
+        self.tool_identity_patch = mock.patch(
+            "tools.session_coordinator.pinned_cargo_planner."
+            "_trusted_metadata_tool_identity",
+            return_value="test-toolchain",
+        )
+        self.tool_identity_patch.start()
 
     def tearDown(self) -> None:
+        self.tool_identity_patch.stop()
+        self.cache_patch.stop()
         self.temporary.cleanup()
 
     def test_planner_uses_pinned_manifests_after_live_topology_changes(self) -> None:
@@ -67,7 +80,67 @@ class PinnedCargoPlannerTests(unittest.TestCase):
         self.assertNotIn("dep_b/Cargo.toml", closure.repository_paths)
         self.assertEqual([], list(self.planner_parent.iterdir()))
 
+    def test_check_lib_does_not_expand_cfg_test_path_module_as_resource(self) -> None:
+        product = self.repo / "app/src/product.rs"
+        product.write_text(
+            '#[cfg(test)]\n#[path = "product/tests.rs"]\nmod tests;\n'
+            "pub fn ready() {}\n",
+            encoding="utf-8",
+        )
+        tests = self.repo / "app/src/product/tests.rs"
+        tests.parent.mkdir(parents=True, exist_ok=True)
+        tests.write_text(
+            'const SOURCE: &str = include_str!("product.rs");\n',
+            encoding="utf-8",
+        )
+        (self.repo / "app/src/lib.rs").write_text(
+            "mod product;\n",
+            encoding="utf-8",
+        )
+        self._commit("test: add cfg test path module")
+        baseline = self._git_output("rev-parse", "HEAD")
+
+        def metadata_executor(
+            source_root: Path, _command: tuple[str, ...]
+        ) -> dict[str, object]:
+            metadata = self._metadata(source_root, "dep_a")
+            app = next(
+                package
+                for package in metadata["packages"]
+                if package["name"] == "app"
+            )
+            app["targets"] = [
+                {
+                    "name": "app",
+                    "kind": ["lib"],
+                    "crate_types": ["lib"],
+                    "src_path": str(source_root / "app/src/lib.rs"),
+                }
+            ]
+            return metadata
+
+        with PinnedCargoPlannerView(
+            self.repo,
+            self.planner_parent,
+            baseline_commit=baseline,
+        ) as view:
+            closure = PinnedCargoInputClosurePlanner(
+                view,
+                metadata_executor=metadata_executor,
+            ).plan_pinned(
+                ("cargo", "check", "-p", "app", "--lib"),
+                baseline_commit=baseline,
+            )
+
+        self.assertIn("app/src/product.rs", closure.repository_paths)
+        self.assertIn("app/src/product/tests.rs", closure.repository_paths)
+
     def test_absolute_manifest_path_is_rewritten_into_the_pinned_view(self) -> None:
+        cargo_config = self.repo / ".cargo/config.toml"
+        cargo_config.parent.mkdir()
+        cargo_config.write_text("[net]\noffline = true\n", encoding="utf-8")
+        self._commit("test: add pinned cargo config")
+        baseline = self._git_output("rev-parse", "HEAD")
         observed_commands: list[tuple[str, ...]] = []
 
         def metadata_executor(
@@ -79,7 +152,7 @@ class PinnedCargoPlannerTests(unittest.TestCase):
         with PinnedCargoPlannerView(
             self.repo,
             self.planner_parent,
-            baseline_commit=self.baseline_commit,
+            baseline_commit=baseline,
         ) as view:
             PinnedCargoInputClosurePlanner(
                 view,
@@ -95,9 +168,10 @@ class PinnedCargoPlannerTests(unittest.TestCase):
                     "-p",
                     "app",
                 ),
-                baseline_commit=self.baseline_commit,
+                baseline_commit=baseline,
             )
             expected_manifest = view.repo_root / "app/Cargo.toml"
+            expected_config = view.repo_root / ".cargo/config.toml"
 
         manifest_index = observed_commands[0].index("--manifest-path") + 1
         self.assertEqual(str(expected_manifest), observed_commands[0][manifest_index])
@@ -105,25 +179,69 @@ class PinnedCargoPlannerTests(unittest.TestCase):
             str(self.repo / "app/Cargo.toml"), observed_commands[0][manifest_index]
         )
         config_index = observed_commands[0].index("--config") + 1
-        self.assertEqual(str(view.repo_root / ".cargo/config.toml"), observed_commands[0][config_index])
+        self.assertEqual(str(expected_config), observed_commands[0][config_index])
 
-    def test_metadata_preserves_cargo_toolchain_selector(self) -> None:
+    def test_metadata_places_resolution_flags_after_subcommand(self) -> None:
         completed = subprocess.CompletedProcess(
             ["cargo"], 0, stdout="{}", stderr=""
         )
-        with mock.patch(
-            "tools.session_coordinator.pinned_cargo_planner.subprocess.run",
-            return_value=completed,
-        ) as run:
+        with (
+            mock.patch(
+                "tools.session_coordinator.pinned_cargo_planner.bind_trusted_cargo",
+                side_effect=lambda command, *_args, **_kwargs: command,
+            ),
+            mock.patch(
+                "tools.session_coordinator.pinned_cargo_planner.bind_trusted_rust_environment",
+                side_effect=lambda environment, *_args, **_kwargs: environment,
+            ),
+            mock.patch(
+                "tools.session_coordinator.pinned_cargo_planner.prepare_shared_metadata_cargo_home",
+                return_value=self.root / "cargo-home",
+            ),
+            mock.patch(
+                "tools.session_coordinator.pinned_cargo_planner.subprocess.run",
+                return_value=completed,
+            ) as run,
+        ):
             _run_cargo_metadata(
                 self.repo,
-                ("cargo", "+1.94.1", "test", "-p", "app"),
+                ("cargo", "+1.94.1", "test", "-p", "app", "--locked"),
             )
 
         metadata_command = run.call_args.args[0]
-        self.assertEqual(
-            ["cargo", "+1.94.1", "metadata"], metadata_command[:3]
+        self.assertEqual(["cargo", "+1.94.1"], metadata_command[:2])
+        self.assertLess(metadata_command.index("metadata"), metadata_command.index("--locked"))
+
+    def test_metadata_uses_stable_shared_cargo_home(self) -> None:
+        completed = subprocess.CompletedProcess(
+            ["cargo"], 0, stdout="{}", stderr=""
         )
+        shared_home = self.root / "shared-metadata-cargo-home"
+        with (
+            mock.patch(
+                "tools.session_coordinator.pinned_cargo_planner.bind_trusted_cargo",
+                side_effect=lambda command, *_args, **_kwargs: command,
+            ),
+            mock.patch(
+                "tools.session_coordinator.pinned_cargo_planner.bind_trusted_rust_environment",
+                side_effect=lambda environment, *_args, **_kwargs: environment,
+            ),
+            mock.patch(
+                "tools.session_coordinator.pinned_cargo_planner.prepare_shared_metadata_cargo_home",
+                return_value=shared_home,
+            ) as prepare_shared,
+            mock.patch(
+                "tools.session_coordinator.pinned_cargo_planner.subprocess.run",
+                return_value=completed,
+            ) as run,
+        ):
+            _run_cargo_metadata(
+                self.repo,
+                ("cargo", "metadata", "--locked"),
+            )
+
+        prepare_shared.assert_called_once_with(self.repo)
+        self.assertEqual(str(shared_home), run.call_args.kwargs["env"]["CARGO_HOME"])
 
     def test_metadata_preserves_global_config_before_subcommand_and_stops_at_delimiter(
         self,
@@ -131,10 +249,24 @@ class PinnedCargoPlannerTests(unittest.TestCase):
         completed = subprocess.CompletedProcess(
             ["cargo"], 0, stdout="{}", stderr=""
         )
-        with mock.patch(
-            "tools.session_coordinator.pinned_cargo_planner.subprocess.run",
-            return_value=completed,
-        ) as run:
+        with (
+            mock.patch(
+                "tools.session_coordinator.pinned_cargo_planner.bind_trusted_cargo",
+                side_effect=lambda command, *_args, **_kwargs: command,
+            ),
+            mock.patch(
+                "tools.session_coordinator.pinned_cargo_planner.bind_trusted_rust_environment",
+                side_effect=lambda environment, *_args, **_kwargs: environment,
+            ),
+            mock.patch(
+                "tools.session_coordinator.pinned_cargo_planner.prepare_shared_metadata_cargo_home",
+                return_value=self.root / "cargo-home",
+            ),
+            mock.patch(
+                "tools.session_coordinator.pinned_cargo_planner.subprocess.run",
+                return_value=completed,
+            ) as run,
+        ):
             _run_cargo_metadata(
                 self.repo,
                 (
@@ -143,6 +275,7 @@ class PinnedCargoPlannerTests(unittest.TestCase):
                     "--config",
                     "ci/cargo.toml",
                     "--offline",
+                    "--locked",
                     "test",
                     "-p",
                     "app",
@@ -156,19 +289,46 @@ class PinnedCargoPlannerTests(unittest.TestCase):
         self.assertIn("--offline", metadata_command)
         config_index = metadata_command.index("--config")
         self.assertEqual("ci/cargo.toml", metadata_command[config_index + 1])
+        metadata_index = metadata_command.index("metadata")
+        self.assertLess(config_index, metadata_index)
+        self.assertLess(metadata_index, metadata_command.index("--offline"))
+        self.assertLess(metadata_index, metadata_command.index("--locked"))
         self.assertNotIn("test-binary.toml", metadata_command)
 
     def test_metadata_qualifies_features_for_selected_package(self) -> None:
         completed = subprocess.CompletedProcess(
             ["cargo"], 0, stdout="{}", stderr=""
         )
-        with mock.patch(
-            "tools.session_coordinator.pinned_cargo_planner.subprocess.run",
-            return_value=completed,
-        ) as run:
+        with (
+            mock.patch(
+                "tools.session_coordinator.pinned_cargo_planner.bind_trusted_cargo",
+                side_effect=lambda command, *_args, **_kwargs: command,
+            ),
+            mock.patch(
+                "tools.session_coordinator.pinned_cargo_planner.bind_trusted_rust_environment",
+                side_effect=lambda environment, *_args, **_kwargs: environment,
+            ),
+            mock.patch(
+                "tools.session_coordinator.pinned_cargo_planner.prepare_shared_metadata_cargo_home",
+                return_value=self.root / "cargo-home",
+            ),
+            mock.patch(
+                "tools.session_coordinator.pinned_cargo_planner.subprocess.run",
+                return_value=completed,
+            ) as run,
+        ):
             _run_cargo_metadata(
                 self.repo,
-                ("cargo", "+1.94.1", "test", "-p", "app", "--features", "optional_ext"),
+                (
+                    "cargo",
+                    "+1.94.1",
+                    "test",
+                    "-p",
+                    "app",
+                    "--features",
+                    "optional_ext",
+                    "--locked",
+                ),
             )
 
         metadata_command = run.call_args.args[0]
@@ -192,6 +352,24 @@ class PinnedCargoPlannerTests(unittest.TestCase):
             discover_external_sources=True,
         ) as view:
             self.assertTrue((view.root / "zr_vm").exists())
+
+    def test_manifest_target_may_leave_package_but_not_repository(self) -> None:
+        view = self.root / "topology-view"
+        manifest = view / "app/Cargo.toml"
+        manifest.parent.mkdir(parents=True)
+        manifest.write_text(
+            "[package]\nname='app'\nversion='0.1.0'\n"
+            "[lib]\npath='../shared/lib.rs'\n",
+            encoding="utf-8",
+        )
+        shared = view / "shared/lib.rs"
+        shared.parent.mkdir(parents=True)
+        shared.write_text("mod child;\n", encoding="utf-8")
+        available = {"app/Cargo.toml", "shared/lib.rs"}
+
+        targets, _references = _cargo_manifest_topology_paths(view, available)
+
+        self.assertEqual({"shared/lib.rs"}, targets)
 
     def test_relative_manifest_escape_is_rejected(self) -> None:
         with PinnedCargoPlannerView(
@@ -223,7 +401,7 @@ class PinnedCargoPlannerTests(unittest.TestCase):
         }
 
         def metadata_executor(
-            source_root: Path, _command: tuple[str, ...]
+            source_root: Path, _command: tuple[str, ...], **_kwargs
         ) -> dict[str, object]:
             dependency = self._manifest_dependency(source_root / "app/Cargo.toml")
             return self._metadata(source_root, dependency)
@@ -288,7 +466,7 @@ class PinnedCargoPlannerTests(unittest.TestCase):
             {
                 "repoRoot": str(external),
                 "commit": external_commit,
-                "mountPath": "vendor-binding",
+                "mountPath": "external",
                 "includeRoots": ["binding"],
             }
         )
@@ -352,7 +530,7 @@ class PinnedCargoPlannerTests(unittest.TestCase):
 
         self.assertEqual(1, len(closure.external_sources))
         self.assertEqual(external_commit, closure.external_sources[0].commit)
-        self.assertEqual("vendor-binding", closure.external_sources[0].mount_path)
+        self.assertEqual("external", closure.external_sources[0].mount_path)
         self.assertIn("binding", closure.external_sources[0].include_roots)
 
     def test_external_discovery_pins_sibling_before_metadata(self) -> None:
@@ -397,7 +575,87 @@ class PinnedCargoPlannerTests(unittest.TestCase):
         self.assertEqual(external_commit, closure.external_sources[0].commit)
         self.assertEqual("discovered", closure.external_sources[0].mount_path)
 
+    def test_real_metadata_subprocess_resolves_pinned_sibling_workspace(self) -> None:
+        """The production metadata argv must work against an immutable sibling view."""
+        root = self.root / "real-metadata"
+        main = init_repo(root / "main")
+        sibling = init_repo(root / "sibling")
+
+        (sibling / "dep/src").mkdir(parents=True)
+        (sibling / "dep/Cargo.toml").write_text(
+            "[package]\nname='sibling_dep'\nversion='0.1.0'\nedition='2021'\n",
+            encoding="utf-8",
+        )
+        (sibling / "dep/src/lib.rs").write_text(
+            "pub fn dependency_ready() {}\n", encoding="utf-8"
+        )
+        (sibling / "Cargo.lock").write_text("version = 4\n", encoding="utf-8")
+        subprocess.run(["git", "add", "."], cwd=sibling, check=True)
+        subprocess.run(
+            ["git", "commit", "-q", "-m", "test: add sibling dependency"],
+            cwd=sibling,
+            check=True,
+        )
+
+        (main / "app/src").mkdir(parents=True)
+        (main / "Cargo.toml").write_text(
+            "[workspace]\nmembers=['app']\nresolver='2'\n", encoding="utf-8"
+        )
+        (main / "app/Cargo.toml").write_text(
+            "[package]\nname='app'\nversion='0.1.0'\nedition='2021'\n"
+            "[dependencies]\nsibling_dep={path='../../sibling/dep'}\n",
+            encoding="utf-8",
+        )
+        (main / "app/src/lib.rs").write_text(
+            "pub fn app_ready() { sibling_dep::dependency_ready(); }\n",
+            encoding="utf-8",
+        )
+        (main / "Cargo.lock").write_text(
+            "version = 4\n\n[[package]]\nname = 'app'\nversion = '0.1.0'\n"
+            "dependencies = ['sibling_dep']\n\n[[package]]\nname = 'sibling_dep'\n"
+            "version = '0.1.0'\n",
+            encoding="utf-8",
+        )
+        subprocess.run(["git", "add", "."], cwd=main, check=True)
+        subprocess.run(
+            ["git", "commit", "-q", "-m", "test: add pinned workspace"],
+            cwd=main,
+            check=True,
+        )
+        baseline = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=main, text=True
+        ).strip()
+        planner_parent = root / "targets"
+        planner_parent.mkdir()
+
+        with PinnedCargoPlannerView(
+            main,
+            planner_parent,
+            baseline_commit=baseline,
+            discover_external_sources=True,
+        ) as view:
+            metadata = _run_cargo_metadata(
+                view.repo_root,
+                ("cargo", "check", "-p", "app", "--locked"),
+                trust_root=main,
+            )
+
+        self.assertEqual(
+            {"app", "sibling_dep"},
+            {str(package["name"]) for package in metadata["packages"]},
+        )
+        self.assertEqual(1, len(view.external_sources))
+        self.assertEqual("sibling", view.external_sources[0].mount_path)
+
     def test_registered_job_root_contains_planner_during_metadata(self) -> None:
+        from tools.session_coordinator.artifact_governance import (
+            ArtifactGovernanceService,
+        )
+        from tools.session_coordinator.database import Database
+        from tools.session_coordinator.migrations import migrate
+        from tools.session_coordinator.sessions import SessionService
+        from tools.session_coordinator.workspace_copy import WorkspaceCopyService
+
         target_root = self.root / "registered-cargo-targets"
         target_root.mkdir()
         database = Database(self.root / "registered.sqlite3")
@@ -429,7 +687,7 @@ class PinnedCargoPlannerTests(unittest.TestCase):
             )
 
         def metadata_executor(
-            source_root: Path, _command: tuple[str, ...]
+            source_root: Path, _command: tuple[str, ...], **_kwargs
         ) -> dict[str, object]:
             self.assertTrue(source_root.is_relative_to(job_root))
             unmanaged = ArtifactGovernanceService(
@@ -443,7 +701,7 @@ class PinnedCargoPlannerTests(unittest.TestCase):
             side_effect=metadata_executor,
         ):
             service._plan_cargo_closure_pinned(
-                command=("cargo", "check", "-p", "app"),
+                command=("cargo", "check", "-p", "app", "--locked"),
                 descriptors=(),
                 discover_external_sources=False,
                 overlays=(),
@@ -455,6 +713,9 @@ class PinnedCargoPlannerTests(unittest.TestCase):
         self.assertEqual([], list(job_root.iterdir()))
 
     def test_workspace_copy_service_production_path_uses_the_pinned_view(self) -> None:
+        from tools.session_coordinator.database import Database
+        from tools.session_coordinator.workspace_copy import WorkspaceCopyService
+
         self._write_workspace_dependency("dep_b")
         target_root = self.root / "cargo-targets"
         target_root.mkdir()
@@ -471,7 +732,7 @@ class PinnedCargoPlannerTests(unittest.TestCase):
         observed_dependencies: list[str] = []
 
         def metadata_executor(
-            source_root: Path, _command: tuple[str, ...]
+            source_root: Path, _command: tuple[str, ...], **_kwargs
         ) -> dict[str, object]:
             dependency = self._manifest_dependency(source_root / "app/Cargo.toml")
             observed_dependencies.append(dependency)
@@ -482,7 +743,7 @@ class PinnedCargoPlannerTests(unittest.TestCase):
             side_effect=metadata_executor,
         ):
             closure = service._plan_cargo_closure_pinned(
-                command=("cargo", "check", "-p", "app"),
+                command=("cargo", "check", "-p", "app", "--locked"),
                 descriptors=(),
                 discover_external_sources=False,
                 overlays=(),
@@ -493,6 +754,74 @@ class PinnedCargoPlannerTests(unittest.TestCase):
         self.assertIn("dep_a/src/lib.rs", closure.repository_paths)
         self.assertNotIn("dep_b/src/lib.rs", closure.repository_paths)
         self.assertEqual([], list((target_root / "verify").iterdir()))
+
+    def test_workspace_copy_pinned_view_loads_sealed_external_archive(self) -> None:
+        from tools.session_coordinator.database import Database
+        from tools.session_coordinator.workspace_copy import WorkspaceCopyService
+
+        buffer = io.BytesIO()
+        with tarfile.open(fileobj=buffer, mode="w:") as archive:
+            for relative, payload in {
+                "Cargo.toml": b"[workspace]\nmembers=['binding']\n",
+                "binding/Cargo.toml": (
+                    b"[package]\nname='binding'\nversion='0.1.0'\n"
+                ),
+                "binding/src/lib.rs": b"pub fn binding() {}\n",
+            }.items():
+                member = tarfile.TarInfo(relative)
+                member.size = len(payload)
+                archive.addfile(member, io.BytesIO(payload))
+        archive_bytes = buffer.getvalue()
+        archive_hash = hashlib.sha256(archive_bytes).hexdigest()
+        descriptor = ExternalGitSource.from_payload(
+            {
+                "repoRoot": str(self.root / "sealed"),
+                "commit": "a" * 40,
+                "mountPath": "sealed",
+                "includeRoots": ["@repo-root"],
+                "archiveHash": archive_hash,
+                "archiveByteCount": len(archive_bytes),
+            }
+        )
+        object_store = mock.Mock()
+        object_store.get.return_value = archive_bytes
+        target_root = self.root / "sealed-cargo-targets"
+        target_root.mkdir()
+        with mock.patch(
+            "tools.session_coordinator.workspace_copy._is_managed_validation_root",
+            return_value=True,
+        ):
+            service = WorkspaceCopyService(
+                Database(self.root / "sealed-coordinator.sqlite3"),
+                self.repo,
+                (target_root,),
+                object_store=object_store,
+            )
+
+        def metadata_executor(
+            source_root: Path, _command: tuple[str, ...], **_kwargs
+        ) -> dict[str, object]:
+            self.assertEqual(
+                "pub fn binding() {}\n",
+                (source_root.parent / "sealed/binding/src/lib.rs").read_text(
+                    encoding="utf-8"
+                ),
+            )
+            return self._metadata(source_root, "dep_a")
+
+        with mock.patch(
+            "tools.session_coordinator.pinned_cargo_planner._run_cargo_metadata",
+            side_effect=metadata_executor,
+        ):
+            service._plan_cargo_closure_pinned(
+                command=("cargo", "check", "-p", "app", "--locked"),
+                descriptors=(descriptor,),
+                discover_external_sources=False,
+                overlays=(),
+                baseline_commit=self.baseline_commit,
+            )
+
+        object_store.get.assert_called_once_with(archive_hash)
 
     def _write_workspace_dependency(self, dependency: str) -> None:
         files = {

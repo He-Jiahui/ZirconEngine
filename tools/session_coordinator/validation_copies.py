@@ -3,20 +3,28 @@ from __future__ import annotations
 from bisect import bisect_left
 from collections import OrderedDict
 import json
+import posixpath
 import subprocess
+import tempfile
 import threading
 import tomllib
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Callable, Iterable, Mapping
 
 from .cargo_command_policy import (
     cargo_config_file_arguments,
     cargo_excluded_package_specs,
+    cargo_manifest_path_argument,
     cargo_package_specs,
     cargo_selects_workspace,
     cargo_subcommand,
     is_direct_cargo_command,
+)
+from .cargo_target_selection import (
+    cargo_command_includes_test_code,
+    cargo_test_target_sources_for_command,
+    cargo_target_sources_for_command,
 )
 from .models import CoordinatorError
 from .trusted_tools import bind_trusted_cargo, trusted_git_command
@@ -37,8 +45,12 @@ class CargoInputClosure:
 
 _COMPILE_TIME_INCLUDE_MACROS = frozenset({"include", "include_bytes", "include_str"})
 _CARGO_MANIFEST_DIR = "CARGO_MANIFEST_DIR"
+_OUT_DIR = "OUT_DIR"
 _GIT_PATHSPEC_COMMAND_CHAR_LIMIT = 24_000
-_COMPILE_TIME_SOURCE_LIMIT = 10_000
+_COMPILE_TIME_SOURCE_LIMIT = 32_768
+_COMPILE_TIME_SOURCE_BATCH_SIZE = 128
+_COMPILE_TIME_SOURCE_MAX_BYTES = 8 * 1024 * 1024
+_COMPILE_TIME_SOURCE_TOTAL_MAX_BYTES = 128 * 1024 * 1024
 _BASELINE_COMPILE_TIME_CACHE_LIMIT = 4
 _RustToken = tuple[str, str]
 _BaselineCompileTimeCacheKey = tuple[
@@ -52,6 +64,36 @@ _BASELINE_COMPILE_TIME_INFLIGHT: dict[
     _BaselineCompileTimeCacheKey, threading.Event
 ] = {}
 _BASELINE_COMPILE_TIME_CACHE_LOCK = threading.Lock()
+
+
+@dataclass
+class _CompileTimeSourceBudget:
+    max_file_bytes: int = _COMPILE_TIME_SOURCE_MAX_BYTES
+    max_total_bytes: int = _COMPILE_TIME_SOURCE_TOTAL_MAX_BYTES
+    total_bytes: int = 0
+
+    def account(self, relative: str, byte_count: int) -> None:
+        if byte_count > self.max_file_bytes:
+            raise CoordinatorError(
+                "validation_copy_compile_time_source_too_large",
+                "Compile-time Rust source exceeds its per-file byte budget",
+                details={
+                    "sourcePath": relative,
+                    "byteCount": byte_count,
+                    "maxByteCount": self.max_file_bytes,
+                },
+            )
+        if self.total_bytes + byte_count > self.max_total_bytes:
+            raise CoordinatorError(
+                "validation_copy_compile_time_source_total_too_large",
+                "Compile-time Rust sources exceed their aggregate byte budget",
+                details={
+                    "sourcePath": relative,
+                    "totalByteCount": self.total_bytes + byte_count,
+                    "maxTotalByteCount": self.max_total_bytes,
+                },
+            )
+        self.total_bytes += byte_count
 
 
 def _rust_tokens(source: str) -> tuple[_RustToken, ...]:
@@ -226,14 +268,30 @@ def _split_top_level_arguments(tokens: tuple[_RustToken, ...]) -> tuple[tuple[_R
 
 
 def _string_argument(tokens: tuple[_RustToken, ...]) -> str | None:
+    if tokens and tokens[-1][0] == ",":
+        tokens = tokens[:-1]
     if len(tokens) == 1 and tokens[0][0] == "string":
         return tokens[0][1]
     return None
 
 
-def _is_cargo_manifest_dir(tokens: tuple[_RustToken, ...]) -> bool:
+def _is_environment_variable(tokens: tuple[_RustToken, ...], name: str) -> bool:
     arguments = _macro_arguments(tokens, "env")
-    return arguments is not None and _string_argument(arguments) == _CARGO_MANIFEST_DIR
+    return arguments is not None and _string_argument(arguments) == name
+
+
+def _is_cargo_manifest_dir(tokens: tuple[_RustToken, ...]) -> bool:
+    return _is_environment_variable(tokens, _CARGO_MANIFEST_DIR)
+
+
+def _is_build_output_resource(expression: tuple[_RustToken, ...]) -> bool:
+    if _is_environment_variable(expression, _OUT_DIR):
+        return True
+    arguments = _macro_arguments(expression, "concat")
+    if arguments is None:
+        return False
+    components = _split_top_level_arguments(arguments)
+    return bool(components) and _is_environment_variable(components[0], _OUT_DIR)
 
 
 def _compile_time_resource(
@@ -300,7 +358,16 @@ def _compile_time_resource(
 def _compile_time_include_expressions(
     tokens: tuple[_RustToken, ...],
 ) -> tuple[tuple[_RustToken, ...], ...]:
-    expressions: list[tuple[_RustToken, ...]] = []
+    return tuple(
+        expression
+        for expression, _is_path_attribute in _compile_time_include_candidates(tokens)
+    )
+
+
+def _compile_time_include_candidates(
+    tokens: tuple[_RustToken, ...],
+) -> tuple[tuple[tuple[_RustToken, ...], bool], ...]:
+    expressions: list[tuple[tuple[_RustToken, ...], bool]] = []
     for index, token in enumerate(tokens):
         if token[0] != "ident" or token[1] not in _COMPILE_TIME_INCLUDE_MACROS:
             continue
@@ -313,9 +380,18 @@ def _compile_time_include_expressions(
             continue
         closing = _matching_delimiter(tokens, opening)
         if closing is not None:
-            expressions.append(tokens[opening + 1 : closing])
+            expressions.append((tokens[opening + 1 : closing], False))
+    brace_depth = 0
     for index in range(len(tokens) - 5):
+        if tokens[index][0] == "{":
+            brace_depth += 1
+            continue
+        if tokens[index][0] == "}":
+            brace_depth = max(0, brace_depth - 1)
+            continue
         if (
+            brace_depth == 0
+            and
             tokens[index][0] == "#"
             and tokens[index + 1][0] == "["
             and tokens[index + 2] == ("ident", "path")
@@ -323,8 +399,217 @@ def _compile_time_include_expressions(
             and tokens[index + 4][0] == "string"
             and tokens[index + 5][0] == "]"
         ):
-            expressions.append((tokens[index + 4],))
+            expressions.append(((tokens[index + 4],), True))
     return tuple(expressions)
+
+
+def _cfg_expression_requires_test(tokens: tuple[_RustToken, ...]) -> bool:
+    """Return whether a cfg expression can only be true for test builds."""
+
+    if len(tokens) == 1 and tokens[0] == ("ident", "test"):
+        return True
+    if len(tokens) < 3 or tokens[0][0] != "ident":
+        return False
+    opening = 1
+    if tokens[opening][0] != "(":
+        return False
+    closing = _matching_delimiter(tokens, opening)
+    if closing != len(tokens) - 1:
+        return False
+    arguments = _split_top_level_arguments(tokens[opening + 1 : closing])
+    operator = tokens[0][1]
+    if operator == "all":
+        return any(_cfg_expression_requires_test(argument) for argument in arguments)
+    if operator == "any":
+        return bool(arguments) and all(
+            _cfg_expression_requires_test(argument) for argument in arguments
+        )
+    # A negated test predicate is active in non-test builds, so it cannot be
+    # treated as test-only for closure planning.
+    return False
+
+
+def _rust_attribute_requires_test(attribute: tuple[_RustToken, ...]) -> bool:
+    if not attribute or attribute[0] != ("ident", "cfg"):
+        return False
+    if len(attribute) < 3 or attribute[1][0] != "(":
+        return False
+    closing = _matching_delimiter(attribute, 1)
+    if closing != len(attribute) - 1:
+        return False
+    return _cfg_expression_requires_test(attribute[2:closing])
+
+
+def _rust_out_of_line_modules(
+    source_relative: str,
+    source_text: str,
+    module_directory: str,
+    *,
+    include_test_modules: bool = True,
+    skipped_test_modules: set[str] | None = None,
+) -> tuple[tuple[str, str], ...]:
+    tokens = _rust_tokens(source_text)
+    source_parent = PurePosixPath(source_relative).parent
+    found: set[tuple[str, str]] = set()
+
+    def portable(candidate: PurePosixPath) -> str | None:
+        normalized = posixpath.normpath(candidate.as_posix())
+        if normalized == ".." or normalized.startswith("../"):
+            raise CoordinatorError(
+                "validation_copy_cargo_target_module_outside_repository",
+                "Cargo target module resolves outside the repository",
+                details={
+                    "sourcePath": source_relative,
+                    "modulePath": candidate.as_posix(),
+                },
+            )
+        return normalized
+
+    def record(candidate: PurePosixPath, *, test_only: bool) -> None:
+        relative = portable(candidate)
+        if relative is None:
+            return
+        if test_only and not include_test_modules:
+            if skipped_test_modules is not None:
+                skipped_test_modules.add(relative)
+            return
+        path = PurePosixPath(relative)
+        child_directory = (
+            path.parent if path.name == "mod.rs" else path.parent / path.stem
+        ).as_posix()
+        found.add((relative, child_directory))
+        if len(found) > _COMPILE_TIME_SOURCE_LIMIT * 2:
+            raise CoordinatorError(
+                "validation_copy_compile_time_source_limit",
+                "Cargo target module closure exceeded its candidate-file limit",
+                details={"sourceLimit": _COMPILE_TIME_SOURCE_LIMIT},
+            )
+
+    def scan(
+        start: int,
+        end: int,
+        current_directory: PurePosixPath,
+        path_base: PurePosixPath,
+    ) -> None:
+        direct_path: str | None = None
+        conditional_paths: set[str] = set()
+        test_only = False
+        index = start
+        while index < end:
+            if (
+                tokens[index][0] == "#"
+                and index + 1 < end
+                and tokens[index + 1][0] == "["
+            ):
+                closing = _matching_delimiter(tokens, index + 1)
+                if closing is not None and closing < end:
+                    attribute = tokens[index + 2 : closing]
+                    if (
+                        len(attribute) == 3
+                        and attribute[0] == ("ident", "path")
+                        and attribute[1][0] == "="
+                        and attribute[2][0] == "string"
+                    ):
+                        direct_path = attribute[2][1]
+                        conditional_paths.clear()
+                    elif attribute[:1] == (("ident", "cfg_attr"),):
+                        conditional_paths.update(
+                            attribute[cursor + 2][1]
+                            for cursor in range(len(attribute) - 2)
+                            if attribute[cursor] == ("ident", "path")
+                            and attribute[cursor + 1][0] == "="
+                            and attribute[cursor + 2][0] == "string"
+                        )
+                    elif _rust_attribute_requires_test(attribute):
+                        test_only = True
+                    index = closing + 1
+                    continue
+            if (
+                tokens[index] == ("ident", "mod")
+                and index + 2 < end
+                and tokens[index + 1][0] == "ident"
+            ):
+                name = tokens[index + 1][1]
+                terminator = index + 2
+                if tokens[terminator][1] == ";":
+                    if direct_path is not None:
+                        record(
+                            path_base / direct_path.replace("\\", "/"),
+                            test_only=test_only,
+                        )
+                    else:
+                        record(
+                            current_directory / f"{name}.rs",
+                            test_only=test_only,
+                        )
+                        record(
+                            current_directory / name / "mod.rs",
+                            test_only=test_only,
+                        )
+                        for conditional_path in conditional_paths:
+                            record(
+                                path_base / conditional_path.replace("\\", "/"),
+                                test_only=test_only,
+                            )
+                    direct_path = None
+                    conditional_paths.clear()
+                    test_only = False
+                    index = terminator + 1
+                    continue
+                if tokens[terminator][0] == "{":
+                    closing = _matching_delimiter(tokens, terminator)
+                    if closing is not None and closing < end:
+                        if direct_path is not None:
+                            inline_directories = {
+                                path_base / direct_path.replace("\\", "/")
+                            }
+                        else:
+                            inline_directories = {current_directory / name}
+                            inline_directories.update(
+                                path_base / value.replace("\\", "/")
+                                for value in conditional_paths
+                            )
+                        for inline_directory in inline_directories:
+                            if include_test_modules or not test_only:
+                                scan(
+                                    terminator + 1,
+                                    closing,
+                                    inline_directory,
+                                    inline_directory,
+                                )
+                        direct_path = None
+                        conditional_paths.clear()
+                        test_only = False
+                        index = closing + 1
+                        continue
+            if tokens[index][0] in {"(", "[", "{"}:
+                closing = _matching_delimiter(tokens, index)
+                if closing is not None and closing < end:
+                    if include_test_modules or not test_only:
+                        scan(index + 1, closing, current_directory, path_base)
+                    if tokens[index][0] == "{":
+                        direct_path = None
+                        conditional_paths.clear()
+                        test_only = False
+                    index = closing + 1
+                    continue
+            if tokens[index][1] == ";":
+                direct_path = None
+                conditional_paths.clear()
+                test_only = False
+            index += 1
+
+    try:
+        scan(
+            0,
+            len(tokens),
+            PurePosixPath(module_directory),
+            source_parent,
+        )
+    finally:
+        # The recursive closure otherwise retains every source's tokens until cyclic GC.
+        del scan
+    return tuple(sorted(found, key=lambda item: (item[0].casefold(), item[1].casefold())))
 
 
 def _package_root_for_relative_source(
@@ -362,6 +647,7 @@ class CargoInputClosurePlanner:
         baseline_commit: str | None = None,
     ) -> CargoInputClosure:
         command_tuple = tuple(str(part) for part in command if str(part))
+        include_test_code = cargo_command_includes_test_code(command_tuple)
         package_names = set(cargo_package_specs(command_tuple))
         excluded_package_names = set(cargo_excluded_package_specs(command_tuple))
         metadata = self.metadata_runner(command_tuple)
@@ -388,6 +674,35 @@ class CargoInputClosurePlanner:
                 if str(packages[package_id].get("name"))
                 not in excluded_package_names
             ]
+        elif cargo_manifest_path_argument(command_tuple) is not None:
+            resolve = metadata.get("resolve")
+            resolve_root = (
+                str(resolve.get("root") or "")
+                if isinstance(resolve, Mapping)
+                else ""
+            )
+            selected = [resolve_root] if resolve_root in packages else []
+            if not selected:
+                raw_manifest = cargo_manifest_path_argument(command_tuple)
+                assert raw_manifest is not None
+                requested_manifest = Path(raw_manifest)
+                if not requested_manifest.is_absolute():
+                    requested_manifest = self.repo_root / requested_manifest
+                requested_manifest = requested_manifest.resolve()
+                selected = [
+                    package_id
+                    for package_id, package in packages.items()
+                    if package.get("manifest_path")
+                    and Path(str(package["manifest_path"])).resolve()
+                    == requested_manifest
+                ]
+            if not selected:
+                default_members = [
+                    str(package_id)
+                    for package_id in metadata.get("workspace_default_members", [])
+                    if str(package_id) in packages
+                ]
+                selected = default_members or list(workspace_members or packages)
         else:
             default_members = [
                 str(package_id)
@@ -464,12 +779,21 @@ class CargoInputClosurePlanner:
             if package.get("source") is None and package.get("manifest_path")
         }
         manifest_target_sources = {
-            Path(str(package["manifest_path"])).resolve(): tuple(
-                Path(str(target["src_path"])).resolve()
-                for target in package.get("targets", [])
-                if isinstance(target, Mapping) and target.get("src_path")
+            Path(str(package["manifest_path"])).resolve(): cargo_target_sources_for_command(
+                package,
+                command_tuple,
+                selected_package=package_id in selected,
             )
-            for package in packages.values()
+            for package_id, package in packages.items()
+            if package.get("source") is None and package.get("manifest_path")
+        }
+        manifest_test_target_sources = {
+            Path(str(package["manifest_path"])).resolve(): cargo_test_target_sources_for_command(
+                package,
+                command_tuple,
+                selected_package=package_id in selected,
+            )
+            for package_id, package in packages.items()
             if package.get("source") is None and package.get("manifest_path")
         }
         used_external: dict[str, tuple[ExternalGitSource, set[str]]] = {}
@@ -726,24 +1050,16 @@ class CargoInputClosurePlanner:
                     baseline_commit=baseline_commit,
                 )
             )
-        topology_target_sources = {
+        manifest_target_entrypoints = {
             target_source.relative_to(self.repo_root).as_posix()
-            for manifest, include_sources in scanned_manifest_scopes.items()
-            if not include_sources
+            for manifest in scanned_manifest_scopes
             for target_source in manifest_target_sources.get(manifest, ())
             if target_source.is_relative_to(self.repo_root)
         }
-        all_main_target_sources = {
-            target_source.relative_to(self.repo_root).as_posix()
-            for target_sources in manifest_target_sources.values()
-            for target_source in target_sources
-            if target_source.is_relative_to(self.repo_root)
-        }
-        paths.update(all_main_target_sources)
-        if topology_target_sources:
+        if manifest_target_entrypoints:
             paths.update(
                 self._tracked_git_paths(
-                    topology_target_sources,
+                    manifest_target_entrypoints,
                     operation="git_ls_files_cargo_target_sources",
                     count_key="targetSourceCount",
                     error_code="validation_copy_cargo_target_git_failed",
@@ -751,6 +1067,56 @@ class CargoInputClosurePlanner:
                     baseline_commit=baseline_commit,
                 )
             )
+        target_scope_roots: set[str] = set()
+        target_source_owners: dict[str, set[str]] = {}
+        target_source_test_owners: dict[str, set[str]] = {}
+        for manifest, include_sources in scanned_manifest_scopes.items():
+            if not include_sources or not manifest.is_relative_to(self.repo_root):
+                continue
+            owner = manifest.parent.relative_to(self.repo_root).as_posix() or "."
+            for target_source in manifest_target_sources.get(manifest, ()):
+                if not target_source.is_relative_to(self.repo_root):
+                    continue
+                scope = target_source.parent.relative_to(self.repo_root).as_posix() or "."
+                relative_target = target_source.relative_to(self.repo_root).as_posix()
+                target_scope_roots.add(scope)
+                target_source_owners.setdefault(relative_target, set()).add(owner)
+                if target_source in manifest_test_target_sources.get(manifest, ()):
+                    target_source_test_owners.setdefault(relative_target, set()).add(owner)
+        source_package_contexts: dict[str, set[str]] = {}
+        skipped_test_sources: set[str] = set()
+        if target_scope_roots:
+            target_scope_paths = self._tracked_git_paths(
+                target_scope_roots,
+                operation="git_ls_files_cargo_target_scopes",
+                count_key="targetScopeCount",
+                error_code="validation_copy_cargo_target_git_failed",
+                message="Git could not enumerate Cargo target source scopes",
+                baseline_commit=baseline_commit,
+            )
+            paths.update(target_scope_paths)
+            contextual_paths = target_scope_paths | {
+                relative
+                for relative in overlay_paths
+                if (self.repo_root / relative).is_file()
+                and any(
+                    scope == "."
+                    or relative.startswith(scope.rstrip("/") + "/")
+                    for scope in target_scope_roots
+                )
+            }
+            source_package_contexts = self._target_source_package_contexts(
+                target_source_owners,
+                contextual_paths,
+                overlay_paths=set(overlay_paths),
+                baseline_commit=baseline_commit,
+                include_test_code=include_test_code,
+                target_source_test_owners=(
+                    target_source_test_owners if is_direct_cargo_command(command_tuple) else None
+                ),
+                skipped_test_sources=skipped_test_sources,
+            )
+            paths.update(source_package_contexts)
         root_cargo_inputs = {
             "Cargo.toml",
             "Cargo.lock",
@@ -791,9 +1157,11 @@ class CargoInputClosurePlanner:
                 paths | overlay_sources,
                 repository_roots,
                 build_repository_roots,
+                source_package_contexts=source_package_contexts,
                 overlay_paths=overlay_sources,
                 baseline_commit=baseline_commit,
                 baseline_paths=paths,
+                skipped_test_sources=skipped_test_sources,
             )
         )
         return CargoInputClosure(
@@ -862,18 +1230,165 @@ class CargoInputClosurePlanner:
                 roots.add(relative)
         return tuple(sorted(roots, key=str.casefold))
 
+    def _target_source_package_contexts(
+        self,
+        target_source_owners: Mapping[str, set[str]],
+        available_sources: set[str],
+        *,
+        overlay_paths: set[str],
+        baseline_commit: str | None,
+        include_test_code: bool = True,
+        target_source_test_owners: Mapping[str, set[str]] | None = None,
+        skipped_test_sources: set[str] | None = None,
+    ) -> dict[str, set[str]]:
+        available_rust_sources = {
+            relative for relative in available_sources if relative.endswith(".rs")
+        }
+        source_budget = _CompileTimeSourceBudget()
+        source_texts: dict[str, str] = {}
+        contexts: dict[str, set[str]] = {}
+        missing_sources: set[str] = set()
+        required_module_sources: set[str] = set(target_source_owners)
+        pending: list[tuple[str, str, str, bool]] = []
+        for relative, owners in target_source_owners.items():
+            if relative not in available_rust_sources:
+                continue
+            module_directory = PurePosixPath(relative).parent.as_posix()
+            for owner in owners:
+                test_context = include_test_code and (
+                    target_source_test_owners is None
+                    or owner in target_source_test_owners.get(relative, ())
+                )
+                pending.append((relative, owner, module_directory, test_context))
+        visited: set[tuple[str, str, str, bool]] = set()
+        visited_sources: set[str] = set()
+        while pending:
+            frontier = [item for item in pending if item not in visited]
+            pending = []
+            baseline_frontier = {
+                relative
+                for relative, _owner, _module_directory, _test_context in frontier
+                if baseline_commit
+                and relative not in overlay_paths
+                and relative not in source_texts
+            }
+            if baseline_commit and baseline_frontier:
+                source_texts.update(
+                    self._baseline_texts_at_commit(
+                        baseline_commit,
+                        baseline_frontier,
+                        byte_budget=source_budget,
+                    )
+                )
+            candidate_modules: list[tuple[str, str, str, bool]] = []
+            for relative, owner, module_directory, test_context in frontier:
+                visit = (relative, owner, module_directory, test_context)
+                if visit in visited:
+                    continue
+                visited.add(visit)
+                if relative not in visited_sources:
+                    if len(visited_sources) >= _COMPILE_TIME_SOURCE_LIMIT:
+                        raise CoordinatorError(
+                            "validation_copy_compile_time_source_limit",
+                            "Cargo target module closure exceeded its source-file limit",
+                            details={"sourceLimit": _COMPILE_TIME_SOURCE_LIMIT},
+                        )
+                    visited_sources.add(relative)
+                contexts.setdefault(relative, set()).add(owner)
+                text = source_texts.get(relative)
+                if text is None:
+                    source = self.repo_root / relative
+                    if not source.is_file():
+                        continue
+                    size = source.stat().st_size
+                    source_budget.account(relative, size)
+                    content = source.read_bytes()
+                    if len(content) != size:
+                        raise CoordinatorError(
+                            "validation_copy_compile_time_source_changed",
+                            "Compile-time Rust source changed while its closure was planned",
+                            details={"sourcePath": relative},
+                        )
+                    try:
+                        text = content.decode("utf-8")
+                    except UnicodeDecodeError as error:
+                        raise CoordinatorError(
+                            "validation_copy_compile_time_source_invalid",
+                            "Compile-time Rust source is not valid UTF-8",
+                            details={"sourcePath": relative},
+                        ) from error
+                    source_texts[relative] = text
+                for module_source, child_directory in _rust_out_of_line_modules(
+                    relative,
+                    text,
+                    module_directory,
+                    include_test_modules=test_context,
+                    skipped_test_modules=skipped_test_sources,
+                ):
+                    required_module_sources.add(module_source)
+                    candidate_modules.append(
+                        (module_source, owner, child_directory, test_context)
+                    )
+            unresolved = {
+                module_source
+                for module_source, _owner, _child_directory, _test_context in candidate_modules
+                if module_source not in available_rust_sources
+                and module_source not in missing_sources
+            }
+            overlay_sources = {
+                relative
+                for relative in unresolved
+                if relative in overlay_paths
+                and (self.repo_root / relative).is_file()
+            }
+            git_candidates = unresolved - overlay_sources
+            tracked_candidates = (
+                self._tracked_git_paths(
+                    git_candidates,
+                    operation="git_ls_files_cargo_target_modules",
+                    count_key="moduleCandidateCount",
+                    error_code="validation_copy_cargo_target_git_failed",
+                    message="Git could not resolve Cargo target modules",
+                    baseline_commit=baseline_commit,
+                )
+                if git_candidates
+                else set()
+            )
+            available_rust_sources.update(overlay_sources)
+            available_rust_sources.update(
+                relative
+                for relative in tracked_candidates
+                if relative.endswith(".rs")
+            )
+            missing_sources.update(unresolved - available_rust_sources)
+            pending.extend(
+                item
+                for item in candidate_modules
+                if item[0] in available_rust_sources
+            )
+        if skipped_test_sources is not None:
+            skipped_test_sources.difference_update(required_module_sources)
+        return contexts
+
     def _compile_time_resource_paths(
         self,
         tracked_paths: set[str],
         package_roots: set[str],
         selected_package_roots: set[str],
         *,
+        source_package_contexts: Mapping[str, set[str]] | None = None,
         overlay_paths: set[str] | frozenset[str] = frozenset(),
         baseline_commit: str | None = None,
         baseline_paths: set[str] | None = None,
+        skipped_test_sources: set[str] | frozenset[str] = frozenset(),
     ) -> set[str]:
         roots = tuple(sorted(package_roots, key=str.casefold))
         selected_roots = set(selected_package_roots)
+        explicit_contexts = {
+            relative: tuple(sorted(contexts, key=str.casefold))
+            for relative, contexts in (source_package_contexts or {}).items()
+            if contexts
+        }
         resource_sources: dict[str, str] = {}
         resource_contexts: dict[str, set[str]] = {}
         overlay_source_resources: set[str] = set()
@@ -892,9 +1407,11 @@ class CargoInputClosurePlanner:
                 if package_root_relative == "."
                 else self.repo_root / package_root_relative
             )
-            for expression in _compile_time_include_expressions(
+            for expression, is_path_attribute in _compile_time_include_candidates(
                 _rust_tokens(source_text)
             ):
+                if _is_build_output_resource(expression):
+                    continue
                 resource = _compile_time_resource(
                     expression,
                     source=source,
@@ -902,6 +1419,8 @@ class CargoInputClosurePlanner:
                     repo_root=self.repo_root,
                 )
                 resource_root = resource.relative_to(self.repo_root).as_posix()
+                if is_path_attribute and resource_root in skipped_test_sources:
+                    continue
                 resource_sources.setdefault(resource_root, str(source))
                 resource_contexts.setdefault(resource_root, set()).add(
                     package_root_relative
@@ -917,7 +1436,9 @@ class CargoInputClosurePlanner:
             )
             for resource_root in resource_roots:
                 descendant_prefix = resource_root.rstrip("/") + "/"
-                if resource_root in overlay_source_resources:
+                if resource_root in overlay_source_resources and (
+                    self.repo_root / resource_root
+                ).exists():
                     materialized.add(resource_root)
                 materialized.update(
                     path
@@ -950,12 +1471,18 @@ class CargoInputClosurePlanner:
             for relative in (
                 baseline_paths if baseline_paths is not None else tracked_paths
             )
-            if relative.endswith(".rs")
+            if relative.endswith(".rs") and relative not in skipped_test_sources
         }
         if baseline_commit:
+            contextual_baseline_sources = baseline_sources & set(explicit_contexts)
+            non_contextual_baseline_sources = (
+                set()
+                if explicit_contexts
+                else baseline_sources - contextual_baseline_sources
+            )
             baseline_resources = self._baseline_compile_time_resources_by_source(
                 baseline_commit,
-                baseline_sources,
+                non_contextual_baseline_sources,
                 package_roots,
                 selected_package_roots,
             )
@@ -975,6 +1502,23 @@ class CargoInputClosurePlanner:
                     resource_contexts.setdefault(resource_root, set()).add(
                         package_root_relative
                     )
+            contextual_candidates = self._baseline_compile_time_source_paths(
+                baseline_commit, contextual_baseline_sources
+            )
+            contextual_texts = self._baseline_texts_at_commit(
+                baseline_commit, contextual_candidates
+            )
+            for relative in sorted(contextual_candidates, key=str.casefold):
+                if relative in overlay_paths:
+                    continue
+                for package_root_relative in explicit_contexts[relative]:
+                    scanned_sources.add((relative, package_root_relative))
+                    register_expressions(
+                        relative,
+                        package_root_relative,
+                        contextual_texts[relative],
+                        overlay_source=False,
+                    )
 
         live_sources = (
             {relative for relative in tracked_paths if relative.endswith(".rs")}
@@ -984,28 +1528,35 @@ class CargoInputClosurePlanner:
         for relative in sorted(live_sources, key=str.casefold):
             if not relative.endswith(".rs"):
                 continue
-            package_root_relative = _package_root_for_relative_source(relative, roots)
-            if (
-                package_root_relative is None
-                or package_root_relative not in selected_roots
-            ):
+            if relative in skipped_test_sources:
+                continue
+            contexts = explicit_contexts.get(relative)
+            if contexts is None:
+                if explicit_contexts:
+                    continue
+                package_root_relative = _package_root_for_relative_source(
+                    relative, roots
+                )
+                contexts = (
+                    (package_root_relative,)
+                    if package_root_relative is not None
+                    and package_root_relative in selected_roots
+                    else ()
+                )
+            if not contexts:
                 continue
             source = self.repo_root / relative
-            package_root = (
-                self.repo_root
-                if package_root_relative == "."
-                else self.repo_root / package_root_relative
-            )
             if not source.is_file():
                 continue
             source_text = source.read_text(encoding="utf-8")
-            scanned_sources.add((relative, package_root_relative))
-            register_expressions(
-                relative,
-                package_root_relative,
-                source_text,
-                overlay_source=relative in overlay_paths,
-            )
+            for package_root_relative in contexts:
+                scanned_sources.add((relative, package_root_relative))
+                register_expressions(
+                    relative,
+                    package_root_relative,
+                    source_text,
+                    overlay_source=relative in overlay_paths,
+                )
         if not resource_sources:
             return set()
         materialized_roots: set[str] = set(resource_sources)
@@ -1106,42 +1657,48 @@ class CargoInputClosurePlanner:
             candidates = self._baseline_compile_time_source_paths(
                 baseline_commit, set(ordered_sources)
             )
-            baseline_texts = self._baseline_texts_at_commit(
-                baseline_commit, candidates
-            )
             resources_by_source: dict[str, tuple[str, ...]] = {}
             selected_root_set = set(selected_roots)
-            for relative in sorted(candidates, key=str.casefold):
-                package_root_relative = _package_root_for_relative_source(
-                    relative, roots
+            ordered_candidates = tuple(sorted(candidates, key=str.casefold))
+            source_budget = _CompileTimeSourceBudget()
+            for offset in range(0, len(ordered_candidates), _COMPILE_TIME_SOURCE_BATCH_SIZE):
+                batch = ordered_candidates[offset : offset + _COMPILE_TIME_SOURCE_BATCH_SIZE]
+                baseline_texts = self._baseline_texts_at_commit(
+                    baseline_commit, set(batch), byte_budget=source_budget
                 )
-                if (
-                    package_root_relative is None
-                    or package_root_relative not in selected_root_set
-                ):
-                    continue
-                source = self.repo_root / relative
-                package_root = (
-                    self.repo_root
-                    if package_root_relative == "."
-                    else self.repo_root / package_root_relative
-                )
-                resource_roots = {
-                    _compile_time_resource(
-                        expression,
-                        source=source,
-                        package_root=package_root,
-                        repo_root=self.repo_root,
+                for relative in batch:
+                    package_root_relative = _package_root_for_relative_source(
+                        relative, roots
                     )
-                    .relative_to(self.repo_root)
-                    .as_posix()
-                    for expression in _compile_time_include_expressions(
-                        _rust_tokens(baseline_texts[relative])
+                    if (
+                        package_root_relative is None
+                        or package_root_relative not in selected_root_set
+                    ):
+                        continue
+                    source = self.repo_root / relative
+                    package_root = (
+                        self.repo_root
+                        if package_root_relative == "."
+                        else self.repo_root / package_root_relative
                     )
-                }
-                resources_by_source[relative] = tuple(
-                    sorted(resource_roots, key=str.casefold)
-                )
+                    resource_roots = {
+                        _compile_time_resource(
+                            expression,
+                            source=source,
+                            package_root=package_root,
+                            repo_root=self.repo_root,
+                        )
+                        .relative_to(self.repo_root)
+                        .as_posix()
+                        for expression in _compile_time_include_expressions(
+                            _rust_tokens(baseline_texts[relative])
+                        )
+                        if not _is_build_output_resource(expression)
+                    }
+                    resources_by_source[relative] = tuple(
+                        sorted(resource_roots, key=str.casefold)
+                    )
+                del baseline_texts
             frozen = tuple(
                 sorted(resources_by_source.items(), key=lambda item: item[0].casefold())
             )
@@ -1215,60 +1772,95 @@ class CargoInputClosurePlanner:
         return candidates & paths
 
     def _baseline_texts_at_commit(
-        self, baseline_commit: str, paths: set[str]
+        self,
+        baseline_commit: str,
+        paths: set[str],
+        *,
+        byte_budget: _CompileTimeSourceBudget | None = None,
     ) -> dict[str, str]:
         ordered_paths = tuple(sorted(paths, key=str.casefold))
         if not ordered_paths:
             return {}
-        queries = "".join(
-            f"{baseline_commit}:{relative}\n" for relative in ordered_paths
-        ).encode("utf-8")
-        try:
-            result = subprocess.run(
-                trusted_git_command(self.repo_root, "cat-file", "--batch"),
-                cwd=self.repo_root,
-                input=queries,
-                check=True,
-                capture_output=True,
-            )
-            output = result.stdout
-            cursor = 0
-            texts: dict[str, str] = {}
-            for relative in ordered_paths:
-                header_end = output.index(b"\n", cursor)
-                header = output[cursor:header_end]
-                cursor = header_end + 1
-                if header.endswith(b" missing"):
-                    raise ValueError(f"missing baseline blob for {relative}")
-                _object_name, object_type, size_text = header.rsplit(b" ", 2)
-                if object_type != b"blob":
-                    raise ValueError(f"baseline object for {relative} is not a blob")
-                size = int(size_text)
-                content_end = cursor + size
-                if content_end >= len(output) or output[content_end:content_end + 1] != b"\n":
-                    raise ValueError(f"truncated baseline blob for {relative}")
-                texts[relative] = output[cursor:content_end].decode("utf-8")
-                cursor = content_end + 1
-            return texts
-        except (
-            OSError,
-            subprocess.SubprocessError,
-            UnicodeDecodeError,
-            ValueError,
-        ) as error:
-            details: dict[str, object] = {
-                "operation": "git_cat_file_compile_time_sources",
-                "errorType": type(error).__name__,
-                "baselineCommit": baseline_commit,
-                "sourceCount": len(ordered_paths),
-            }
-            if isinstance(error, subprocess.CalledProcessError):
-                details["exitCode"] = int(error.returncode)
-            raise CoordinatorError(
-                "validation_copy_compile_time_source_git_failed",
-                "Git could not read compile-time sources from the pinned baseline",
-                details=details,
-            ) from error
+        budget = byte_budget or _CompileTimeSourceBudget()
+        with tempfile.TemporaryFile() as error_stream:
+            process: subprocess.Popen[bytes] | None = None
+            try:
+                process = subprocess.Popen(
+                    trusted_git_command(self.repo_root, "cat-file", "--batch"),
+                    cwd=self.repo_root,
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                    stderr=error_stream,
+                )
+                if process.stdin is None or process.stdout is None:
+                    raise OSError("Git cat-file did not expose binary pipes")
+                texts: dict[str, str] = {}
+                for relative in ordered_paths:
+                    query = f"{baseline_commit}:{relative}\n".encode("utf-8")
+                    process.stdin.write(query)
+                    process.stdin.flush()
+                    header = process.stdout.readline(4097)
+                    if not header.endswith(b"\n") or len(header) > 4096:
+                        raise ValueError(f"invalid baseline header for {relative}")
+                    header = header[:-1]
+                    if header.endswith(b" missing"):
+                        raise ValueError(f"missing baseline blob for {relative}")
+                    _object_name, object_type, size_text = header.rsplit(b" ", 2)
+                    if object_type != b"blob":
+                        raise ValueError(
+                            f"baseline object for {relative} is not a blob"
+                        )
+                    size = int(size_text)
+                    budget.account(relative, size)
+                    content = process.stdout.read(size)
+                    if len(content) != size or process.stdout.read(1) != b"\n":
+                        raise ValueError(f"truncated baseline blob for {relative}")
+                    texts[relative] = content.decode("utf-8")
+                process.stdin.close()
+                process.wait()
+                if process.returncode != 0:
+                    raise subprocess.CalledProcessError(
+                        process.returncode,
+                        trusted_git_command(self.repo_root, "cat-file", "--batch"),
+                    )
+                return texts
+            except CoordinatorError:
+                if process is not None and process.poll() is None:
+                    process.kill()
+                    process.wait()
+                raise
+            except (
+                OSError,
+                subprocess.SubprocessError,
+                UnicodeDecodeError,
+                ValueError,
+            ) as error:
+                if process is not None and process.poll() is None:
+                    process.kill()
+                    process.wait()
+                details: dict[str, object] = {
+                    "operation": "git_cat_file_compile_time_sources",
+                    "errorType": type(error).__name__,
+                    "baselineCommit": baseline_commit,
+                    "sourceCount": len(ordered_paths),
+                }
+                if isinstance(error, subprocess.CalledProcessError):
+                    details["exitCode"] = int(error.returncode)
+                error_stream.seek(0)
+                stderr = error_stream.read().decode("utf-8", errors="replace")
+                if stderr:
+                    details["stderr"] = stderr[-4096:]
+                raise CoordinatorError(
+                    "validation_copy_compile_time_source_git_failed",
+                    "Git could not read compile-time sources from the pinned baseline",
+                    details=details,
+                ) from error
+            finally:
+                if process is not None:
+                    if process.stdin is not None and not process.stdin.closed:
+                        process.stdin.close()
+                    if process.stdout is not None:
+                        process.stdout.close()
 
     def _tracked_compile_time_resources(
         self, resource_roots: set[str], *, baseline_commit: str | None = None

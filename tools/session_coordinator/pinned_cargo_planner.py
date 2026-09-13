@@ -2,24 +2,32 @@ from __future__ import annotations
 
 import json
 import os
+import posixpath
 import re
 import subprocess
 import tempfile
 import tomllib
+from dataclasses import asdict
 from pathlib import Path, PurePosixPath
 from typing import Callable, Mapping
 
 from .models import CoordinatorError
+from .pinned_metadata_cache import (
+    PinnedMetadataCache,
+    build_pinned_metadata_cache_key,
+)
 from .portable_paths import normalize_portable_relative_path, portable_path_key
-from .cargo_storage import prepare_isolated_cargo_home
+from .cargo_storage import prepare_shared_metadata_cargo_home
 from .trusted_tools import (
     bind_trusted_cargo,
     bind_trusted_rust_environment,
+    trusted_rust_toolchain_identity,
     trusted_git_command,
 )
 from .cargo_command_policy import (
     cargo_config_file_arguments,
     cargo_package_specs,
+    inline_cargo_config_key,
     rewrite_cargo_source_path_arguments,
     scrub_inherited_cargo_environment,
     validate_no_ambient_cargo_configs,
@@ -39,6 +47,12 @@ _CARGO_CONFIG_PATHS = frozenset({".cargo/config", ".cargo/config.toml"})
 _EXPLICIT_TARGET_TABLES = ("bin", "example", "test", "bench")
 _MetadataExecutor = Callable[[Path, tuple[str, ...]], Mapping[str, object]]
 _ArchiveLoader = Callable[[str], bytes]
+_PINNED_METADATA_CACHE = PinnedMetadataCache()
+
+
+def pinned_metadata_cache_stats() -> dict[str, int | float]:
+    """Return process-local cache counters for coordinator measurements."""
+    return asdict(_PINNED_METADATA_CACHE.stats())
 
 
 class PinnedCargoPlannerView:
@@ -400,10 +414,15 @@ class PinnedCargoInputClosurePlanner(CargoInputClosurePlanner):
         view: PinnedCargoPlannerView,
         *,
         metadata_executor: _MetadataExecutor | None = None,
+        metadata_cache: PinnedMetadataCache | None = None,
+        metadata_cache_namespace: str | None = None,
     ) -> None:
         self.view = view
         self.logical_repo_root = view.logical_repo_root
         self._metadata_executor = metadata_executor
+        self._metadata_cache = metadata_cache or _PINNED_METADATA_CACHE
+        self._metadata_cache_namespace = metadata_cache_namespace
+        self.metadata_cache_result: dict[str, str | bool | float] | None = None
         self._logical_planner = CargoInputClosurePlanner(
             self.logical_repo_root,
             metadata_runner=lambda _command: {},
@@ -413,15 +432,48 @@ class PinnedCargoInputClosurePlanner(CargoInputClosurePlanner):
     def _metadata(self, command: tuple[str, ...]) -> Mapping[str, object]:
         source_root = self.view.require_active_repo_root()
         pinned_command = self._command_for_view(command)
-        metadata = (
-            self._metadata_executor(source_root, pinned_command)
+        executor_namespace = (
+            self._metadata_cache_namespace
             if self._metadata_executor is not None
-            else _run_cargo_metadata(
-                source_root,
-                pinned_command,
-                trust_root=self.logical_repo_root,
+            else "production"
+        )
+        tool_identity = (
+            ""
+            if self._metadata_executor is not None
+            else _trusted_metadata_tool_identity(
+                pinned_command, self.logical_repo_root, source_root
             )
         )
+        key = (
+            build_pinned_metadata_cache_key(
+                self.view.root,
+                source_root,
+                pinned_command,
+                external_identities=tuple(
+                    source.source_hash for source in self.view.external_sources
+                ),
+                executor_namespace=executor_namespace,
+                tool_identity=tool_identity,
+            )
+            if executor_namespace is not None and tool_identity is not None
+            else None
+        )
+
+        def execute() -> Mapping[str, object]:
+            return (
+                self._metadata_executor(source_root, pinned_command)
+                if self._metadata_executor is not None
+                else _run_cargo_metadata(
+                    source_root,
+                    pinned_command,
+                    trust_root=self.logical_repo_root,
+                )
+            )
+
+        metadata, cache_observation = self._metadata_cache.get_or_execute_observed(
+            key, self.view.root, execute
+        )
+        self.metadata_cache_result = cache_observation.as_payload()
         if not isinstance(metadata, Mapping):
             raise CoordinatorError(
                 "pinned_cargo_metadata_invalid",
@@ -440,7 +492,7 @@ class PinnedCargoInputClosurePlanner(CargoInputClosurePlanner):
         )
 
     def _path_argument_for_view(self, option: str, value: str) -> str:
-        if option == "--config" and "=" in value and not Path(value).is_absolute():
+        if option == "--config" and _is_inline_cargo_config(value):
             # Cargo's inline key=value form is not a filesystem path.  Storage
             # and compiler overrides are rejected at ticket submission.
             return value
@@ -552,6 +604,20 @@ class PinnedCargoInputClosurePlanner(CargoInputClosurePlanner):
             sources,
             package_roots,
             selected_package_roots,
+        )
+
+    def _baseline_compile_time_source_paths(
+        self, baseline_commit: str, paths: set[str]
+    ) -> set[str]:
+        return self._logical_planner._baseline_compile_time_source_paths(
+            baseline_commit, paths
+        )
+
+    def _baseline_texts_at_commit(
+        self, baseline_commit: str, paths: set[str], **kwargs
+    ) -> dict[str, str]:
+        return self._logical_planner._baseline_texts_at_commit(
+            baseline_commit, paths, **kwargs
         )
 
     def _external_git_root(self, manifest: Path) -> Path:
@@ -857,7 +923,7 @@ def _cargo_manifest_topology_paths(
 
         lib = document.get("lib")
         if isinstance(lib, Mapping) and isinstance(lib.get("path"), str):
-            add_if_available(package_root / _safe_manifest_path(lib["path"]))
+            add_if_available(_safe_manifest_path(package_root, lib["path"]))
         elif package.get("autolib") is not False:
             add_if_available(package_root / "src/lib.rs")
 
@@ -867,7 +933,7 @@ def _cargo_manifest_topology_paths(
                 continue
             for entry in entries:
                 if isinstance(entry, Mapping) and isinstance(entry.get("path"), str):
-                    add_if_available(package_root / _safe_manifest_path(entry["path"]))
+                    add_if_available(_safe_manifest_path(package_root, entry["path"]))
 
         if package.get("autobins") is not False:
             add_if_available(package_root / "src/main.rs")
@@ -886,24 +952,27 @@ def _cargo_manifest_topology_paths(
 
         build = package.get("build")
         if isinstance(build, str):
-            add_if_available(package_root / _safe_manifest_path(build))
+            add_if_available(_safe_manifest_path(package_root, build))
         elif build is not False:
             add_if_available(package_root / "build.rs")
         for field in ("readme", "license-file"):
             value = package.get(field)
             if isinstance(value, str):
-                candidate = (package_root / _safe_manifest_path(value)).as_posix()
+                candidate = _safe_manifest_path(package_root, value).as_posix()
                 if candidate in available_paths:
                     references.add(candidate)
     return targets, references
 
 
-def _safe_manifest_path(value: str) -> PurePosixPath:
+def _safe_manifest_path(package_root: PurePosixPath, value: str) -> PurePosixPath:
+    normalized = posixpath.normpath(
+        (package_root / PurePosixPath(value.replace("\\", "/"))).as_posix()
+    )
     return PurePosixPath(
         normalize_portable_relative_path(
-            value,
+            normalized,
             code="pinned_cargo_manifest_path_invalid",
-            message="Pinned Cargo manifest target path must stay inside its package",
+            message="Pinned Cargo manifest target path must stay inside its repository",
         )
     )
 
@@ -950,24 +1019,18 @@ def _run_cargo_metadata(
     passthrough_with_value = {"--filter-platform", "--manifest-path"}
     metadata_flags = {
         "--all-features",
+        "--frozen",
+        "--locked",
         "--no-default-features",
+        "--offline",
     }
     global_with_value = {"--config"}
-    global_flags = {
-        "--locked",
-        "--offline",
-        "--frozen",
-    }
     selected_packages = cargo_package_specs(command)
     index = argument_index
     while index < len(command):
         part = command[index]
         if part == "--":
             break
-        if part in global_flags:
-            global_arguments.append(part)
-            index += 1
-            continue
         if part in global_with_value and index + 1 < len(command):
             global_arguments.extend((part, command[index + 1]))
             index += 2
@@ -1023,7 +1086,7 @@ def _run_cargo_metadata(
             working_directory=source_root,
         )
     )
-    if "--locked" not in global_arguments and "--frozen" not in global_arguments:
+    if "--locked" not in metadata_arguments and "--frozen" not in metadata_arguments:
         raise CoordinatorError(
             "pinned_cargo_lock_required",
             "Pinned Cargo metadata requires --locked or --frozen resolution",
@@ -1035,10 +1098,7 @@ def _run_cargo_metadata(
     environment["CARGO_TARGET_DIR"] = str(source_root.parent / "metadata-target")
     try:
         environment["CARGO_HOME"] = str(
-            prepare_isolated_cargo_home(
-                source_root,
-                source_root.parent / "metadata-cargo-home",
-            )
+            prepare_shared_metadata_cargo_home(source_root)
         )
     except OSError as error:
         raise CoordinatorError(
@@ -1110,6 +1170,32 @@ def _metadata_feature_argument(
             continue
         qualified.extend(f"{package}/{feature}" for package in selected_packages)
     return ",".join(qualified)
+
+
+def _trusted_metadata_tool_identity(
+    command: tuple[str, ...], trust_root: Path, working_directory: Path
+) -> str | None:
+    """Capture stable trusted Cargo identity without retaining a temporary path."""
+    try:
+        return trusted_rust_toolchain_identity(
+            command,
+            trust_root,
+            working_directory=working_directory,
+        )
+    except CoordinatorError:
+        return None
+
+
+def _is_inline_cargo_config(value: str) -> bool:
+    if "=" not in value:
+        return False
+    try:
+        return inline_cargo_config_key(value) is not None
+    except CoordinatorError:
+        # A relative filename may itself contain '=' (for example
+        # ``ci/foo=one.toml``); malformed inline TOML is rejected earlier by
+        # ticket policy and should remain a path for this view rewrite.
+        return False
 
 
 def _rewrite_external_metadata_paths(
