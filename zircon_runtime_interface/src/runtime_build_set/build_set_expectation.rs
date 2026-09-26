@@ -18,6 +18,8 @@ pub struct ZrRuntimeBuildSetExpectationV1 {
 }
 
 impl ZrRuntimeBuildSetExpectationV1 {
+    /// Host 建立装载前预期：接口和 payload 摘要取自本地冻结源，BuildSet ID
+    /// 应取自 Host 自身的构建身份，不能由待验证的 Runtime sidecar 回填。
     pub fn new(
         build_set_id: ZrRuntimeBuildSetId,
         target: ZrRuntimeTargetModelV1,
@@ -53,6 +55,7 @@ impl ZrRuntimeBuildSetExpectationV1 {
         &self.required_capabilities
     }
 
+    /// 附上当前 Host 可执行文件的实测身份，供装载前核对 sidecar 中的同名条目。
     pub fn with_host_artifact(mut self, host_artifact: ZrRuntimeArtifactIdentityV1) -> Self {
         self.host_artifact = Some(host_artifact);
         self

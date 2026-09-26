@@ -8,6 +8,9 @@ use super::{
 pub const ZR_RUNTIME_MODULE_COMPOSITION_RECEIPT_SCHEMA_V1: u32 = 1;
 
 /// Cross-ABI receipt for the one frozen module graph owned by a runtime session.
+///
+/// Runtime 记录目录版本、源 manifest 指纹与组合摘要；Host 查询后核对请求的会话策略和目标。
+/// module_profile 是模块图选择，session_profile 是动态会话策略，二者不能互换。
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ZrRuntimeModuleCompositionReceiptV1 {

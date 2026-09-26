@@ -28,6 +28,8 @@ pub struct ZrRuntimeArtifactManifestV1 {
 }
 
 impl ZrRuntimeArtifactManifestV1 {
+    /// 用固定字段集合编码构建身份；Host 列表的顺序也参与摘要。
+    /// 构建端与装载端必须采用同一身份编码约定。
     pub fn derived_build_set_id(
         &self,
     ) -> Result<ZrRuntimeBuildSetId, ZrRuntimeIdentityEncodingError> {
@@ -48,6 +50,8 @@ impl ZrRuntimeArtifactManifestV1 {
         })
     }
 
+    /// 在动态加载前先核对 sidecar 自洽性，再核对 Host 的接口、payload、目标与文件身份。
+    /// 调用方必须独立取得 expected，且仍需对实际 DLL 和 Host 文件计算哈希。
     pub fn validate_against(
         &self,
         expected: &ZrRuntimeBuildSetExpectationV1,
@@ -123,6 +127,8 @@ impl ZrRuntimeArtifactManifestV1 {
                 },
             );
         }
+        // TODO: [CR-BUILDSET-0001] App 当前用待验证 sidecar 的 build_set_id 构造 expected，
+        // 此比较无法独立证明 Host BuildSet 身份；应改由可信产品构建元数据提供 expected ID。
         if self.build_set_id != expected.build_set_id().clone() {
             return Err(ZrRuntimeArtifactManifestValidationError::BuildSetMismatch {
                 expected: expected.build_set_id().as_str().to_owned(),

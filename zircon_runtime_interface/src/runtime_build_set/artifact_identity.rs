@@ -23,6 +23,7 @@ impl ZrRuntimeArtifactIdentityV1 {
         Ok(identity)
     }
 
+    /// 只接受文件名而不接受目录路径；App 另对实际 staged 文件计算哈希并比对。
     pub fn validate(&self) -> Result<(), ZrRuntimeIdentityFormatError> {
         let name = self.file_name.as_str();
         if name.is_empty() || matches!(name, "." | "..") || name.contains(['/', '\\']) {

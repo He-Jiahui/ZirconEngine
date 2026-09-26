@@ -20,6 +20,7 @@ impl ZrByteSliceError {
     }
 }
 
+// 以下预算由 Host 与 Runtime 共同执行，跨 ABI 解析和编码都必须选用对应入口的限额。
 pub const ZR_RUNTIME_JSON_MAX_NESTING_DEPTH_V1: usize = 128;
 pub const ZR_RUNTIME_STATUS_DIAGNOSTICS_MAX_ENCODED_BYTES_V1: usize = 4 * 1024;
 pub const ZR_RUNTIME_SESSION_PROFILE_MAX_ENCODED_BYTES_V1: usize = 64;
@@ -36,6 +37,8 @@ pub const ZR_RUNTIME_NATIVE_STRING_LIST_MAX_ITEMS_V1: usize = 16_384;
 pub const ZR_RUNTIME_FRAME_MAX_DIMENSION_V1: u32 = 16_384;
 pub const ZR_RUNTIME_FRAME_MAX_RGBA_BYTES_V1: usize = 256 * 1024 * 1024;
 
+/// 描述一次跨 ABI 负载允许的字节、元素、嵌套深度与处理时间预算。
+/// 入口在读取外来字节前选择对应限额，返回值编码也遵循相应的输出限额。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ZrRuntimePayloadLimitV1 {
     pub max_encoded_bytes: usize,
@@ -103,6 +106,8 @@ pub const ZR_RUNTIME_WORLD_QUERY_OUTPUT_LIMIT_V1: ZrRuntimePayloadLimitV1 =
 pub const ZR_RUNTIME_WORLD_INVALIDATION_OUTPUT_LIMIT_V1: ZrRuntimePayloadLimitV1 =
     ZrRuntimePayloadLimitV1::new(1024 * 1024, 16_384, 25_000).allow_empty();
 
+/// 借用型 C ABI 字节视图；数据仍由提供方持有，接收方不得跨其有效期保留引用。
+/// checked_slice 只检查载体形状和长度，指针可读性与引用生命周期仍由调用方保证。
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ZrByteSlice {
@@ -156,6 +161,8 @@ impl ZrByteSlice {
     }
 }
 
+/// 调用方借给同步回调的可写缓冲区；data 与 written 在回调期间必须有效。
+/// 回调只能在 capacity 范围内写入，并通过 written 报告实际写入量。
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ZrByteBufferRef {
@@ -178,8 +185,11 @@ impl ZrByteBufferRef {
     }
 }
 
+/// 由原分配方提供的释放入口；接收方不得用自己的分配器回收外来字节。
 pub type ZrFreeBytesFn = unsafe extern "C" fn(ZrOwnedByteBuffer) -> ZrStatus;
 
+/// 带分配方释放回调的旧式跨 ABI 输出；读取后由接收方调用配套 free。
+/// free 缺失时接收方不能安全地自行释放 data。
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
 pub struct ZrOwnedByteBuffer {
@@ -207,6 +217,9 @@ impl ZrOwnedByteBuffer {
 }
 
 /// Immutable runtime-owned output whose allocation is released by opaque ID.
+///
+/// 非空结果由 Runtime 会话持有；Host 须在对应会话及动态库仍存活时调用
+/// release_allocation，不能按本地 Vec 或其他分配器的规则释放 data。
 #[repr(C)]
 #[derive(Debug, PartialEq, Eq)]
 pub struct ZrOwnedResultV2 {

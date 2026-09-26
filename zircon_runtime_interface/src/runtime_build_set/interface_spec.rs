@@ -18,6 +18,7 @@ pub struct ZrRuntimeInterfaceSpecV1 {
 }
 
 impl ZrRuntimeInterfaceSpecV1 {
+    /// 读取与 build.rs 生成 ABI 槽表共用的冻结 JSON 定义，供 Host/sidecar 对照。
     pub fn current() -> Result<Self, ZrRuntimeIdentityEncodingError> {
         serde_json::from_str(CURRENT_INTERFACE_SPEC_SOURCE).map_err(|error| {
             ZrRuntimeIdentityEncodingError::InterfaceSpecDecode {
@@ -26,6 +27,7 @@ impl ZrRuntimeInterfaceSpecV1 {
         })
     }
 
+    /// 对结构化接口定义做确定性编码，以绑定 sidecar 中的 InterfaceSpec 摘要。
     pub fn digest(&self) -> Result<ZrRuntimeDigestV1, ZrRuntimeIdentityEncodingError> {
         serde_json::to_vec(self)
             .map(ZrRuntimeDigestV1::sha256)

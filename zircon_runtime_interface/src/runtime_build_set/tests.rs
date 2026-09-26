@@ -140,6 +140,8 @@ fn artifact_manifest_rejects_a_payload_schema_digest_from_another_protocol() {
 #[test]
 fn artifact_manifest_rejects_a_different_runtime_data_model() {
     let (expected, mut manifest) = fixture();
+    // TODO: [CR-BUILDSET-0002] 固定设为 32 位在 32 位 Host 上不会制造目标差异；
+    // 应从 expected.target().pointer_width 选择相反的受支持宽度。
     manifest.target.pointer_width = 32;
     manifest.build_set_id = manifest.derived_build_set_id().unwrap();
     let expected = expectation_for_manifest(&manifest, expected.target().clone());

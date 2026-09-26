@@ -1,3 +1,6 @@
+//! 动态库加载前的 BuildSet 身份与会话建立后的模块组合回执共用的中立契约。
+//! 冻结的 InterfaceSpec 同时驱动构建时 ABI 槽表生成与装载前一致性校验。
+
 mod artifact_identity;
 mod artifact_manifest;
 mod build_mode;

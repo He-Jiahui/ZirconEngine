@@ -1,5 +1,6 @@
 use crate::buffer::ZrByteSlice;
 
+/// C ABI 返回码；未知数值按 Error 处理，避免新版本返回码被旧 Host 当成成功。
 #[repr(u32)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ZrStatusCode {
@@ -35,6 +36,8 @@ impl ZrStatusCode {
     }
 }
 
+/// 一次 ABI 调用的状态及借用型诊断字节；接收方不拥有 diagnostics。
+/// Runtime 的诊断可能来自同线程暂存区，Host 应在下一次调用前限额读取或复制。
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ZrStatus {
