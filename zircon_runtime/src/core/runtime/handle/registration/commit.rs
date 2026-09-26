@@ -12,6 +12,7 @@ const FIRST_REGISTERED_SERVICE_INDEX: u32 = 1;
 
 static NEXT_REGISTERED_SERVICE_INDEX: AtomicU32 = AtomicU32::new(FIRST_REGISTERED_SERVICE_INDEX);
 
+// 冲突检查和身份区间预留都在写入之前完成，使注册失败不会暴露半成品。
 pub(super) fn commit_module_registration<P>(
     modules: &mut HashMap<String, ModuleEntry>,
     services: &mut HashMap<RegistryName, ServiceEntry>,

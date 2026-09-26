@@ -19,6 +19,7 @@ impl CoreHandle {
         });
     }
 
+    /// 按主题和投递策略建立订阅；调用者须保留返回的订阅对象以接收后续事件。
     pub fn subscribe_events(
         &self,
         topic: impl Into<String>,
@@ -43,6 +44,7 @@ impl CoreHandle {
         self.inner.config_store.snapshot_values()
     }
 
+    // 配置持久化工作线程延迟读取此快照；仅捕获配置存储，避免服务反向持有整个运行时。
     pub(crate) fn config_snapshot_source(
         &self,
     ) -> Arc<dyn Fn() -> HashMap<String, Value> + Send + Sync> {

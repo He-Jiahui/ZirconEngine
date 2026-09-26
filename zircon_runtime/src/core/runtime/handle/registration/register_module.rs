@@ -19,6 +19,8 @@ use super::service_lists::{module_service_lists, single_service_module_lists, Mo
 use super::validation::is_canonical_module_name;
 
 impl CoreHandle {
+    /// 在模块图冻结前注册模块及其驱动、管理器和插件服务。
+    /// 描述符先通过归属与依赖层级校验；失败不会留下部分模块或服务槽位。
     pub fn register_module(&self, descriptor: ModuleDescriptor) -> Result<(), CoreError> {
         crate::profile_scope!("runtime", "core", "register_module");
         // The graph snapshot takes this lock before reading module descriptors. Keep it for

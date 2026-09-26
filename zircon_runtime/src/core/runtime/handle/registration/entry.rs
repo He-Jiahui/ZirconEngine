@@ -5,6 +5,7 @@ use crate::core::{LifecycleState, StartupMode};
 use super::super::super::descriptors::{DependencySpec, RegistryName};
 use super::super::super::state::{ServiceEntry, ServiceEntryFactory};
 
+// 注册态只保留工厂和规范依赖名；即时服务由激活路径、惰性服务由首次解析实例化。
 pub(super) fn service_entry(
     startup_mode: StartupMode,
     dependencies: &[DependencySpec],

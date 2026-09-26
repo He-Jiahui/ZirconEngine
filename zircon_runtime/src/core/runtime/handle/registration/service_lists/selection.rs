@@ -11,6 +11,7 @@ use super::types::ModuleServiceLists;
 use crate::core::runtime::descriptors::RegistryName;
 use crate::core::runtime::state::ServiceEntry;
 
+// 定长路径与多服务路径必须保持相同的三种列表语义，供激活、排空及卸载复用。
 pub(in crate::core::runtime::handle::registration) fn module_service_lists(
     pending_services: &[(RegistryName, ServiceEntry)],
     driver_count: usize,

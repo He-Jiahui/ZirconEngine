@@ -7,6 +7,7 @@ use super::super::super::state::ServiceEntry;
 use super::super::CoreHandle;
 
 impl CoreHandle {
+    // 重激活复用原服务槽位，只允许已卸载且无实例的槽位重新进入注册态。
     pub(super) fn prepare_module_services_for_reactivation(
         &self,
         service_names: &[RegistryName],

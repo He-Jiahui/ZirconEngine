@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use super::super::super::descriptors::RegistryName;
 use super::super::super::state::ServiceEntry;
 
+// 调用准入关闭、在途守卫排空和模块清理完成后才使槽位代次失效。
 pub(super) fn unload_services(
     services: &mut HashMap<RegistryName, ServiceEntry>,
     unload_order: &[RegistryName],

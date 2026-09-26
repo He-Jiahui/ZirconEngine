@@ -1,3 +1,6 @@
+//! 卸载预检查使用定长匹配器寻找首个仍被其他实例依赖的槽位。
+//! 结果按卸载列表的顺序选择，避免依赖遍历顺序改变阻塞诊断。
+
 mod five_service;
 mod four_service;
 mod single;

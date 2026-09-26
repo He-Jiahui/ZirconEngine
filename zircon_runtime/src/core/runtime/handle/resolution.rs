@@ -34,6 +34,7 @@ impl<T> ServiceHandle<T> {
         }
     }
 
+    /// 每次调用前取得槽位许可；守卫存活期间卸载等待，旧代次或已停止的服务拒绝新调用。
     pub fn enter(&self) -> Result<ServiceCallGuard<T>, CoreError> {
         let core = self.core.upgrade().ok_or(CoreError::RuntimeUnavailable)?;
         core.begin_service_call(&self.identity)?;
@@ -77,6 +78,7 @@ enum RegisteredServiceResolution {
     Pending,
 }
 
+// 懒解析取得初始化所有权后，依赖或工厂失败时也必须撤销占位并唤醒其他解析者。
 struct ServiceInitializationClaim<'a> {
     core: &'a CoreHandle,
     service_key: &'a RegistryName,
@@ -123,6 +125,8 @@ impl Drop for ServiceInitializationClaim<'_> {
 }
 
 impl CoreHandle {
+    // TODO: [CR-RUNTIME-HANDLE-0002] 确认直接返回 Arc 的三类解析入口的卸载约束；只有句柄守卫参与调用排空。
+    /// 返回驱动共享实例；需要卸载排空语义的调用应使用 [`Self::resolve_driver_handle`]。
     pub fn resolve_driver<T: Any + Send + Sync>(&self, name: &str) -> Result<Arc<T>, CoreError> {
         let service = self.resolve_named_service(name, Some(ServiceKind::Driver))?;
         downcast_resolved_service(name, service)
@@ -210,6 +214,7 @@ impl CoreHandle {
         self.resolve_service_handle(name, ServiceKind::Plugin)
     }
 
+    // 持有实例及其注册代次的调用句柄应指向同一次解析结果。
     fn resolve_service_handle<T: Any + Send + Sync>(
         &self,
         service_name: &str,
@@ -217,6 +222,7 @@ impl CoreHandle {
     ) -> Result<ServiceHandle<T>, CoreError> {
         let service = self.resolve_named_service(service_name, Some(expected_kind))?;
         let service = downcast_resolved_service(service_name, service)?;
+        // BUG: [CR-RUNTIME-HANDLE-0001] 实例与代次分两次读取；中间卸载并重激活后，旧 Arc 可绑定新代次并通过 enter。
         let identity = self.registered_service_identity(service_name, expected_kind)?;
         Ok(ServiceHandle::new(self.downgrade(), identity, service))
     }
@@ -433,6 +439,7 @@ impl CoreHandle {
         validate_service_identity(identity, entry.index, entry.generation, expected_kind)
     }
 
+    // 初始化声明在服务锁内建立，模块激活、依赖解析和工厂回调在锁外执行，允许回调再次解析服务。
     fn resolve_existing_service_inner(
         &self,
         service_key: &RegistryName,

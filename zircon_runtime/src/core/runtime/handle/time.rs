@@ -41,10 +41,13 @@ impl CoreHandle {
         self.lock_time().apply_time_policy(transaction)
     }
 
+    /// 用宿主提供的帧增量推进外层时间，供离线驱动或测试生成世界预算。
+    /// 同一帧只应选择此入口或 [`Self::tick_time`]，避免重复推进。
     pub fn advance_time_by(&self, real_delta: Duration, max_fixed_steps: u32) -> FrameTimeSnapshot {
         self.advance_time_by_with_discontinuity(real_delta, max_fixed_steps, None)
     }
 
+    /// 从帧时钟采样并推进一次外层帧；重基准信息随快照交给会话与世界。
     pub fn tick_time(&self, max_fixed_steps: u32) -> FrameTimeSnapshot {
         let frame_tick = self.lock_frame_clock().tick();
         self.advance_time_by_with_discontinuity(
@@ -75,6 +78,7 @@ impl CoreHandle {
             .rebase_for(FrameClockRebaseCause::SessionActivationCompleted)
     }
 
+    /// 宿主恢复或时钟跳变后重基准下一帧采样，避免把停顿时间计入模拟增量。
     pub fn submit_clock_discontinuity(
         &self,
         discontinuity: ClockDiscontinuity,

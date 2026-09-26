@@ -5,6 +5,7 @@ use crate::core::diagnostics::{DiagnosticPath, DiagnosticStore, DiagnosticStoreS
 use super::CoreHandle;
 
 impl CoreHandle {
+    /// 返回诊断存储的独立副本；修改副本不会回写运行时记录。
     pub fn diagnostic_store(&self) -> DiagnosticStore {
         self.lock_diagnostics().clone()
     }
@@ -13,6 +14,7 @@ impl CoreHandle {
         self.lock_diagnostics().snapshot()
     }
 
+    /// 记录跨子系统帧指标；路径和单位在取得诊断锁前完成转换，缩短共享写锁占用。
     pub fn record_diagnostic<U, T>(
         &self,
         path: impl Into<DiagnosticPath>,

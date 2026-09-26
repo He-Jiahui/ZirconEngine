@@ -3,6 +3,7 @@ use crate::core::CoreError;
 use super::super::super::super::state::{ModuleLifecycleCommand, ModuleLifecycleTransitionToken};
 use super::super::super::CoreHandle;
 
+// 批量激活已占有的转换令牌必须全部完成；出错或 unwind 时也要唤醒等待者。
 pub(super) struct LifecycleTransactionSet<'a> {
     handle: &'a CoreHandle,
     tokens: Vec<ModuleLifecycleTransitionToken>,

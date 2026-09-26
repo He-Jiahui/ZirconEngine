@@ -16,12 +16,15 @@ use super::super::state::{
 use super::super::tasks::{EngineTaskGraph, JobScheduler, TaskGraphWorkerInventory};
 use super::super::weak::CoreWeak;
 
+/// 可克隆的运行时控制句柄；所有副本共享模块表、服务槽位和调度器。
+/// 服务工厂或插件若只需回访内核，应传递 [`CoreWeak`] 以免延长其生命周期。
 #[derive(Clone)]
 pub struct CoreHandle {
     pub(crate) inner: Arc<CoreRuntimeInner>,
 }
 
 impl CoreHandle {
+    /// 创建不保活的运行时引用；回访前必须升级，运行时结束后升级会失败。
     pub fn downgrade(&self) -> CoreWeak {
         CoreWeak {
             inner: Arc::downgrade(&self.inner),
@@ -66,6 +69,7 @@ impl CoreHandle {
         lock_poison_recovered(&self.inner.lifecycle_coordinator)
     }
 
+    // 首次激活建立注册快照；注册事务先取得同一把锁，避免冻结图遗漏已提交模块。
     pub(crate) fn frozen_module_graph(&self) -> Result<Arc<FrozenModuleGraph>, CoreError> {
         let mut frozen_graph = self.lock_frozen_module_graph();
         if let Some(graph) = frozen_graph.as_ref() {
@@ -111,6 +115,7 @@ impl CoreHandle {
         self.inner.lifecycle_transition_changed.notify_all();
     }
 
+    // 并发的同名生命周期命令共用协调结果；只有取得令牌的线程执行回调。
     pub(crate) fn run_module_lifecycle_transition<F>(
         &self,
         module_name: &str,

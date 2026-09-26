@@ -13,6 +13,7 @@ pub(super) fn is_canonical_module_name(name: &str) -> bool {
             .is_some_and(|last| !last.is_whitespace())
 }
 
+// 服务槽位进入注册表前先核对所属模块与层级；驱动只能依赖驱动。
 pub(super) fn validate_service_descriptor(
     owner_module: &str,
     kind: ServiceKind,

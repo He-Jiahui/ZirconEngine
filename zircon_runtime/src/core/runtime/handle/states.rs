@@ -7,6 +7,7 @@ use crate::core::runtime::state_machine::{
 use super::CoreHandle;
 
 impl CoreHandle {
+    /// 首次创建状态时派发进入事件；已有状态复用当前值且不会重复执行进入回调。
     pub fn init_state<T>(&self) -> StateTransitionEvent<T>
     where
         T: StateSpec + Default,
@@ -57,6 +58,7 @@ impl CoreHandle {
         self.lock_states().reset_next_state::<T>();
     }
 
+    /// 在状态提交点应用待定转换；回调在释放注册表锁后执行，可再次访问状态。
     pub fn apply_state_transition<T: StateSpec>(&self) -> Option<StateTransitionEvent<T>> {
         let dispatch = self.lock_states().apply_state_transition::<T>()?;
         let event = dispatch.event().clone();

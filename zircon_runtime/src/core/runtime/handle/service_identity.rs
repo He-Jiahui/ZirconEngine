@@ -1,5 +1,6 @@
 use super::super::descriptors::RegistryName;
 
+// 注册名、槽位索引和代次共同标识一次服务实例生命周期；两类句柄共用此失效依据。
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub(crate) struct RegisteredServiceIdentity {
     index: u32,

@@ -23,6 +23,8 @@ struct BatchModuleActivation {
 }
 
 impl CoreHandle {
+    /// 按冻结图的依赖顺序批量激活；先取得转换令牌，再构建模块与解析即时服务。
+    /// 失败时尝试清理本批已构建模块，并向等待同一批转换的调用者公布错误。
     pub fn activate_registered_modules(&self) -> Result<(), CoreError> {
         self.activate_registered_modules_with_ready_timeout(Default::default())
     }

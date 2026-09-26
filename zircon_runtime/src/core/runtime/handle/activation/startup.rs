@@ -4,6 +4,7 @@ use super::super::super::descriptors::RegistryName;
 use super::super::CoreHandle;
 
 impl CoreHandle {
+    // 模块 build 后的即时服务沿用惰性解析路径，统一执行依赖检查与工厂初始化。
     pub(super) fn resolve_startup_services(
         &self,
         startup_services: &[RegistryName],
