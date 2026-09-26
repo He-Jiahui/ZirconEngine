@@ -3,6 +3,7 @@ use super::fixture::{
     service_lifecycle_source,
 };
 
+// 同时核对单模块与批量重启的槽位准备、失败回滚及对应行为测试，防止只修一条入口。
 #[test]
 fn reactivation_lifecycle_is_complete_and_folder_backed() {
     let activation = activation_source();
@@ -80,6 +81,7 @@ fn reactivation_lifecycle_is_complete_and_folder_backed() {
         ],
     );
 
+    // BUG: [CR-RUNTIME-ACTIVATION-0001] HEAD 中 activation.rs 为 310 行、batch.rs 为 280 行，已违反下方严格小于 260/280 的断言；该结构测试必然失败。
     for (path, source, budget) in [
         ("handle/activation.rs", activation, 260),
         ("handle/activation/batch.rs", batch, 280),

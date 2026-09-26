@@ -17,6 +17,7 @@ fn batch_module_reactivation_restores_immediate_and_lazy_service_slots() {
     assert_successful_reactivation(true);
 }
 
+// 重新激活失败后保留注册槽位，但代际必须前进以拒绝失败期间暴露过的旧句柄。
 #[test]
 fn failed_reactivation_restores_unloaded_slots_and_invalidates_discarded_instance() {
     let runtime = CoreRuntime::new();
@@ -118,6 +119,7 @@ fn failed_reactivation_restores_unloaded_slots_and_invalidates_discarded_instanc
     assert_eq!(lazy_calls.load(Ordering::SeqCst), 0);
 }
 
+// 用同一组槽位与句柄断言比较单模块和批量入口，确保两条生命周期路径共享代际契约。
 fn assert_successful_reactivation(batch: bool) {
     let runtime = CoreRuntime::new();
     let module_name = if batch {

@@ -5,6 +5,7 @@ use super::super::super::fixtures::{TestDriver, TestManager};
 use crate::core::runtime::ServiceObject;
 use crate::core::{ServiceKind, StartupMode};
 
+// 名称必须在注册表中保持可解析的模块、种类和本地名，供后续按名称解析与卸载依赖匹配。
 #[test]
 fn service_table_is_keyed_by_canonical_registry_names() {
     let runtime = CoreRuntime::new();

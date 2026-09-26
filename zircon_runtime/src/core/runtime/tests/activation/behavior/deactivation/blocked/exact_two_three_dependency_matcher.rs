@@ -6,6 +6,7 @@ use crate::core::runtime::ServiceObject;
 use crate::core::CoreError;
 use crate::core::{ServiceKind, StartupMode};
 
+// 精确数量的卸载路径也要遵守冻结图的关闭优先级；外部依赖存在时仅报告最先受阻的服务。
 #[test]
 fn deactivate_exact_two_services_reports_first_shutdown_service_when_dependent_names_both() {
     let runtime = CoreRuntime::new();

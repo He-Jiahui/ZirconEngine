@@ -102,6 +102,7 @@ fn module_activation_order_reports_same_level_cycles() {
     ));
 }
 
+// 深依赖链验证冻结图排序不会消耗与图深度成比例的本机调用栈。
 #[test]
 fn module_activation_order_handles_a_one_hundred_thousand_module_deep_chain() {
     const MODULE_COUNT: usize = 100_000;

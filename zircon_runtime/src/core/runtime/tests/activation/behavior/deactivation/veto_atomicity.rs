@@ -43,6 +43,7 @@ impl ModuleLifecycle for PanicCleanupLifecycle {
 }
 
 #[derive(Debug)]
+// 模拟宿主在停用准备阶段的否决；观察者必须在关闭服务准入和调用 cleanup 前运行。
 struct DeactivationVeto;
 
 impl RuntimeModuleLifecycleObserver for DeactivationVeto {
@@ -468,6 +469,7 @@ fn deactivation_callback_panic_is_reported_as_a_typed_failure() {
     ));
 }
 
+// 停用一旦提交，超时只能保留不可再调用的 Stopping 状态，释放旧调用后由第二次停用继续完成。
 #[test]
 fn deactivation_drain_deadline_keeps_the_committed_module_stopping() {
     let runtime = CoreRuntime::new();

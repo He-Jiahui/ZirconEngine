@@ -6,6 +6,7 @@ use crate::core::runtime::ServiceObject;
 use crate::core::CoreError;
 use crate::core::{ServiceKind, StartupMode};
 
+// 多个服务同时被外部实例依赖时，错误要服从冻结图的关闭顺序，而不是服务表的迭代顺序。
 #[test]
 fn deactivate_exact_five_services_reports_first_shutdown_service_when_dependent_names_all() {
     let runtime = CoreRuntime::new();

@@ -6,6 +6,7 @@ use crate::core::runtime::ServiceObject;
 use crate::core::CoreError;
 use crate::core::{ServiceKind, StartupMode};
 
+// 五服务直达路径应与通用关闭预检保持同一错误优先级，且阻断后不得改动模块或服务状态。
 #[test]
 fn deactivate_exact_five_services_reports_first_blocked_without_index_map() {
     let runtime = CoreRuntime::new();

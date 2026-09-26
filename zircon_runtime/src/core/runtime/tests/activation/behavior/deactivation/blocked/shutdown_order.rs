@@ -6,6 +6,7 @@ use crate::core::runtime::ServiceObject;
 use crate::core::CoreError;
 use crate::core::{ServiceKind, StartupMode};
 
+// 同一模块中不同服务被阻断时，错误归属应跟随实际卸载次序，供调用者决定先停哪个依赖。
 #[test]
 fn deactivate_reports_first_blocked_service_in_shutdown_order() {
     let runtime = CoreRuntime::new();

@@ -15,6 +15,7 @@ use crate::core::{
 
 mod contention;
 
+// 同时暴露首次构建、重复构建与清理的观察点，用于检验并发生命周期命令共用一次事务。
 struct ActivationTransitionGate {
     build_calls: Arc<AtomicUsize>,
     cleanup_calls: Arc<AtomicUsize>,
@@ -69,6 +70,7 @@ impl ModuleLifecycle for PanicBuildLifecycle {
 }
 
 #[derive(Debug)]
+// 在 build 回调中调用自身激活入口，验证协调器以类型化错误阻止同线程重入。
 struct ReentrantActivationLifecycle;
 
 impl ModuleLifecycle for ReentrantActivationLifecycle {
@@ -295,6 +297,7 @@ fn immediate_services_activate_in_dependency_order() {
     assert_eq!(driver.order, 0);
 }
 
+// 即时服务工厂失败后，模块与服务都必须回到可重试状态；否则下一次激活会复用半成品。
 #[test]
 fn failed_immediate_activation_resets_module_and_service_lifecycle_for_retry() {
     let runtime = CoreRuntime::new();

@@ -35,6 +35,7 @@ fn concurrent_activation_joiners_release_benchmark_evidence() {
     );
 }
 
+// 先让所有等待者进入生命周期协调器，再释放唯一的构建者；计时覆盖释放后至全部等待者结束的协调成本。
 fn activation_join_sample(module_name: &str) -> Duration {
     let runtime = CoreRuntime::new();
     let build_calls = Arc::new(AtomicUsize::new(0));

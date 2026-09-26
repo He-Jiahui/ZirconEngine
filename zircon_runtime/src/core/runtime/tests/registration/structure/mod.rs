@@ -6,6 +6,7 @@ mod module_layout;
 mod service_count_paths;
 mod service_list_caches;
 
+// 集中提供注册、提交和服务列表的源码视图，让结构约束检查可跨拆分文件追踪同一事务。
 pub(super) struct RegistrationStructureSources {
     pub(super) runtime_state: &'static str,
     pub(super) service_entry: &'static str,

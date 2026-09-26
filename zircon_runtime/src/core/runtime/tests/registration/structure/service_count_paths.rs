@@ -1,5 +1,6 @@
 use super::registration_sources;
 
+// 精确数量分支可减少小批量准备成本，但都必须在共用提交点完成去重和身份分配。
 #[test]
 fn registration_source_preserves_service_count_fast_paths() {
     let sources = registration_sources();

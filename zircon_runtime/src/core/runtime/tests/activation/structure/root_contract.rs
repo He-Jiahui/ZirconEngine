@@ -3,6 +3,7 @@ use super::fixture::{
     activation_tests_source, blocked_dependencies_root_source, deactivation_behavior_mod_source,
 };
 
+// 激活入口只负责生命周期编排；卸载阻断检查、启动解析和成功卸载各有子模块归属。
 #[test]
 fn activation_structure_roots_stay_navigational() {
     let activation_source = activation_source();

@@ -6,6 +6,7 @@ use crate::core::runtime::ServiceObject;
 use crate::core::CoreError;
 use crate::core::{LifecycleState, ServiceKind, StartupMode};
 
+// 外部运行服务仍持有依赖时，关闭预检应拒绝卸载并保留实例；待依赖方先停用后才能重试。
 #[test]
 fn deactivate_single_service_module_reports_external_dependent() {
     let runtime = CoreRuntime::new();

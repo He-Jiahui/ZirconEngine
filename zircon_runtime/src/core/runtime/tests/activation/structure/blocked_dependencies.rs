@@ -2,6 +2,7 @@ use super::fixture::{
     activation_source, activation_tests_source, blocked_dependencies_source, blocked_unload_source,
 };
 
+// 该结构门槛约束卸载预检的职责归属；实际错误选择与状态保持仍由行为测试验证。
 #[test]
 fn blocked_dependency_matchers_stay_in_child_owners() {
     let activation_source = activation_source();

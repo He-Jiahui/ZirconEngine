@@ -6,6 +6,7 @@ use crate::core::runtime::ServiceObject;
 use crate::core::CoreError;
 use crate::core::{ServiceKind, StartupMode};
 
+// 四服务匹配器必须优先报告关闭顺序最前的服务，避免依赖扫描顺序改变调用者看到的错误。
 #[test]
 fn deactivate_exact_four_services_reports_first_shutdown_service_when_dependent_names_all() {
     let runtime = CoreRuntime::new();

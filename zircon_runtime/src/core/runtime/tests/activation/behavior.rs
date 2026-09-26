@@ -10,6 +10,7 @@ mod module_lifecycle;
 mod reactivation;
 
 #[derive(Debug)]
+// 以生命周期回调的可观测顺序验证单模块激活会先补齐依赖闭包；记录器只属于测试。
 struct ActivationOrderLifecycle {
     module_name: &'static str,
     build_order: Arc<Mutex<Vec<&'static str>>>,
@@ -42,6 +43,7 @@ fn single_module_activation_validates_the_complete_declared_graph_before_callbac
     ));
 }
 
+// 首次生命周期调用会生成不可变声明图，此后注册必须失败，避免回调执行时图和注册表分叉。
 #[test]
 fn first_lifecycle_operation_freezes_the_declared_module_graph() {
     let runtime = CoreRuntime::new();

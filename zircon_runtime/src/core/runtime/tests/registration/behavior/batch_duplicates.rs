@@ -79,6 +79,7 @@ fn register_small_batch_reports_the_first_duplicate_key_deterministically() {
     assert_duplicate_batch_rejected(descriptor, first_duplicate);
 }
 
+// 共同验证各服务数量分支在报重名后都不发布模块和服务，防止局部提交污染下一次注册。
 fn assert_duplicate_batch_rejected(descriptor: ModuleDescriptor, duplicate_name: RegistryName) {
     let module_name = descriptor.name.clone();
     let runtime = CoreRuntime::new();

@@ -1,5 +1,6 @@
 use super::registration_sources;
 
+// 待注册批次与已发布服务分别去重，提交前要阻止任何冲突键进入服务表。
 #[test]
 fn registration_source_preserves_duplicate_detection_boundaries() {
     let sources = registration_sources();

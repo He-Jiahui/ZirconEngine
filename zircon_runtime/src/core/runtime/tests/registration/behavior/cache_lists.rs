@@ -5,6 +5,7 @@ use super::super::super::fixtures::{TestDriver, TestManager};
 use crate::core::runtime::ServiceObject;
 use crate::core::{ServiceKind, StartupMode};
 
+// 注册期缓存既决定启动和关闭顺序，也允许等价视图共用 Arc；此处同时检验内容与共享关系。
 #[test]
 fn register_single_immediate_service_keeps_exact_cached_service_lists() {
     let runtime = CoreRuntime::new();

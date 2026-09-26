@@ -1,3 +1,4 @@
+// 结构测试读取生产源码作为边界证据；这些快照不参与运行时行为，也不应替代行为测试。
 pub(super) fn activation_source() -> &'static str {
     include_str!("../../../handle/activation.rs")
 }
@@ -49,6 +50,7 @@ pub(super) fn module_entry_source() -> &'static str {
     include_str!("../../../state/module_entry.rs")
 }
 
+// 汇总注册链的分层文件，供激活结构测试检查跨模块预检与提交边界。
 pub(super) fn registration_source() -> String {
     [
         include_str!("../../../handle/registration/mod.rs"),

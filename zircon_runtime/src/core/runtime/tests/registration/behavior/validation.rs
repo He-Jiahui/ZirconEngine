@@ -289,6 +289,7 @@ fn register_module_rejects_fifth_driver_dependency_on_manager() {
     ));
 }
 
+// 描述符验证属于注册事务的准备阶段；任一后续服务无效时，前面已准备的服务也不能发布。
 #[test]
 fn register_module_does_not_leave_services_when_descriptor_validation_fails() {
     let runtime = CoreRuntime::new();

@@ -24,6 +24,7 @@ impl ModuleLifecycle for ReentrantBatchLifecycle {
     }
 }
 
+// 外层激活持有后续模块的令牌时，内部批量激活必须释放此前已取得的令牌，否则后续单模块调用会悬挂。
 #[test]
 fn batch_acquire_error_completes_tokens_owned_before_the_reentrant_module() {
     let runtime = CoreRuntime::new();

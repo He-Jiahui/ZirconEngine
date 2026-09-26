@@ -7,6 +7,7 @@ use crate::core::runtime::ServiceObject;
 use crate::core::CoreError;
 use crate::core::{LifecycleState, ServiceKind, StartupMode};
 
+// 人工制造只有服务键而没有模块键的冲突，验证提交阶段仍防止覆盖既有服务并保持表一致。
 #[test]
 fn register_single_service_reports_existing_service_table_key() {
     let runtime = CoreRuntime::new();
