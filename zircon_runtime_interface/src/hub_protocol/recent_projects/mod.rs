@@ -1,7 +1,6 @@
-//! Shared recent-project registry DTO and deterministic identity rules.
+//! Hub 与 Editor 共用的最近项目投影及文件事务。
 //!
-//! This module contains no filesystem or operating-system locking behavior. Hosts use the
-//! storage and mutex identities here, then retain ownership of the corresponding I/O lease.
+//! 此模块定义记录格式、词法路径键和带平台锁的读改写；项目身份与打开权限仍由宿主预检决定。
 
 mod entry;
 mod error;

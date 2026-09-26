@@ -57,6 +57,7 @@ impl HubEditorFocusSignalV1 {
         Ok(())
     }
 
+    /// 截止时刻本身视为过期；Editor 不再把该请求交给窗口聚焦逻辑。
     pub const fn is_expired_at(&self, now_unix_millis: u64) -> bool {
         now_unix_millis >= self.deadline_unix_millis
     }

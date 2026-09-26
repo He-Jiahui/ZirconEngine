@@ -40,6 +40,7 @@ impl HubEditorMailboxV1 {
         }
     }
 
+    /// Hub 解码邮箱后用受监控子进程的 token 核对，避免旧会话结果冒充当前启动。
     pub fn validate_launch_session(
         &self,
         expected: HubSessionToken,

@@ -61,6 +61,7 @@ fn hub_editor_focus_instance_directory(
 }
 
 fn request_file_name(sequence: u64, request_id: HubSessionToken) -> String {
+    // 固定宽度使 Editor 按文件路径排序时仍按序号消费；token 区分同序号的不同请求。
     format!("{sequence:020}-{request_id}.json")
 }
 

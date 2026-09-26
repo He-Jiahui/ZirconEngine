@@ -112,6 +112,7 @@ struct HubEditorReadyReceiptWireV1 {
     milestones: BTreeSet<HubEditorStartupMilestoneV1>,
 }
 
+// 文件邮箱是外来输入；解码后仍须经过构造校验，不能接受部分里程碑集合。
 impl<'de> Deserialize<'de> for HubEditorReadyReceiptV1 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where

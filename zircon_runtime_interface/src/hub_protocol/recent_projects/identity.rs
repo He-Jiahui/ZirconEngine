@@ -9,6 +9,7 @@ pub fn hub_recent_project_path_key(path: impl AsRef<Path>) -> String {
     while text.ends_with('/') && text.len() > 1 {
         text.pop();
     }
+    // 非 Windows 主机也可能读取 Windows 盘符记录，需沿用写入端的大小写键规则。
     if cfg!(target_os = "windows") || looks_like_windows_drive_path(&text) {
         text.make_ascii_lowercase();
     }

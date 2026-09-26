@@ -44,6 +44,7 @@ impl HubEditorFocusAckV1 {
         }
     }
 
+    /// 只核对应答绑定的请求身份；Hub 还须检查 disposition 才能确认聚焦成功。
     pub fn matches_request(&self, request: &HubEditorFocusSignalV1) -> bool {
         self.request_id == request.request_id
             && self.target_instance_id == request.target_instance_id
