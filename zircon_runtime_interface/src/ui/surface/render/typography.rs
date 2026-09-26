@@ -22,6 +22,7 @@ pub enum UiTextWrap {
     Glyph,
 }
 
+/// 文本渲染后端偏好；`Auto` 允许字体资产提供默认模式。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum UiTextRenderMode {
@@ -33,6 +34,7 @@ pub enum UiTextRenderMode {
     Mtsdf,
 }
 
+/// 显式请求优先于字体默认值；两者都未指定具体模式时回退到原生渲染。
 pub const fn resolve_ui_text_render_mode(
     requested_mode: UiTextRenderMode,
     font_render_mode: Option<UiTextRenderMode>,
@@ -52,6 +54,7 @@ pub const fn resolve_ui_text_render_mode(
     }
 }
 
+/// 富文本语法的版本化序列化标识，解析端只接受列出的具体版本。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum UiRichTextFormat {

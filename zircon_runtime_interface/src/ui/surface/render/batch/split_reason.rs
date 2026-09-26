@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use super::UiBatchKey;
 
+/// 相邻批次的边界原因，供批处理计划与可视化诊断共享。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum UiBatchSplitReason {
@@ -19,6 +20,7 @@ pub enum UiBatchSplitReason {
 }
 
 impl UiBatchSplitReason {
+    /// 按批次键的比较优先级报告首个差异；层级变化由调用方先处理。
     pub(super) fn between(current: &UiBatchKey, next: &UiBatchKey) -> Self {
         if current.clip != next.clip {
             Self::ClipChanged

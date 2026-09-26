@@ -1,5 +1,7 @@
+/// Runtime 与 Editor 共用的刻度绘制预算上限。
 pub const MAX_UI_SLIDER_TICK_COUNT: usize = 256;
 
+/// 将模板声明规整为至少两个刻度并限制上限；无效或过少的声明返回 `None`。
 pub fn bounded_ui_slider_tick_count(declared: f32) -> Option<usize> {
     let rounded = declared.round();
     if rounded.is_nan() || rounded < 2.0 {
@@ -11,6 +13,7 @@ pub fn bounded_ui_slider_tick_count(declared: f32) -> Option<usize> {
     Some(rounded as usize)
 }
 
+/// 再按轨道可用的整列像素收紧刻度数，避免在窄轨道上重复绘制。
 pub fn ui_slider_tick_count_for_track(declared: usize, track_width: f32) -> usize {
     let track_columns = if track_width.is_nan() || track_width <= 0.0 {
         0

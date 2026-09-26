@@ -8,6 +8,7 @@ use super::{
     UiTextOverflow, UiTextRenderMode, UiTextWrap, UiTextWritingMode,
 };
 
+/// 供文本测量与绘制共同消费的已解析样式快照；反序列化缺省项使用同一默认值。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct UiResolvedStyle {
@@ -52,6 +53,7 @@ impl UiResolvedStyle {
         font_size * Self::DEFAULT_LINE_HEIGHT_SCALE
     }
 
+    /// 将外部字重裁剪到 Runtime 与 Editor 共用的有效区间。
     pub const fn normalized_font_weight(font_weight: u16) -> u16 {
         if font_weight < Self::MIN_FONT_WEIGHT {
             Self::MIN_FONT_WEIGHT
