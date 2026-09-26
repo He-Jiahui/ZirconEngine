@@ -311,6 +311,7 @@ fn reject_raw_value(name: &str) -> Result<(), CanonicalTextWriteError> {
     Ok(())
 }
 
+// 预算按转义后的 JSON 键长度计费，防止短原串在实际输出时越过上限。
 fn json_string_encoded_len(
     value: &str,
     max_bytes: usize,

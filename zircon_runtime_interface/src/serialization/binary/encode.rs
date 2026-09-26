@@ -14,6 +14,7 @@ pub(in crate::serialization) fn encode_binary_payload(
 ) -> Result<Vec<u8>, WriteError> {
     let schema_id = header.schema_id.as_str().to_string();
     let schema_version = header.schema_version;
+    // 先按文本值域规范化对象键顺序，使相同逻辑值产生稳定的二进制节点序列。
     let value = BinaryValue::try_from(canonicalize_value(payload)).map_err(|source| {
         WriteError::InvalidBinaryPayload {
             schema_id: schema_id.clone(),

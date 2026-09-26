@@ -24,6 +24,7 @@ pub(in crate::serialization) fn decode_binary_value_direct<T>(
 where
     T: DeserializeOwned,
 {
+    // 先验证整条节点流的边界、键唯一性和深度，再交给目标类型反序列化。
     validate_stream(&value.nodes).map_err(DirectBinaryDecodeError::Invalid)?;
 
     let mut decoder = BinaryValueDeserializer {

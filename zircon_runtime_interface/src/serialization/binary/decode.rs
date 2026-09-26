@@ -13,6 +13,7 @@ pub(in crate::serialization) fn decode_binary_header(
 ) -> Result<(PayloadHeader, &[u8]), LoadError> {
     let body = body_after_valid_prefix(bytes)?;
     let mut cursor = Cursor::new(body);
+    // 仅解头时允许后续 payload 字节；完整 payload 解码仍拒绝尾随数据。
     let header = options()
         .allow_trailing_bytes()
         .with_limit(body.len() as u64)

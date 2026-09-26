@@ -7,6 +7,7 @@ impl<T> MigrationChain<T> {
         schema_id: &SchemaId,
         target_version: u32,
     ) -> Result<(), MigrateError> {
+        // 下标 i 必须恰好代表 i 到 i+1；即使读取当前版本也不能跳过链完整性校验。
         let expected_len = target_version as usize;
         for (index, step) in self.steps.iter().take(expected_len).enumerate() {
             let expected_from_version = index as u32;

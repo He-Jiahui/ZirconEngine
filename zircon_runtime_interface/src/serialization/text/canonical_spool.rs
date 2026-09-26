@@ -87,6 +87,7 @@ impl SpoolAttempt {
         ))
     }
 
+    // 暂存目录按写入尝试隔离并在首次落盘时创建；析构只清理本次尝试所属目录。
     fn ensure_directory(&self) -> io::Result<PathBuf> {
         if let Some(directory) = self.directory.borrow().as_ref() {
             return Ok(directory.clone());

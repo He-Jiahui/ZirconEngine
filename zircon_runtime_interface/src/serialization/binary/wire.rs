@@ -12,6 +12,7 @@ pub(in crate::serialization) const MAX_BINARY_NODES: usize = 2_000_000;
 pub(in crate::serialization) const MAX_BINARY_STRING_BYTES: usize = 16 * 1024 * 1024;
 
 /// Pins every bincode compatibility option instead of inheriting crate defaults.
+/// 变长整数、小端序和尾随字节策略均属于二进制 v1 的持久化契约。
 pub(super) fn options() -> impl Options {
     bincode::DefaultOptions::new()
         .with_varint_encoding()

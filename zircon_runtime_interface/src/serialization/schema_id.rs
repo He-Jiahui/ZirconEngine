@@ -7,6 +7,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 pub const MAX_SCHEMA_ID_BYTES: usize = 128;
 
 /// Stable identity for one versioned payload family.
+/// 构造和反序列化共用便携的 ASCII 命名语法；已写出的标识须跨版本保持稳定。
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize)]
 #[serde(transparent)]
 pub struct SchemaId(Cow<'static, str>);

@@ -65,6 +65,7 @@ pub(in crate::serialization) fn inspect_text(bytes: &[u8]) -> Result<TextInput<'
     let Some(envelope) = probe.envelope else {
         return Ok(TextInput::Unversioned);
     };
+    // 仅完整声明 schema_id 与 schema_version 才占用保留 envelope；同名业务字段仍可走 v0 迁移。
     if !claims_version_header(envelope).map_err(TextReadError::InvalidEnvelope)? {
         return Ok(TextInput::Unversioned);
     }

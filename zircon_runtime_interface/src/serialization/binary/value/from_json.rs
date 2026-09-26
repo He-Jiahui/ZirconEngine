@@ -15,6 +15,7 @@ impl TryFrom<Value> for BinaryValue {
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         let mut nodes = Vec::new();
+        // 深层值域必须受预算约束并保留规范顺序，否则跨格式回读和摘要会分歧。
         let mut tasks = vec![EncodeTask::Value { value, depth: 0 }];
 
         while let Some(task) = tasks.pop() {

@@ -32,6 +32,7 @@ where
 /// Loads a historical schema-zero text payload when no envelope is present.
 ///
 /// Callers must opt into this only for schemas with an owned v0 migration policy.
+/// 无 envelope 的回退仅适用于文本；二进制始终需要有效的线格式前缀和版本。
 pub fn load_versioned_legacy_schema_zero<T>(
     bytes: &[u8],
     format: Format,
@@ -74,6 +75,7 @@ where
         TextInput::Envelope(envelope) => {
             validate_schema::<T>(&envelope.header.schema_id)?;
             validate_source_version::<T>(envelope.header.schema_version)?;
+            // 当前文本版本从借用的原始片段直接解析目标类型，旧版本才进入 JSON 值域迁移。
             if envelope.header.schema_version == T::VERSION {
                 validate_migration_chain::<T>()?;
                 let value =

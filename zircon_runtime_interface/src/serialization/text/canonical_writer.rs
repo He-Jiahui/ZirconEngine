@@ -184,6 +184,7 @@ impl<'serializer, 'output, 'sink, 'budget, W: Write + ?Sized>
     where
         T: ?Sized + Serialize,
     {
+        // 重复键采用最后值；先退还旧值预算，避免替换操作被误计为两个输出字段。
         if let Some(previous) = self.entries.remove(key.value()) {
             self.serializer
                 .output

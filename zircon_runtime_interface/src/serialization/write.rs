@@ -56,6 +56,7 @@ where
 ///
 /// The caller owns any buffering policy. This function never constructs a
 /// complete text document solely to write it to the supplied sink.
+/// 写入或刷新失败时 sink 可能已有文档前缀；持久化调用方负责临时文件与原子替换。
 pub fn write_versioned_text_to<T, W>(value: &T, sink: &mut W) -> Result<usize, WriteError>
 where
     T: VersionedSchema + Serialize,
@@ -115,6 +116,7 @@ where
 ///
 /// This is reserved for runtime-owned archive formats that already define
 /// their own compatibility contract.
+/// 此入口使用调用方预算，不套用版本化文本的固定线格式上限。
 pub fn write_canonical_text_to<T, W>(
     value: &T,
     sink: &mut W,
