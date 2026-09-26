@@ -88,6 +88,7 @@ enum EvaluationFrame<'a> {
     NotAfterValue,
 }
 
+// 小表达式使用内联槽保存帧和值，超过槽容量才分配溢出空间。
 struct EvaluationStack<T> {
     inline: [Option<T>; UI_BINDING_EXPRESSION_INLINE_STACK_CAPACITY],
     inline_len: usize,
@@ -130,6 +131,7 @@ impl<T> EvaluationStack<T> {
 }
 
 impl UiBindingExpression {
+    /// 由宿主解析参数和属性；逻辑运算短路，未解析引用或预算超限会返回错误。
     pub fn evaluate_with<Param, Property, ControlProperty>(
         &self,
         mut resolve_param: Param,

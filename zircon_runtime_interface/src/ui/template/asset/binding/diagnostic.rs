@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+/// 绑定静态校验的诊断集合；警告保留在报告中，只有错误使校验失败。
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UiBindingReport {
     #[serde(default)]
@@ -44,6 +45,7 @@ impl UiBindingDiagnostic {
     }
 }
 
+/// 每种绑定错误固定映射到错误码、诊断 ID 和本地化键，供调用方稳定识别。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum UiBindingDiagnosticCode {

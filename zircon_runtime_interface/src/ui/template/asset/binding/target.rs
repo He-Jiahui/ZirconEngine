@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ui::component::{UiValue, UiValueKind};
 
+/// 目标值缺失时的处理策略；Default 和 Fallback 在此都提供替代值。
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "policy", rename_all = "snake_case")]
 pub enum UiBindingMissingValuePolicy {
@@ -26,6 +27,7 @@ pub enum UiBindingMissingValueResolution {
 }
 
 impl UiBindingMissingValuePolicy {
+    /// 已求得的值总是优先；策略只在表达式没有返回值时生效。
     pub fn resolve(&self, value: Option<UiValue>) -> UiBindingMissingValueResolution {
         if let Some(value) = value {
             return UiBindingMissingValueResolution::Value(value);

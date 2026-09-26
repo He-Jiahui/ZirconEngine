@@ -9,6 +9,7 @@ pub struct UiAssetMigrationOutcome {
     pub report: UiAssetMigrationReport,
 }
 
+/// 源资产迁移的步骤、诊断和编辑许可，供调用方判定升级结果。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UiAssetMigrationReport {
     pub source_kind: UiAssetSchemaSourceKind,
@@ -20,6 +21,7 @@ pub struct UiAssetMigrationReport {
 }
 
 impl UiAssetMigrationReport {
+    /// 未来版本默认不可编辑；实际执行的步骤由迁移器后续追加。
     pub fn new(source_kind: UiAssetSchemaSourceKind, source_schema_version: Option<u32>) -> Self {
         Self {
             can_edit: source_kind != UiAssetSchemaSourceKind::FutureVersion,

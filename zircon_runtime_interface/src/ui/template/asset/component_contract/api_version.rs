@@ -4,6 +4,7 @@ use std::str::FromStr;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use thiserror::Error;
 
+/// 组件公开 API 版本；序列化为 `major.minor.patch` 字符串。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct UiComponentApiVersion {
     pub major: u32,
@@ -18,6 +19,7 @@ impl UiComponentApiVersion {
         patch: 0,
     };
 
+    /// 提供方须保持主版本一致且次版本不低于实例要求；补丁号不参与判定。
     pub const fn is_compatible_with(self, required: Self) -> bool {
         self.major == required.major && self.minor >= required.minor
     }

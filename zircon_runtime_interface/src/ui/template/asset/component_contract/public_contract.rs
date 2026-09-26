@@ -7,6 +7,7 @@ use super::{
     UiRootClassPolicy,
 };
 
+/// 组件向引用方开放的部件、根类、焦点和动作面；校验器据此拒绝私有目标访问。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UiComponentPublicContract {
     #[serde(default)]

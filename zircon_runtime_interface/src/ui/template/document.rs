@@ -46,6 +46,7 @@ pub enum UiBindingTriggerTiming {
     CommandDispatch,
 }
 
+/// 绑定模式定义触发时机和写入方向；默认事件模式兼容未声明模式的旧文档。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum UiBindingMode {
     OneTime,
@@ -92,6 +93,7 @@ pub struct UiBindingRef {
     pub targets: Vec<UiBindingTargetAssignment>,
 }
 
+/// 展开后的模板树节点；编译器据来源资产和逐绑定来源构建归属信息。
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct UiTemplateNode {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -109,6 +111,7 @@ pub struct UiTemplateNode {
     #[serde(default)]
     pub bindings: Vec<UiBindingRef>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    /// 与 `bindings` 按索引对应；空数组时绑定沿用节点来源资产。
     pub binding_source_asset_ids: Vec<String>,
     #[serde(default)]
     pub children: Vec<UiTemplateNode>,

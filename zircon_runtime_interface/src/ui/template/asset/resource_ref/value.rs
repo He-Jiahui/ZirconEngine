@@ -4,6 +4,7 @@ use super::diagnostic::{UiResourceDiagnostic, UiResourceDiagnosticSeverity};
 use super::fallback_policy::{UiResourceFallbackMode, UiResourceFallbackPolicy};
 use super::resource_kind::UiResourceKind;
 
+/// 资产声明的资源引用；收集器检查 URI 形状，解析器再查找资源句柄。
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct UiResourceRef {
     pub kind: UiResourceKind,
@@ -13,6 +14,7 @@ pub struct UiResourceRef {
 }
 
 impl UiResourceRef {
+    /// 只检查 URI scheme、占位回退要求及回退种类，不访问实际资源存储。
     pub fn validate(&self, path: &str) -> Result<(), UiResourceDiagnostic> {
         let primary_uri = self.uri.trim();
         if primary_uri.is_empty() {

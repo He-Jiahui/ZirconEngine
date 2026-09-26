@@ -14,6 +14,7 @@ use crate::ui::picking::UiPickPolicy;
 use crate::ui::template::UiBindingRef;
 use crate::ui::widget::UiWidgetContract;
 
+/// 扁平原型节点表的索引；迁移器分配句柄，实例化器再按句柄读取节点。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct UiPrototypeNodeHandle(pub u32);
 
@@ -27,6 +28,7 @@ impl UiPrototypeNodeHandle {
     }
 }
 
+/// 扁平节点形式的资产原型；文件缓存保存它，实例化器从节点表展开树。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiRawAssetPrototype {
     pub asset: UiAssetHeader,

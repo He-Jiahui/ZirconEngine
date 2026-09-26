@@ -43,6 +43,7 @@ pub struct UiAssetImports {
     pub resources: Vec<UiResourceRef>,
 }
 
+/// 树形 TOML 源文档；加载器先执行版本迁移和权属校验，再交由编译器展开。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiAssetDocument {
     pub asset: UiAssetHeader,
@@ -80,6 +81,7 @@ pub enum UiNodeDefinitionKind {
     Slot,
 }
 
+/// 源节点保留组件引用、挂载槽和绑定声明，展开后才形成运行时模板节点。
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct UiNodeDefinition {
     #[serde(default)]
@@ -207,6 +209,7 @@ pub struct UiStyleDeclarationBlock {
     pub slot: BTreeMap<String, Value>,
 }
 
+/// 源资产中的动作路由声明；事件分发端负责解析负载缺失策略。
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct UiActionRef {
     #[serde(default)]

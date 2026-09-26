@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use super::UiAssetFingerprint;
 
+/// 前后快照的差异来源；失效图将其映射为需要重算的阶段。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum UiAssetChange {
