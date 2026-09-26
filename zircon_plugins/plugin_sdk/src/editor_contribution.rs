@@ -1,4 +1,4 @@
-//! DTO-only editor contribution authoring for native plugin boundaries.
+//! 在插件侧生成可跨原生边界传送的 Editor 贡献 DTO，物化及执行绑定由宿主负责。
 
 use std::collections::BTreeMap;
 
@@ -10,7 +10,7 @@ use zircon_runtime_interface::{
     SerializedEditorContribution,
 };
 
-/// Collects one plugin package's editor contributions before host-side materialization.
+/// 汇集单个插件包的 Editor 贡献；`build` 后仍须由宿主按包身份物化。
 #[derive(Clone, Debug)]
 pub struct EditorContributionBuilder {
     package_id: String,
@@ -82,6 +82,8 @@ impl EditorContributionBuilder {
         self
     }
 
+    // TODO: [CR-PLUGIN-SDK-0001] 确认无执行契约的命令是否只供离线 DTO 使用；`build` 接受该值，但 Editor 物化器拒绝；下一步核对是否存在其他消费者。
+    /// 声明未附带执行契约的命令 DTO；宿主原生物化路径会拒绝将它注册为可执行命令。
     pub fn command(
         mut self,
         id: impl Into<String>,
@@ -100,6 +102,7 @@ impl EditorContributionBuilder {
         self
     }
 
+    /// 声明带结果编解码和资源预算的原生命令；宿主还须将命令 ID 绑定到已准入的回调。
     pub fn command_with_execution_contract(
         mut self,
         id: impl Into<String>,
@@ -196,7 +199,7 @@ impl EditorContributionBuilder {
         self
     }
 
-    /// Delegates canonical ordering and duplicate validation to the shared DTO boundary.
+    /// 交由共享 DTO 层排序并校验重复项；此处不建立宿主执行绑定。
     pub fn build(self) -> Result<SerializedContributionBatch, SerializedContributionBatchError> {
         SerializedContributionBatch::new(self.package_id, self.contributions)
     }

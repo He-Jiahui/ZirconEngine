@@ -6,6 +6,7 @@ use zircon_runtime::plugin::{
 
 use super::{default_export_packaging, PluginModuleBuilder};
 
+/// 组装可选功能包的声明数据；可用性和依赖关系由 Runtime 目录另行验证。
 #[derive(Clone, Debug)]
 pub struct PluginFeatureBundleBuilder {
     feature: PluginFeatureBundleManifest,
@@ -60,6 +61,7 @@ impl PluginFeatureBundleBuilder {
         self
     }
 
+    /// 同时把能力声明挂到功能包和 Runtime 模块，并为模块限定目标运行模式。
     pub fn with_runtime_capability_module<I, S>(
         self,
         capability: impl Into<String>,
@@ -79,6 +81,7 @@ impl PluginFeatureBundleBuilder {
         self.with_capability(capability).with_runtime_module(module)
     }
 
+    /// 同时把能力声明挂到功能包和 Editor 模块；Editor 模块只面向编辑器宿主。
     pub fn with_editor_capability_module(
         self,
         capability: impl Into<String>,
@@ -122,6 +125,7 @@ impl PluginFeatureBundleBuilder {
         self
     }
 
+    /// 返回尚未通过 Runtime 功能包验证的声明值。
     pub fn build(self) -> PluginFeatureBundleManifest {
         self.feature
     }

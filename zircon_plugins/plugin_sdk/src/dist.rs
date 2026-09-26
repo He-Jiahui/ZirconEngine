@@ -1,8 +1,5 @@
-//! Native distribution entry helpers.
-//!
-//! This module keeps one-file `cdylib` exports out of the low-level ABI owner
-//! in `native.rs`. A native plugin crate should define its manifests and
-//! callbacks, then invoke one of these macros once at crate root.
+//! 将插件声明、回调与静态 ABI 表组装成原生动态库入口。
+//! 插件在 crate 根部调用一次发布宏；底层 ABI 载体和宿主协商规则由 `native` 模块定义。
 
 #[doc(hidden)]
 #[macro_export]
@@ -15,6 +12,8 @@ macro_rules! __zircon_native_dist_optional_cstr_ptr_v3 {
     };
 }
 
+/// 生成同一动态库的 Runtime 与 Editor 描述符、入口及静态报告。
+/// 所有传给 C 字符串字段的值须在库的存活期有效并以 NUL 结尾；宿主加载时仍会校验 ABI、能力与行为回调。
 #[macro_export]
 macro_rules! native_dist_plugin_v3 {
     (
@@ -343,6 +342,8 @@ macro_rules! native_dist_plugin_v3 {
     };
 }
 
+/// 只生成 Runtime 入口，并在描述符中将 Editor 入口置空。
+/// 行为表来自调用方提供的静态数据；是否满足有状态回调契约由宿主加载器判定。
 #[macro_export]
 macro_rules! native_dist_runtime_plugin_v3 {
     (
@@ -520,6 +521,8 @@ macro_rules! native_dist_runtime_plugin_v3 {
     };
 }
 
+/// 只生成 Editor 入口，并在描述符中将 Runtime 入口置空。
+/// 宿主按 Editor 模块身份选择入口，再验证报告和回调契约。
 #[macro_export]
 macro_rules! native_dist_editor_plugin_v3 {
     (
@@ -788,6 +791,7 @@ mod tests {
         },
     }
 
+    // 本夹具只验证导出符号和静态表连接；其有状态配置缺少保存与恢复回调，不能代表宿主加载验收。
     #[test]
     fn dist_plugin_one_file_export_compiles() {
         let descriptor = zircon_native_plugin_descriptor_v3();

@@ -11,6 +11,7 @@ fn join_module_metadata(parts: &[&str]) -> String {
     joined
 }
 
+/// 组装包清单中的模块元数据；运行时代码注册与动态库加载由各自宿主完成。
 #[derive(Clone, Debug)]
 pub struct PluginModuleBuilder {
     module: PluginModuleManifest,
@@ -25,6 +26,7 @@ impl PluginModuleBuilder {
         )
     }
 
+    /// 以包 ID 派生 Editor 模块名，并将目标模式默认限定为 EditorHost。
     pub fn editor(package_id: impl AsRef<str>, crate_name: impl Into<String>) -> Self {
         Self::new(
             join_module_metadata(&[package_id.as_ref(), ".editor"]),
@@ -131,6 +133,7 @@ impl PluginModuleBuilder {
         self
     }
 
+    /// 返回描述数据；包和功能包约束仍由消费清单的 Runtime 校验。
     pub fn build(self) -> PluginModuleManifest {
         self.module
     }

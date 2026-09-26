@@ -1,5 +1,7 @@
-//! Runtime plugin export helper macros.
+//! 生成 Rust Runtime 插件目录使用的辅助函数；原生动态库符号由 `dist` 模块负责。
 
+/// 为插件类型生成实例、包清单、项目选择和注册报告的统一 Rust 入口。
+/// 每次取值都会构造新实例；包清单经 `RuntimePlugin` trait 分派，保留插件自身的覆盖实现。
 #[macro_export]
 macro_rules! runtime_plugin_exports {
     ($plugin_ty:ty) => {
