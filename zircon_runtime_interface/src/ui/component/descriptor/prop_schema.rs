@@ -1,9 +1,12 @@
+//! 属性与保留状态的类型、默认值和编辑约束由共享 DTO 声明，供模板编译与状态归约消费。
+
 use serde::{Deserialize, Serialize};
 
 use crate::ui::component::{UiValue, UiValueKind};
 
 use super::UiOptionDescriptor;
 
+/// 同一结构描述可编辑属性或保留状态；数值边界由消费端校验。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiPropSchema {
     pub name: String,

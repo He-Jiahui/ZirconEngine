@@ -1,3 +1,5 @@
+//! 阶段计数由 Runtime 重建报告填充，帧汇总逐字段累加，未采集值保持零。
+
 use serde::{Deserialize, Serialize};
 
 /// Flat counter bag for one UI pipeline stage or a whole frame.
@@ -39,6 +41,7 @@ pub struct UiPipelineStageCounters {
 }
 
 impl UiPipelineStageCounters {
+    /// 按字段累加阶段观测值，不推断阶段是否实际运行。
     pub fn add_assign(&mut self, other: Self) {
         self.input_event_count += other.input_event_count;
         self.pointer_move_count += other.pointer_move_count;

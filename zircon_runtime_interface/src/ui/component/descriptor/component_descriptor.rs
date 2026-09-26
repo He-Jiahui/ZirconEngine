@@ -1,3 +1,5 @@
+//! 组件描述符是 Runtime 目录、模板编译与 Editor 调色板共享的声明契约；执行和校验留给消费者。
+
 use std::collections::BTreeSet;
 
 use serde::{Deserialize, Serialize};
@@ -11,6 +13,7 @@ use super::{
     UiPaletteMetadata, UiPropSchema, UiRenderCapability, UiSlotSchema, UiWidgetFallbackPolicy,
 };
 
+/// 汇集组件的默认值、可绑定模式、插槽、事件与宿主能力需求。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiComponentDescriptor {
     pub id: String,
@@ -165,6 +168,7 @@ impl UiComponentDescriptor {
         self
     }
 
+    /// 更新默认节点；已有调色板元数据时同步其插入模板。
     pub fn default_node_template(mut self, template: UiDefaultNodeTemplate) -> Self {
         if let Some(metadata) = &mut self.palette {
             metadata.default_node = template.clone();

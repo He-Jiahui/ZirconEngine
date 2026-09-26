@@ -1,3 +1,5 @@
+//! 子节点的位置参数由父节点的 slot 持有，模板、布局与诊断共享其身份和放置语义。
+
 use serde::{Deserialize, Serialize};
 
 use crate::ui::event_ui::UiNodeId;
@@ -141,6 +143,7 @@ impl UiCanvasSlotPlacement {
         self
     }
 
+    /// 未指定终点锚时使用起点锚，表示单点锚定而非拉伸区域。
     pub fn resolved_anchor_max(self) -> Anchor {
         self.anchor_max.unwrap_or(self.anchor)
     }

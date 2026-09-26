@@ -1,3 +1,5 @@
+//! 轴约束在测量前规整为有限下界、可选上界与可用权重，供 Runtime 布局求解。
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -7,6 +9,7 @@ pub enum StretchMode {
     Stretch,
 }
 
+/// 负数 max 表示无上界；非正权重在 resolved 时规整为默认权重。
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AxisConstraint {
     pub min: f32,
@@ -31,6 +34,7 @@ impl Default for AxisConstraint {
 }
 
 impl AxisConstraint {
+    /// 将作者输入规整为布局求解可消费的区间与初始解析值。
     pub fn resolved(self) -> ResolvedAxisConstraint {
         let min = self.min.max(0.0);
         let max = if self.max < 0.0 {

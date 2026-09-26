@@ -1,3 +1,5 @@
+//! 几何契约分别保留布局帧与绘制边界；像素对齐不改写命中测试使用的布局帧。
+
 use serde::{Deserialize, Serialize};
 
 use super::metrics::UiLayoutMetrics;
@@ -56,6 +58,7 @@ impl UiFrame {
         UiPoint::new(self.x + self.width * 0.5, self.y + self.height * 0.5)
     }
 
+    /// 正面积帧包含左右上下边界；命中排序由调用方处理共享边。
     pub fn contains_point(self, point: UiPoint) -> bool {
         self.width > 0.0
             && self.height > 0.0
@@ -65,6 +68,7 @@ impl UiFrame {
             && point.y <= self.bottom()
     }
 
+    /// 仅有边界接触而没有正面积时不产生裁剪帧。
     pub fn intersection(self, other: Self) -> Option<Self> {
         let left = self.x.max(other.x);
         let top = self.y.max(other.y);

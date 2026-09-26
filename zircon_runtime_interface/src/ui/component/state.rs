@@ -1,3 +1,5 @@
+//! 每节点组件状态承载类型化值、交互标志和拖放来源；Runtime 状态归约负责状态迁移。
+
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
@@ -22,6 +24,7 @@ pub struct UiComponentFlags {
     pub loading: bool,
 }
 
+/// 保留类型化值与拖放来源，并提供会失效旧来源的写入辅助方法。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiComponentState {
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
@@ -50,6 +53,7 @@ impl UiComponentState {
         }
     }
 
+    /// 替换属性值时撤销该属性原有的拖放来源。
     pub fn with_value(mut self, property: impl Into<String>, value: UiValue) -> Self {
         let property = property.into();
         // Replacing a retained value directly invalidates drag/drop provenance for that slot.

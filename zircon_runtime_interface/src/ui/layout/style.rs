@@ -1,5 +1,8 @@
+//! 布局样式是模板与 Runtime 之间的中立 DTO；Runtime 映射层校验并转换后端样式。
+
 use serde::{Deserialize, Serialize};
 
+/// 模板样式的通用输入；缺省字段保持 Flex 行布局与自动尺寸。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct UiLayoutStyle {

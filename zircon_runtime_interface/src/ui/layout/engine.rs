@@ -1,3 +1,5 @@
+//! 后端能力、选择和回退报告是 Runtime 布局 pass 与 Editor 诊断共享的协议。
+
 use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::ui::event_ui::UiNodeId;
@@ -213,6 +215,7 @@ impl Default for UiLayoutEngineSelection {
 }
 
 impl UiLayoutEngineSelection {
+    /// 记录首选后端和回退后端的能力判定；Unsupported 仍保留回退目标供诊断。
     pub fn select(
         request: &UiLayoutEngineRequest,
         preferred: &UiLayoutEngineCapability,
@@ -256,6 +259,7 @@ impl UiLayoutEngineSelection {
     }
 }
 
+/// 节点选择序列是权威输入；反序列化时重新计算聚合计数。
 #[derive(Clone, Debug, Default, PartialEq, Serialize)]
 pub struct UiLayoutEngineSelectionReport {
     pub selections: UiPersistentSequence<UiLayoutEngineSelection>,

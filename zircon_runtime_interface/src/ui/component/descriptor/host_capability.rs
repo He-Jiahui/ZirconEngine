@@ -1,3 +1,5 @@
+//! 宿主能力集合用于 Runtime 组件目录的可用性筛选和缺失能力诊断。
+
 use std::collections::BTreeSet;
 
 use serde::{Deserialize, Serialize};
@@ -17,6 +19,7 @@ pub enum UiHostCapability {
     VirtualizedLayout,
 }
 
+/// 目录筛选要求集合包含描述符声明的全部宿主能力。
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UiHostCapabilitySet {
     #[serde(default)]

@@ -1,3 +1,5 @@
+//! 事件信封把控件身份、目标和类型化事件送往宿主适配器，并校验反序列化后的事件种类。
+
 use serde::{Deserialize, Serialize};
 
 use super::UiComponentBindingTarget;
@@ -32,6 +34,7 @@ impl TryFrom<UiComponentEventEnvelopeWire> for UiComponentEventEnvelope {
     type Error = String;
 
     fn try_from(value: UiComponentEventEnvelopeWire) -> Result<Self, Self::Error> {
+        // 线格式同时携带声明种类和类型化载荷，必须防止两者分叉。
         let actual_event_kind = value.event.kind();
         if value.event_kind != actual_event_kind {
             return Err(format!(

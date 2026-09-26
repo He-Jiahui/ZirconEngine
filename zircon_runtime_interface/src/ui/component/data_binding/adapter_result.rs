@@ -1,3 +1,5 @@
+//! 组件适配器把写入结果和投影请求交给宿主；宿主按刷新标志安排展示更新。
+
 use serde::{Deserialize, Serialize};
 
 use super::UiComponentProjectionPatch;
@@ -6,7 +8,9 @@ use crate::ui::component::UiValidationState;
 /// Reports adapter mutation status and optional projection updates to the host UI.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct UiComponentAdapterResult {
+    /// 目标数据是否已发生变化；宿主也可独立请求投影刷新。
     pub changed: bool,
+    /// 宿主据此刷新展示投影，即使没有局部 patch 也可能需要刷新。
     pub refresh_projection: bool,
     pub dirty: bool,
     pub transaction_id: Option<String>,

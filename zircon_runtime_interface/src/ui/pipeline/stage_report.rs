@@ -1,7 +1,10 @@
+//! 阶段报告是 Runtime 重建诊断交给帧报告和 Editor 调试视图的共享 DTO。
+
 use serde::{Deserialize, Serialize};
 
 use super::{UiPipelineDirtyReason, UiPipelineStage, UiPipelineStageCounters};
 
+/// skipped 表示本报告未测得该阶段的重建工作，不代表整帧未执行对应行为。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct UiPipelineStageReport {
