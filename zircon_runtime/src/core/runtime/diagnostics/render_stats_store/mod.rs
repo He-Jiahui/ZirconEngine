@@ -1,3 +1,5 @@
+//! 将渲染框架统计投影到固定诊断路径，供运行时快照、日志与开发工具共用。
+//! 本层只读取一次查询所得的 RenderStats；统计生成与历史保留由各自所有者负责。
 mod advanced_provider;
 mod ambient_occlusion;
 mod anti_alias;

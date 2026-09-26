@@ -2,6 +2,7 @@ use crate::core::framework::render::RenderStats;
 
 use super::super::{record_count, record_microseconds, DiagnosticStore};
 
+/// 对照计划存活通道与实际执行通道，暴露遗漏、意外执行和重复执行。
 pub(super) fn record_coverage(store: &mut DiagnosticStore, frame_index: u64, stats: &RenderStats) {
     let report = stats.last_graph_execution_coverage_report;
     record_count(
@@ -48,6 +49,7 @@ pub(super) fn record_coverage(store: &mut DiagnosticStore, frame_index: u64, sta
     );
 }
 
+/// 将执行阶段的分组结果与计划通道数对齐，便于定位图计划和实际调度之间的偏差。
 pub(super) fn record_stage(store: &mut DiagnosticStore, frame_index: u64, stats: &RenderStats) {
     let report = stats.last_graph_stage_execution_report;
     record_count(
@@ -87,6 +89,7 @@ pub(super) fn record_stage(store: &mut DiagnosticStore, frame_index: u64, stats:
     );
 }
 
+/// 汇总执行批次与阶段边界，解释相同通道数下不同的调度开销。
 pub(super) fn record_batches(store: &mut DiagnosticStore, frame_index: u64, stats: &RenderStats) {
     let report = stats.last_graph_execution_batch_report;
     for (metric, value, tags) in [
@@ -130,6 +133,7 @@ pub(super) fn record_batches(store: &mut DiagnosticStore, frame_index: u64, stat
     }
 }
 
+/// 区分逻辑资源、别名和实际后备资源，判断复用效果时不能把别名数当成分配数。
 pub(super) fn record_aliases(store: &mut DiagnosticStore, frame_index: u64, stats: &RenderStats) {
     let report = &stats.last_graph_execution_alias_report;
     record_count(
@@ -220,6 +224,7 @@ pub(super) fn record_aliases(store: &mut DiagnosticStore, frame_index: u64, stat
     );
 }
 
+/// 发布执行通道 CPU 总耗时与最大耗时，供比较总体成本和单点瓶颈。
 pub(super) fn record_profile(store: &mut DiagnosticStore, frame_index: u64, stats: &RenderStats) {
     let report = &stats.last_graph_execution_profile_report;
     record_count(

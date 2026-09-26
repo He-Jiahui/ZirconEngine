@@ -1,5 +1,6 @@
 use super::DiagnosticStore;
 
+// 叶节点通过这些入口保持固定路径、单位与标签元数据一致；DiagnosticStore 据此复用序列元数据。
 pub(super) fn record_count(
     store: &mut DiagnosticStore,
     path: &'static str,

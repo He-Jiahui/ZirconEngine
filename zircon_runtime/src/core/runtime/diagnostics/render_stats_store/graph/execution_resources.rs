@@ -2,6 +2,7 @@ use crate::core::framework::render::RenderStats;
 
 use super::super::{record_bytes, record_count, DiagnosticStore};
 
+/// 描述执行时实际绑定与暂存池的资源压力；需和 materialization 的需求/缺口一起读取。
 pub(super) fn record(store: &mut DiagnosticStore, frame_index: u64, stats: &RenderStats) {
     let report = stats.last_graph_execution_resource_report;
     record_count(

@@ -1,6 +1,7 @@
 use crate::core::framework::render::RenderStats;
 
 use super::{record_count, DiagnosticStore};
+/// 关联精灵就绪/贴图回退与绘制批次、顶点规模，判断异常来自资源还是批处理。
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
     record_count(

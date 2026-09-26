@@ -4,6 +4,7 @@ use super::super::{record_bool, record_bytes, record_count, DiagnosticStore};
 
 const EXPOSURE_READBACK_TAGS: &[&str] = &["render", "post_process", "exposure", "readback"];
 
+/// 同时发布曝光读回的可用性、历史有效性与载荷校验，供判断数值能否用于画面分析。
 pub(super) fn record(
     store: &mut DiagnosticStore,
     frame_index: u64,

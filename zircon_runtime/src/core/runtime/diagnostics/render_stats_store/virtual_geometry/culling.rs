@@ -7,6 +7,7 @@ use crate::core::framework::render::{
 
 use super::super::{record_bool, record_count, DiagnosticStore};
 
+/// 将簇选择输入、节点/簇裁剪和输出来源分开记录，判断几何在何处被筛掉或降级。
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
     record_cluster_selection_source(store, frame_index, stats);

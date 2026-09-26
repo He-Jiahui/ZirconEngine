@@ -2,6 +2,7 @@ use crate::core::framework::render::RenderStats;
 
 use super::{record_count, DiagnosticStore};
 
+/// 将粒子存活、生成和速度流歧义并列暴露，以区分调度规模与速度数据缺口。
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
     record_count(

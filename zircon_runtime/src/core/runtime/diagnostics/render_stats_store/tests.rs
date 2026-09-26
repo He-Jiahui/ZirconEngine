@@ -1,3 +1,4 @@
+// 源码守卫确保热路径继续使用固定诊断路径与静态元数据；数值语义由运行时快照测试覆盖。
 #[test]
 fn render_stats_helpers_use_static_metadata_recording() {
     let implementation = include_str!("measurement.rs");

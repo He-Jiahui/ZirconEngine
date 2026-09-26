@@ -1,6 +1,7 @@
 use crate::core::framework::render::RenderStats;
 
 use super::{record_bool, record_count, DiagnosticStore};
+/// 并列展示光格输入规模、非空簇和簇内负载，定位分桶稀疏度与峰值压力。
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
     record_bool(

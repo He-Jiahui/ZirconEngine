@@ -2,6 +2,7 @@ use crate::core::framework::render::{RenderHybridGiRadianceCacheGpuStage, Render
 
 use super::super::{record_count, DiagnosticStore};
 
+/// 联合场景表面卡片与辐照缓存的驻留、截断及阶段调度指标，分析缓存压力。
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
     record_count(

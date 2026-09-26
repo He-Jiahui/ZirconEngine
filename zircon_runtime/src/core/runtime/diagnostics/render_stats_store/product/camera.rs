@@ -4,6 +4,7 @@ use crate::core::framework::render::{
 };
 
 use super::{record_bool, record_count, DiagnosticStore};
+/// 将相机目标解析、图导入、回写和捕获源放在同一帧下，追查输出去向及转换。
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
     record_camera_target_resolution(store, frame_index, stats);

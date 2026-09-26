@@ -1,6 +1,7 @@
 use crate::core::framework::render::RenderStats;
 
 use super::{record_bool, record_count, DiagnosticStore};
+/// 按层、视锥、遮挡和静态索引阶段拆分可见性结果，追查对象在哪一步被剔除。
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
     record_count(

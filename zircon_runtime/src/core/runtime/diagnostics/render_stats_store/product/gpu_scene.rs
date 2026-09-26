@@ -1,6 +1,7 @@
 use crate::core::framework::render::{RenderGpuSceneUploadPath, RenderStats};
 
 use super::{record_bool, record_bytes, record_count, DiagnosticStore};
+/// 从场景规模、脏项到上传路径追踪 GPU Scene 更新，判断上传压力来自数据变化还是传输策略。
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
     record_count(

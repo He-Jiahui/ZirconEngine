@@ -4,6 +4,7 @@ use crate::core::framework::render::{
 
 use super::{record_bool, record_count, DiagnosticStore};
 
+/// 分开记录 Solari 的请求、提供者、就绪和退化原因，避免把未请求误判为运行失败。
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
     let report = &stats.last_solari_runtime_report;

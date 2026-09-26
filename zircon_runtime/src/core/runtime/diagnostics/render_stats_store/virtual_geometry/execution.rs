@@ -2,6 +2,7 @@ use crate::core::framework::render::RenderStats;
 
 use super::super::{record_count, DiagnosticStore};
 
+/// 记录间接绘制与执行段的驻留/缺失，判断几何已被选中却未能绘制的原因。
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
     record_count(

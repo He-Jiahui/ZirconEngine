@@ -1,3 +1,4 @@
+//! 混合全局光照的探针、场景表面、体素和 SDF 诊断在此汇合，共享提交帧索引。
 mod global_sdf;
 mod payload_source;
 mod probe_cache;

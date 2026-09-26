@@ -1,6 +1,7 @@
 use crate::core::framework::render::{MotionVectorCameraStatus, RenderStats};
 
 use super::{record_bool, record_count, DiagnosticStore};
+/// 区分后处理效果的启用、近似实现及 LUT 资源回退，解释最终画面与请求配置的差异。
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let report = &stats.last_post_process_effect_stack_report;
     let frame_index = stats.submitted_frames;

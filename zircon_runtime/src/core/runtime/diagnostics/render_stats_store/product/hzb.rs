@@ -1,6 +1,7 @@
 use crate::core::framework::render::RenderStats;
 
 use super::{record_bool, record_bytes, record_count, DiagnosticStore};
+/// 同时记录 HZB 构建和遮挡筛选回执，区分层级深度生成与实际筛选效果。
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
     record_count(

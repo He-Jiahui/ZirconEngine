@@ -2,6 +2,7 @@ use crate::core::framework::render::RenderStats;
 
 use super::super::{record_count, DiagnosticStore};
 
+/// 将探针需求、驻留和待更新量放在同一帧下，判断缓存容量是否跟上光照请求。
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
     record_count(

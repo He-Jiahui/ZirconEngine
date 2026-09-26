@@ -1,3 +1,4 @@
+//! 后处理输出的读回验证诊断；与 graph/post_process 的节点数量诊断互补。
 mod color_lut;
 mod exposure;
 

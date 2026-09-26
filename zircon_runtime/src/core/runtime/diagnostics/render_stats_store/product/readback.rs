@@ -2,6 +2,7 @@ use crate::core::framework::render::RenderStats;
 
 use super::{record_bytes, record_count, DiagnosticStore};
 
+/// 记录共享读回队列的在途占用、完成吞吐与槽位复用拒绝，解释异步读回积压。
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
     record_count(

@@ -5,6 +5,7 @@ use crate::core::framework::render::{
 
 use super::{record_bool, record_count, DiagnosticStore};
 
+/// 区分高级特性的提供者可见性、请求状态、就绪状态及退化原因；仅有提供者不代表功能启用。
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     record_availability(store, stats);
     record_reports(store, stats);
@@ -137,6 +138,7 @@ fn record_reports(store: &mut DiagnosticStore, stats: &RenderStats) {
     );
 }
 
+// 单个功能视角与全局聚合并存：缺少该功能报告时各状态为零，不能仅凭提供者可见性推断已请求。
 fn record_feature(
     store: &mut DiagnosticStore,
     stats: &RenderStats,
@@ -246,6 +248,7 @@ struct AdvancedProviderAggregateCounts {
     missing_provider_degradations: usize,
 }
 
+// 所有高级特性报告共享一次原因聚合，避免为每个图表反复扫描退化列表。
 fn advanced_provider_aggregate_counts(
     reports: &[AdvancedProviderReport],
 ) -> AdvancedProviderAggregateCounts {

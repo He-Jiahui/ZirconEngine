@@ -4,6 +4,8 @@ use crate::core::framework::render::{
 
 use super::{record_bool, record_count, DiagnosticStore};
 
+/// 将历史句柄、尺寸和失效原因拆成固定序列，供时域特效诊断跨帧追踪。
+/// 可选帧号与句柄需先看相应的 present/available 标志，再解释数值零。
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
     let history = stats.last_frame_history_status;
@@ -124,6 +126,7 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
 }
 
 #[derive(Clone, Copy)]
+// 域名与路径在编译期固定，使帧代际变化继续落到同一条历史序列。
 struct HistoryDomainDiagnosticPaths {
     domain: RenderHistoryDomain,
     valid: &'static str,

@@ -2,6 +2,8 @@ use crate::core::framework::render::{RenderSceneSubmissionCompletionStatus, Rend
 
 use super::{record_bool, record_count, DiagnosticStore};
 
+/// 同时发布提交票据、轮询观察点和待完成容量，供诊断端区分已提交与 GPU 已完成。
+/// 可选票据被折成零时，需结合 completed 与 pending 指标判断。
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
     let report = stats.last_scene_submission_completion_report;

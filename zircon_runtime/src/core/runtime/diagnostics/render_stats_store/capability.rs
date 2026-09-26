@@ -2,6 +2,8 @@ use crate::core::framework::render::RenderStats;
 
 use super::{record_bool, record_count, DiagnosticStore};
 
+/// 发布后端能力协商结果，供调用者解释功能为何可用或降级。
+/// 能力存在并不表示该帧启用了对应渲染路径；应与功能执行报告一起读取。
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
     let capabilities = &stats.capabilities;

@@ -2,8 +2,10 @@ use crate::core::framework::render::RenderStats;
 
 use super::super::{record_bool, record_count, DiagnosticStore};
 
+/// 发布 Global SDF 的 CPU 准备成本、驻留与上传压力，判断数据准备和 GPU 供给是否匹配。
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
+// BUG: [CR-RENDER-STATS-0003] Global SDF 的耗时与字节量指标通过 record_count 写成 count 单位，快照将微秒与字节误标为数量；证据：record_count 固定单位。
     record_count(
         store,
         "render.hybrid_gi.global_sdf.cpu_prepare_time_us",

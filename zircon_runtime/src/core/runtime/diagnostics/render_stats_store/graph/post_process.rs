@@ -2,6 +2,7 @@ use crate::core::framework::render::RenderStats;
 
 use super::super::{record_bool, record_count, DiagnosticStore};
 
+/// 记录后处理图节点的计划和执行覆盖；读回数值验证由 post_process 子模块提供。
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
     record_count(

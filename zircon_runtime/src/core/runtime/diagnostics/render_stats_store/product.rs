@@ -1,3 +1,4 @@
+//! 从产品视角组织相机、可见性、材质、灯光及 UI 指标，串联画面产生链路。
 mod camera;
 mod effect_stack;
 mod gpu_scene;

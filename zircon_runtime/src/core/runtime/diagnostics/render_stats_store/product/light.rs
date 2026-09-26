@@ -2,6 +2,7 @@ use crate::core::framework::render::RenderStats;
 
 use super::{record_count, DiagnosticStore};
 
+/// 按光源家族分别暴露总量、就绪量和降级量，区分缺光与资源退化。
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
     record_light_family(

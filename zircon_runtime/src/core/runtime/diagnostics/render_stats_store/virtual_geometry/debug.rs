@@ -2,6 +2,7 @@ use crate::core::framework::render::RenderStats;
 
 use super::super::{record_bool, record_count, DiagnosticStore};
 
+/// 把调试覆盖状态与渲染回执并列记录；forced_mip_value 仅在 forced_mip_present 时有效。
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
     record_bool(

@@ -18,6 +18,7 @@ const COLOR_LUT_READBACK_REFERENCE_TAGS: &[&str] = &[
     "reference",
 ];
 
+/// 分别报告 LUT 与恒等映射、用户参考映射的偏差，避免混淆读回有效性和调色语义。
 pub(super) fn record(
     store: &mut DiagnosticStore,
     frame_index: u64,

@@ -1,6 +1,7 @@
 use crate::core::framework::render::RenderStats;
 
 use super::{record_count, DiagnosticStore};
+/// 并列展示材质总量、就绪、回退和验证失败，定位材质路径的可用性问题。
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
     record_count(

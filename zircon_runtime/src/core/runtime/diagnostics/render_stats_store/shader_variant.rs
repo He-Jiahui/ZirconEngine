@@ -4,6 +4,7 @@ use crate::core::framework::render::{
 
 use super::{record_count, record_microseconds, DiagnosticStore};
 
+// 每个目标的路径与 ShaderPipelineTarget 公共顺序绑定，新增目标时需同步扩展静态表和顺序断言。
 struct PipelineTargetDiagnosticPaths {
     target: ShaderPipelineTarget,
     registered_pipeline_variant_count: &'static str,
@@ -69,6 +70,7 @@ const PIPELINE_TARGET_DIAGNOSTIC_PATHS: [PipelineTargetDiagnosticPaths;
 const PIPELINE_TARGET_DIAGNOSTIC_TAGS: &[&str] =
     &["render", "shader", "variant", "pipeline", "target"];
 
+/// 将变体请求、创建耗时和目标维度统计投影到稳定序列，区分缓存命中与首次构建成本。
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
     let report = &stats.last_shader_variant_miss_report;

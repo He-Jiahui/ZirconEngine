@@ -2,6 +2,7 @@ use crate::core::framework::render::{RenderStats, RenderVirtualGeometryPayloadSo
 
 use super::super::{record_bool, record_count, DiagnosticStore};
 
+/// 同帧记录预算、输入、可见量和载荷来源，区分预算拒绝与上游未提供几何数据。
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     record_input_and_visibility(store, stats);
     record_payload_source(store, stats);

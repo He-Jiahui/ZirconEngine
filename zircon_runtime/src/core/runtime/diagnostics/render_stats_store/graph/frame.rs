@@ -3,6 +3,8 @@ use crate::core::framework::render::RenderStats;
 use super::super::{record_bytes, record_count, DiagnosticStore};
 use super::{execution, execution_resources, materialization};
 
+/// 汇总本帧图计划的通道、生命周期与执行结果，再接入资源绑定和执行明细。
+/// 指标来自最近一次提交的回执，不应解释为当前正在构建的图。
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
     record_count(
@@ -216,6 +218,7 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
         stats.last_taa_reactive_mask_encoded_pass_count,
         &["render", "taa", "reactive_mask"],
     );
+// BUG: [CR-RENDER-STATS-0004] TAA 反应遮罩写入字节数通过 record_count 标成 count，诊断消费者得到错误单位；证据：record_count 的固定单位。
     record_count(
         store,
         "render.taa.reactive_mask_encoded_write_bytes",

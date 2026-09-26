@@ -2,6 +2,7 @@ use crate::core::framework::render::RenderStats;
 
 use super::super::{record_count, DiagnosticStore};
 
+/// 区分体素级联的驻留、脏化与失效，判断重建压力来自可见需求还是历史作废。
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
     record_count(

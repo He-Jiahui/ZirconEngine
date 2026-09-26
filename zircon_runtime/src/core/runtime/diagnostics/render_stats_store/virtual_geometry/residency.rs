@@ -2,6 +2,7 @@ use crate::core::framework::render::RenderStats;
 
 use super::super::{record_count, DiagnosticStore};
 
+/// 对照页请求、驻留、等待和替换，分析虚拟几何页表是否跟上本帧需求。
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
     record_count(

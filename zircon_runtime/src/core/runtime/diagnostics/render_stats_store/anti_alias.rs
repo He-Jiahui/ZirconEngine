@@ -2,6 +2,7 @@ use crate::core::framework::render::{AntiAliasFallbackReason, AntiAliasMode, Ren
 
 use super::{record_bool, record_count, DiagnosticStore};
 
+/// 并列保留请求、最终选择和图执行中的抗锯齿配置，以识别回退发生于能力选择还是图构建。
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
     let report = stats.last_anti_alias_fallback;

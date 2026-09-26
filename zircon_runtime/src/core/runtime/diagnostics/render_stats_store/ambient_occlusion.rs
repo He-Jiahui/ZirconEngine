@@ -2,6 +2,7 @@ use crate::core::framework::render::{RenderAmbientOcclusionExecutionStatus, Rend
 
 use super::{record_bool, record_count, DiagnosticStore};
 
+/// 保留环境光遮蔽管线的候选、最终产物与失败回执，帮助定位降级阶段。
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
     let report = stats.last_ambient_occlusion_execution_report;
@@ -35,6 +36,7 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
         report.failure_flags.bits() as usize,
         tags,
     );
+// BUG: [CR-RENDER-STATS-0002] 64 位产物指纹经 usize 和 f64 记录后可能丢失低位精度，快照不能可靠标识原始产物；证据：下列指纹进入 record_count -> record_static。
     for (path, value) in [
         (
             "render.ambient_occlusion.execution.frame_generation",

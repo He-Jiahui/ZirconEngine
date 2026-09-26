@@ -2,6 +2,7 @@ use crate::core::framework::render::RenderStats;
 
 use super::super::{record_count, DiagnosticStore};
 
+/// 对照图编译后的资源需求与实际绑定，明确缺失发生在材质化阶段还是执行阶段。
 pub(super) fn record(store: &mut DiagnosticStore, frame_index: u64, stats: &RenderStats) {
     let report = stats.last_graph_materialization_report;
     record_count(
