@@ -1,3 +1,6 @@
+//! 将冻结 InterfaceSpec 的版本、入口符号和槽名目录写入 Cargo 的 OUT_DIR，供接口 crate 引入。
+//! 生成目录不定义函数表布局；ABI 表契约测试负责核对槽名清单与具体表字段。
+
 use std::collections::BTreeSet;
 use std::env;
 use std::fs;
