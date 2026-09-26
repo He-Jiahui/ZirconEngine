@@ -7,6 +7,7 @@ pub enum WindowTheme {
     Dark,
 }
 
+/// 宿主窗口状态变化的帧级通知；输入管理器在下一帧开始时清空，消费方需及时读取。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum WindowStatusEvent {
     Moved { x: i32, y: i32 },

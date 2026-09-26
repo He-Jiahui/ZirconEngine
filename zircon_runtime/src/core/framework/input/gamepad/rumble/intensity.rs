@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+/// 运行时的双电机强度值；出站 ABI 转换前须调用 `clamped`，不能直接把未校验浮点值交给宿主。
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct GamepadRumbleIntensity {
     pub strong_motor: f32,

@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 
 use super::{InputAction, InputActionContext, InputBinding};
 
+/// 声明动作、上下文和物理绑定的可序列化配置；求值器会编译它，修改后须重新设置映射。
+/// 公共字段允许外部构造；新增上下文通过 `add_context` 维护优先级顺序，同名添加保留原项。
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InputActionMap {
     #[serde(default)]
@@ -32,6 +34,7 @@ impl InputActionMap {
         self
     }
 
+    /// 按优先级和标识稳定插入；读取外部构造的未排序上下文时先修正顺序。
     pub fn add_context(&mut self, context: InputActionContext) -> &mut Self {
         if self.has_context(&context.id) {
             return self;
@@ -78,6 +81,7 @@ impl InputActionMap {
             .any(|candidate| candidate.id == context)
     }
 
+    /// 未显式声明的上下文默认可用，使只在动作上命名的旧配置仍能求值。
     pub fn context_enabled(&self, context: impl AsRef<str>) -> bool {
         let context = context.as_ref();
         self.contexts

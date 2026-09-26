@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use super::super::device::GamepadId;
 use super::GamepadRumbleIntensity;
 
+/// 动作侧发往宿主设备驱动的命令；管理器排空请求后才由宿主执行，不代表振动已生效。
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub enum GamepadRumbleRequest {
     Add {

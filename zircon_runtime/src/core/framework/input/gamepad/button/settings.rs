@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 pub const GAMEPAD_BUTTON_PRESS_THRESHOLD: f32 = 0.75;
 pub const GAMEPAD_BUTTON_RELEASE_THRESHOLD: f32 = 0.65;
 
+/// 按下与释放采用分离阈值，防止模拟按钮在阈值附近反复抖动。
+/// 自定义配置应让释放阈值低于按下阈值；构造器不验证配置。
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct GamepadButtonSettings {
     pub press_threshold: f32,

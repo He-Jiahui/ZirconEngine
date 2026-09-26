@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 #[cfg(test)]
 mod release_all_tests;
 
+/// 同时保留跨帧按住状态与本帧边沿，供输入管理器和动作求值器共享同一状态语义。
+/// 帧开始只清除边沿；失焦或设备断开应先生成释放边沿，再由下一帧清除。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ButtonInputState<T>
 where
@@ -32,6 +34,7 @@ impl<T> ButtonInputState<T>
 where
     T: Clone + Ord,
 {
+    /// 从仅含当前按住项的旧式快照恢复状态；它无法重建按下或释放边沿。
     pub fn from_pressed(inputs: impl IntoIterator<Item = T>) -> Self {
         Self {
             pressed: inputs.into_iter().collect(),
@@ -71,6 +74,7 @@ where
         released
     }
 
+    /// 用于失焦等全局取消：保留本帧释放边沿，使后续动作求值能观察到停用。
     pub fn release_all(&mut self) -> Vec<T> {
         let released_inputs = self.pressed.iter().cloned().collect::<Vec<_>>();
         let mut released = std::mem::take(&mut self.pressed);

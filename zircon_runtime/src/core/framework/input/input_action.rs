@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+/// 动作映射中的稳定逻辑标识；绑定按 `id` 查找，`display_name` 只供界面显示。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InputAction {
     pub id: String,

@@ -9,6 +9,7 @@ pub enum MouseScrollUnit {
     Pixel,
 }
 
+/// 保留宿主滚动的原始行或像素单位；需要旧式纵向标量时再显式换算成行。
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct MouseWheelEvent {
     pub unit: MouseScrollUnit,
@@ -29,6 +30,7 @@ impl MouseWheelEvent {
         Self::new(MouseScrollUnit::Pixel, x, y)
     }
 
+    /// 供旧式纵向滚动视图使用固定像素比例；精确滚动消费方应读取带单位的原始事件。
     pub fn vertical_line_delta(self) -> f32 {
         match self.unit {
             MouseScrollUnit::Line => self.y,

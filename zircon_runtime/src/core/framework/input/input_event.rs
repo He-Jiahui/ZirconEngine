@@ -6,6 +6,8 @@ use super::{
     TouchPhase, WindowStatusEvent,
 };
 
+/// 宿主归一化后提交给输入管理器的事件边界；管理器同时更新设备状态、即时帧队列及可选录制。
+/// UI 分发可有独立路由，提交这里并不表示 UI 已处理该事件。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum InputEvent {
     CursorMoved {

@@ -19,6 +19,8 @@ impl CursorPosition {
     }
 }
 
+/// 运行时发往窗口宿主的反向命令；提交为输入事件后由管理器保留，宿主排空后执行。
+/// 帧快照仅展示本帧新增命令，不能代替实际排空。
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub enum CursorHostRequest {
     SetVisible(bool),

@@ -1,3 +1,6 @@
+//! 定义平台输入经运行时归一化后的共享数据和服务契约：事件进入管理器，帧快照供动作求值与回放读取。
+//! 设备采样、队列保留及动作求值的状态所有权位于 `crate::input::runtime`。
+
 mod button_input_state;
 mod cursor;
 mod event_retention;

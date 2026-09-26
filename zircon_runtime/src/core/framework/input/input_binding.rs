@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{GamepadAxis, GamepadId, InputButton};
 
+/// 选择整根轴或单侧轴参与动作；单侧值折为非负幅值，便于同一动作绑定不同方向。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum InputAxisDirection {
     #[default]
@@ -64,6 +65,7 @@ impl InputAxisBinding {
     }
 }
 
+/// 将一个命名动作关联到按钮和模拟轴；按钮作为组合键，含轴时还要求轴产生有效值。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InputBinding {
     pub action: String,
@@ -103,6 +105,7 @@ impl InputBinding {
         Self::buttons_and_axes(action, std::iter::empty(), axes)
     }
 
+    /// 构造时统一排序去重，使重复设备输入不会改变求值或序列化后的绑定身份。
     pub fn buttons_and_axes(
         action: impl Into<String>,
         buttons: impl IntoIterator<Item = InputButton>,

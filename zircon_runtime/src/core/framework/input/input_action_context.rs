@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+/// 为一组动作提供可启停的命名作用域；优先级只维护配置顺序，求值激活还取决于 `enabled` 和调用方上下文。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InputActionContext {
     pub id: String,

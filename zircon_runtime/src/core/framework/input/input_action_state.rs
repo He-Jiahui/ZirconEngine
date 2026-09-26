@@ -2,6 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use serde::{Deserialize, Serialize};
 
+/// 一次动作求值的按住、边沿与模拟值结果；构造器把值约束到负一到一，并从值表去除零与非有限值。
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct InputActionState {
     pressed: BTreeSet<String>,
@@ -12,6 +13,7 @@ pub struct InputActionState {
 }
 
 impl InputActionState {
+    /// 兼容仅有布尔动作状态的调用方：按住动作按满幅值解释。
     pub fn from_sets(
         pressed: BTreeSet<String>,
         just_activated: BTreeSet<String>,

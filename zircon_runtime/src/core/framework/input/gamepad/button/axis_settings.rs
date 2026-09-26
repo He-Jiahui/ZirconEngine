@@ -6,6 +6,8 @@ pub const GAMEPAD_BUTTON_AXIS_LOW: f32 = 0.05;
 pub const GAMEPAD_BUTTON_AXIS_HIGH: f32 = 0.95;
 pub const GAMEPAD_BUTTON_AXIS_CHANGE_THRESHOLD: f32 = 0.01;
 
+/// 将模拟扳机值映射到稳定的零到一范围，再交给按钮滞回判定和动作值求值。
+/// 自定义低高边界应递增；构造器不验证配置。
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct GamepadButtonAxisSettings {
     pub low: f32,

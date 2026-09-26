@@ -8,6 +8,8 @@ pub const GAMEPAD_AXIS_LIVEZONE_LOWER: f32 = -1.0;
 pub const GAMEPAD_AXIS_LIVEZONE_UPPER: f32 = 1.0;
 pub const GAMEPAD_AXIS_CHANGE_THRESHOLD: f32 = 0.01;
 
+/// 在设备原始轴值进入帧快照前应用死区、活区和变化阈值，稳定动作映射的模拟值。
+/// 自定义边界应保持活区下界、死区下界、死区上界、活区上界依次递增；构造器不验证配置。
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct GamepadAxisSettings {
     pub livezone_upperbound: f32,
@@ -46,6 +48,7 @@ impl GamepadAxisSettings {
         }
     }
 
+    /// 返回 `None` 表示非有限输入或未跨过变化阈值，调用方应沿用上次已发布的值。
     pub fn process_value(self, raw_value: f32, previous_value: Option<f32>) -> Option<f32> {
         if !raw_value.is_finite() {
             return None;

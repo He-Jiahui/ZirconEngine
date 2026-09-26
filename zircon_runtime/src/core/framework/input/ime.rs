@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+/// 预编辑或周围文本中的 UTF-8 字节范围；转给 UI 或宿主前应相对相应文本校验边界。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ImeCursorRange {
     pub start: usize,
@@ -27,6 +28,7 @@ impl ImePreedit {
     }
 }
 
+/// 输入法请求删除光标两侧的字节数，消费方须按文本边界约束实际删除范围。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ImeDeleteSurrounding {
     pub before_bytes: usize,
@@ -42,6 +44,7 @@ impl ImeDeleteSurrounding {
     }
 }
 
+/// 宿主送入运行时的输入法状态与编辑事件；预编辑、提交和删除需按到达顺序处理。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ImeEvent {
     Enabled,
@@ -70,6 +73,7 @@ impl ImeCursorArea {
     }
 }
 
+/// 运行时回传给宿主输入法的编辑上下文；光标、锚点和组合范围均以本文本的 UTF-8 字节计。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ImeSurroundingText {
     pub value: String,
@@ -95,6 +99,7 @@ impl ImeSurroundingText {
     }
 }
 
+/// 编辑控件或失焦处理发往宿主输入法的反向请求，须通过宿主请求排空路径执行。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum ImeHostRequest {
     Enable,

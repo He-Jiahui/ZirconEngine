@@ -7,6 +7,8 @@ use super::{
     MouseWheelEvent, TouchPoint, WindowStatusEvent,
 };
 
+/// 帧级状态视图：按住和连接状态跨帧持续，边沿、增量与通知由 `begin_frame` 划定。
+/// 宿主请求字段只是本帧新增视图；实际交付应使用管理器的排空接口。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct InputFrameSnapshot {
     pub cursor_position: [f32; 2],
@@ -14,6 +16,7 @@ pub struct InputFrameSnapshot {
     pub cursor_host_requests: Vec<CursorHostRequest>,
     pub buttons: ButtonInputState<InputButton>,
     pub wheel_accumulator: f32,
+    // TODO: [CR-FRAMEWORK-INPUT-0001] 确定混合行/像素滚动时聚合值的单位契约；当前管理器直接相加并仅保存最后一个事件的单位，需核实消费方应使用逐事件列表还是归一化聚合。
     pub mouse_wheel_accumulator: [f32; 2],
     pub mouse_wheel_unit: MouseScrollUnit,
     pub mouse_wheel_events: Vec<MouseWheelEvent>,
