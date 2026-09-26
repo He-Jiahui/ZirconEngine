@@ -131,6 +131,8 @@ fn production_source_does_not_include_or_import_implementation_crates() {
     );
 }
 
+// 两处例外分别用于编译期固定模板嵌入，以及规范文本排序超出内存阈值后的受限临时溢写；
+// 其余接口生产源码仍受契约层的 I/O 与实现依赖边界约束。
 fn template_pack_embedding_is_reviewed(source: &Path, needle: &str) -> bool {
     needle == "include_bytes!("
         && relative_to_manifest(source) == Path::new("src/project/template_pack/embedded.rs")
