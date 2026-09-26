@@ -123,6 +123,7 @@ impl UiNumberModelUpdateRequest {
         }
     }
 
+    /// 只检查协议、标识、修订范围和有限数值；树归属及冲突由运行时处理。
     pub fn validate(&self) -> Result<(), UiNumberModelUpdateFailure> {
         if self.schema_version != UI_NUMBER_MODEL_UPDATE_SCHEMA_VERSION {
             return Err(UiNumberModelUpdateFailure::UnsupportedSchemaVersion);
@@ -195,6 +196,7 @@ pub struct UiNumberModelUpdateReceipt {
 }
 
 impl UiNumberModelUpdateReceipt {
+    /// 依据状态核对当前模型键和失败原因；`Applied` 允许修订保持或递增一次。
     pub fn validate(&self) -> Result<(), UiNumberModelUpdateFailure> {
         if self.schema_version != UI_NUMBER_MODEL_UPDATE_SCHEMA_VERSION {
             return Err(UiNumberModelUpdateFailure::UnsupportedSchemaVersion);

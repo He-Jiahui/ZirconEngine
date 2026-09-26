@@ -15,6 +15,8 @@ pub enum UiPickMode {
     Ignore,
 }
 
+// TODO: [CR-UIPICK-0001] 确认模板 picking 策略如何进入实际命中；当前实例化只传递声明，树节点及命中网格未读取它；下一步核对模板投影并补直接命中测试。
+/// 模板可序列化的分通道命中声明；各通道可分别覆盖默认的继承模式。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct UiPickPolicy {

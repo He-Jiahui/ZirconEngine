@@ -29,6 +29,7 @@ pub enum UiWidgetEventKind {
     SelectionChanged,
 }
 
+/// 控件交互向调用端发出的语义事件；文本编辑以回执传递修订结果而非单独的新字符串。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case", tag = "kind")]
 pub enum UiWidgetEvent {
@@ -187,6 +188,7 @@ impl UiWidgetBehavior {
     }
 }
 
+/// 模板中的控件交互声明；显式行为优先，`Auto` 由消费路径按组件名或角色推断。
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct UiWidgetContract {

@@ -36,6 +36,7 @@ pub enum UiA11yCheckedState {
     Mixed,
 }
 
+/// 无障碍文本选择的位置以公开文本值的 UTF-8 字节偏移表示；宿主字符索引须先转换。
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct UiA11yTextSelection {
@@ -99,6 +100,7 @@ pub enum UiAccessibilityActionSource {
     Programmatic,
 }
 
+/// 中性无障碍动作请求；运行时以当前快照重新查找目标并校验动作是否可执行。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct UiAccessibilityActionRequest {
@@ -166,6 +168,7 @@ pub struct UiAccessibilityNode {
     pub tooltip: Option<String>,
 }
 
+/// 一次提取所得的无障碍树值快照，供宿主投影和运行时动作校验共同使用。
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct UiAccessibilityTreeSnapshot {
@@ -177,6 +180,7 @@ pub struct UiAccessibilityTreeSnapshot {
 }
 
 impl UiAccessibilityTreeSnapshot {
+    /// 提取器按节点 ID 排序；反序列化或手工构造的未排序快照也能回退查找。
     pub fn node(&self, node_id: UiNodeId) -> Option<&UiAccessibilityNode> {
         self.nodes
             .binary_search_by_key(&node_id, |node| node.node_id)

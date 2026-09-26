@@ -84,6 +84,7 @@ impl UiSemanticToken {
     }
 }
 
+/// 可序列化的设计预设元数据；Material Dark 提供 token，其他参考预设主要声明布局角色。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UiDesignPresetDescriptor {
     pub id: String,

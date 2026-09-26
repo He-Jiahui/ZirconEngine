@@ -80,6 +80,7 @@ impl UiTextModelUpdateRequest {
         }
     }
 
+    /// 只验证协议版本和请求标识；树归属、当前修订及内容策略由拥有文档的运行时判断。
     pub fn validate(&self) -> Result<(), UiTextModelUpdateFailure> {
         if self.schema_version != UI_TEXT_MODEL_UPDATE_SCHEMA_VERSION {
             return Err(UiTextModelUpdateFailure::UnsupportedSchemaVersion);
@@ -162,6 +163,7 @@ pub struct UiTextModelUpdateReceipt {
 }
 
 impl UiTextModelUpdateReceipt {
+    /// 校验回执字段之间的一致性；实际应用结果仍以运行时返回的状态和修订为准。
     pub fn validate(&self) -> Result<(), UiTextModelUpdateFailure> {
         if self.schema_version != UI_TEXT_MODEL_UPDATE_SCHEMA_VERSION {
             return Err(UiTextModelUpdateFailure::UnsupportedSchemaVersion);

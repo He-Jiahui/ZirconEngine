@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+/// 颜色构造器将有限通道值限制在零至一；直接反序列化的公开字段不经过构造器。
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiRgbaColor {
     pub red: f32,
@@ -109,6 +110,7 @@ impl UiThemeTokenRef {
     }
 }
 
+/// Runtime 主题注册表消费的可替换文档；缺省文档采用 Dark 基线及其排版、间距和层级值。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct UiThemeDocument {
