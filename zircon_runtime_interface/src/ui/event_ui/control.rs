@@ -133,6 +133,7 @@ pub enum UiNotification {
     Invocation(UiInvocationResult),
 }
 
+/// 控制面的序列化请求：Runtime 的事件管理器处理路由调用与反射查询，Editor 服务沿用同一请求边界。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum UiControlRequest {
     InvokeBinding {

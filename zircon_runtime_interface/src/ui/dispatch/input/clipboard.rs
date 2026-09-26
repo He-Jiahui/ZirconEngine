@@ -36,6 +36,7 @@ pub enum UiClipboardRequestKind {
     WriteText,
 }
 
+/// 发往宿主的异步剪贴板请求；完成事件须匹配传输 ID、owner 和发起时的编辑版本，才能修改当前文本。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UiClipboardRequest {
     #[serde(default)]

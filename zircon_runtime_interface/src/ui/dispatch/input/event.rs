@@ -17,6 +17,7 @@ pub use crate::ui::surface::{
 
 use super::{UiClipboardInputEvent, UiDragSessionId, UiInputEventMetadata};
 
+/// 窗口适配层归一化后的共享输入契约；Runtime 分发器在此层消费平台事件与内部计时事件。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum UiInputEvent {
     Pointer(UiPointerInputEvent),

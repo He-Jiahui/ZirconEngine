@@ -8,6 +8,7 @@ use crate::ui::template::UiBindingRef;
 
 use super::{UiV2Repeat, UiV2StyleDeclarationBlock};
 
+/// 一次编译所得节点 arena 内的索引；不能把句柄当作跨文档或跨次编译的节点身份。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct UiV2NodeHandle(pub u32);
 

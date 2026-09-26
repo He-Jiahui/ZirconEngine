@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::ui::layout::UiPoint;
 use crate::ui::surface::{UiPointerButton, UiPointerEventKind};
 
+/// 平台与分发器共用的指针动作；Runtime 会在释放事件上合并多击计数，组件默认行为据此区分双击。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiPointerEvent {
     pub kind: UiPointerEventKind,

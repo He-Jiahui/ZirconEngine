@@ -75,6 +75,7 @@ impl UiWindowInputContext {
     }
 }
 
+// 用浮点位模式比较窗口度量，避免 NaN 破坏本类型声明的 Eq 等价关系。
 fn window_metrics_equal(left: Option<UiWindowMetrics>, right: Option<UiWindowMetrics>) -> bool {
     match (left, right) {
         (None, None) => true,

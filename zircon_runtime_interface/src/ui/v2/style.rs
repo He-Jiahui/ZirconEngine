@@ -34,6 +34,7 @@ pub struct UiV2ResolvedStyleSheet {
     pub nodes: BTreeMap<String, UiV2ResolvedStyle>,
 }
 
+/// 单节点规则与内联声明合并后的样式；`style_tokens` 保留值路径到令牌来源的关系，供后续失效判断使用。
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct UiV2ResolvedStyle {
     #[serde(default)]

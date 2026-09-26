@@ -34,6 +34,7 @@ pub struct UiV2AssetHeader {
     pub display_name: String,
 }
 
+/// V2 资产的可编辑源形态；加载器校验版本后交给组件实例化与编译，Editor 也保留此形态用于修改。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiV2AssetDocument {
     pub asset: UiV2AssetHeader,

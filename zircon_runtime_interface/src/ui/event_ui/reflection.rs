@@ -301,6 +301,7 @@ pub struct UiReflectorHitContext {
     pub rejected: Vec<String>,
 }
 
+/// 保留树的诊断快照，含布局、输入与命中上下文；它供工作台检查器查看，不替代控制面的属性快照。
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct UiReflectorSnapshot {
@@ -488,6 +489,7 @@ impl UiNodeDescriptor {
     }
 }
 
+/// 控制面按树发布的可查询属性与动作视图；事件管理器以此计算差异并响应节点查询。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiReflectionSnapshot {
     pub tree_id: UiTreeId,

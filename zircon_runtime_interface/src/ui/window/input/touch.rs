@@ -15,6 +15,7 @@ pub enum UiWindowTouchPhase {
 }
 
 impl UiWindowTouchPhase {
+    /// 将触摸生命周期映射到主按钮指针协议，后续命中与组件事件可复用指针路由。
     pub(super) const fn pointer_event(self, point: UiPoint) -> UiPointerEvent {
         match self {
             Self::Started => UiPointerEvent::new(UiPointerEventKind::Down, point)

@@ -87,6 +87,7 @@ pub struct UiInputModifiers {
     pub num_lock: bool,
 }
 
+/// 平台输入进入共享分发器时携带的时序与来源上下文；缺省身份留空，由窗口适配层按实际来源补齐。
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct UiInputEventMetadata {

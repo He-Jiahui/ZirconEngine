@@ -12,6 +12,7 @@ use crate::ui::{
     event_ui::{UiNodeId, UiTreeId},
 };
 
+/// 模板绑定产出的动作身份：声明的 action 与操作 route 分别编码，Editor 回调按种类分发到命令或操作。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiTemplateActionInvocation {
     target: UiTemplateActionTarget,

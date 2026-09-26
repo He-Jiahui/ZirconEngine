@@ -10,6 +10,7 @@ pub const UI_V2_REPEAT_FIELD_AUTHORED_COUNT: &str = "authored_count";
 pub const UI_V2_REPEAT_FIELD_NODE_PATH_NAMESPACE: &str = "node_path_namespace";
 pub const UI_V2_REPEAT_KIND_VIRTUAL_ROWS: &str = "virtual_rows";
 
+/// 虚拟行重复声明；编译器先校验必需字段，建树时再把它投影为节点元数据供虚拟化使用。
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UiV2Repeat {
     #[serde(default)]

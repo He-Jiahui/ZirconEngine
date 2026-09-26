@@ -10,6 +10,7 @@ use crate::ui::dispatch::{
 use super::{UiWindowPlatformInputEvent, UiWindowPlatformInputEventKind};
 
 impl UiWindowPlatformInputEvent {
+    /// 将平台事件转为共享分发事件；触摸分支在此补入指针身份与来源，拖拽载荷转为共享只读所有权。
     pub fn normalize(self) -> UiInputEvent {
         let mut metadata = self.context.metadata;
         match self.kind {
