@@ -4,6 +4,8 @@ use std::fmt::{Display, Formatter};
 
 use super::{AssetUuid, ResourceLocator};
 
+/// 跨资产文档传递 UUID 身份与可读定位符；定位符可随迁移变化，UUID 仍用于持久引用。
+/// 序列化字段 `url` 保持既有资产文档格式。
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct AssetReference {
     pub uuid: AssetUuid,
@@ -15,6 +17,7 @@ impl AssetReference {
         Self { uuid, locator }
     }
 
+    /// 为仅有定位符的引用推导身份；已有资产 UUID 应用 `new` 保留。
     pub fn from_locator(locator: ResourceLocator) -> Self {
         let uuid = AssetUuid::from_stable_label(&locator.to_string());
         Self::new(uuid, locator)

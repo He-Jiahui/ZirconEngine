@@ -4,6 +4,7 @@ use crate::resource::ResourceId;
 
 use super::EntityId;
 
+/// Editor 订阅的是 Runtime 事实类别；视图实例身份留在 Editor 的绑定表内。
 /// A runtime-owned fact family that a view or tool can subscribe to.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(
@@ -32,6 +33,7 @@ impl WatchRegistration {
     }
 }
 
+/// Token 只在签发它的 Runtime 会话内有效，Editor 须另以会话身份限定其作用域。
 /// Runtime-issued opaque subscription identity; runtime never stores editor view ids.
 #[repr(transparent)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]

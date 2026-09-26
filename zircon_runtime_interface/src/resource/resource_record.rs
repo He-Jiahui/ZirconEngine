@@ -5,6 +5,8 @@ use super::{
     ResourceState,
 };
 
+/// 资源注册表的可序列化状态快照，汇集身份、修订、依赖、导入指纹和诊断。
+/// 构造器只建立 Pending 初值；状态迁移和修订由资源管理器的提交路径约束。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ResourceRecord {
     pub id: ResourceId,
@@ -91,6 +93,7 @@ impl ResourceRecord {
         self
     }
 
+    /// 仅在 Error 状态提供面向用户的摘要：优先首个错误诊断，再退回首条诊断。
     pub fn failure_reason(&self) -> Option<&str> {
         if self.state != ResourceState::Error {
             return None;

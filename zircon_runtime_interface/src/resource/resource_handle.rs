@@ -3,6 +3,8 @@ use std::marker::PhantomData;
 
 use super::{ResourceId, ResourceMarker, UntypedResourceHandle};
 
+/// 仅携带资源身份的类型化句柄；复制句柄不持有载荷，也不保证资源已就绪。
+/// 载荷读取须通过资源管理器，失败重载后仍可能取得上次成功载入的载荷。
 #[derive(Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct ResourceHandle<TMarker> {
     id: ResourceId,

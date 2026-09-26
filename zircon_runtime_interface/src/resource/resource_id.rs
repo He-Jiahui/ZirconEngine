@@ -5,6 +5,7 @@ use uuid::Uuid;
 
 use super::{stable_uuid_from_components, AssetUuid, ResourceLocator, ResourceScheme};
 
+/// 注册表使用的资源身份，与可更名的定位符分离；项目资产可由资产 UUID 推导。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct ResourceId(Uuid);
 
@@ -13,6 +14,7 @@ impl ResourceId {
         Self(Uuid::new_v4())
     }
 
+    /// 持久方案由规范定位符稳定推导；`mem` 每次分配新身份以避免偶然复用。
     pub fn from_locator(locator: &ResourceLocator) -> Self {
         match locator.scheme() {
             ResourceScheme::Memory => Self::new(),

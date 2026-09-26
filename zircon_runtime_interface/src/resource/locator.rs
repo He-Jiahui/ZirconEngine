@@ -34,6 +34,8 @@ impl ResourceScheme {
     }
 }
 
+/// 资源边界共用的规范位置：路径归一化后参与查找、显示和稳定身份推导。
+/// `package` 路径首段是包标识，其余部分是包内相对路径。
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ResourceLocator {
     scheme: ResourceScheme,
@@ -42,6 +44,7 @@ pub struct ResourceLocator {
 }
 
 impl ResourceLocator {
+    /// 解析并拒绝越出逻辑根目录的路径；调用方应使用返回的规范值作索引键。
     pub fn parse(value: &str) -> Result<Self, ResourceLocatorError> {
         let Some((scheme, remainder)) = value.split_once("://") else {
             return Err(ResourceLocatorError::MissingScheme(value.to_string()));

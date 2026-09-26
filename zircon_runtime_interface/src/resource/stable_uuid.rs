@@ -5,6 +5,8 @@ pub const STABLE_UUID_ALGORITHM_VERSION: u32 = 1;
 
 const STABLE_UUID_DERIVE_KEY_CONTEXT: &str = "zircon stable identity UUID";
 
+// 版本、命名空间和每个组件都按长度分帧，避免不同分组拼接成同一哈希输入。
+// AssetUuid 与 ResourceId 使用不同命名空间，保持跨平台持久身份的域隔离。
 pub(crate) fn stable_uuid_from_components(namespace: &str, components: &[&str]) -> Uuid {
     fn update_framed(hasher: &mut blake3::Hasher, bytes: &[u8]) {
         hasher.update(&(bytes.len() as u128).to_be_bytes());

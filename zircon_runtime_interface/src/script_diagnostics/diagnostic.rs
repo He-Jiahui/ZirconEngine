@@ -1,3 +1,4 @@
+//! 脚本构建诊断的可序列化表示，由 Editor 日志投影为严重度和源码跳转。
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -8,6 +9,7 @@ pub enum ScriptDiagnosticSeverity {
     Error,
 }
 
+/// 可选的源码跳转位置；Editor 日志投影将其转换为可点击的脚本位置。
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ScriptSourceLocation {
     pub path: String,
@@ -25,6 +27,7 @@ impl ScriptSourceLocation {
     }
 }
 
+/// 跨构建步骤传递代码、模块、消息及可选源码位置；展示和去重由 Editor 决定。
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ScriptDiagnostic {
     pub severity: ScriptDiagnosticSeverity,

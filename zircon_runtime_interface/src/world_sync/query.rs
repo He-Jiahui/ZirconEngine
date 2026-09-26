@@ -1,3 +1,4 @@
+//! Editor 通过网关请求 Runtime 持有的世界投影；传输层仅承载查询和结果 DTO。
 use std::collections::BTreeMap;
 
 use crate::math::Transform;
@@ -124,6 +125,7 @@ impl WorldQuery {
         self
     }
 
+    /// 给动态库 JSON 入口计算请求预算，返回的是请求项数而非结果行数。
     pub fn request_item_count(&self) -> usize {
         match self {
             Self::Components(query) => query

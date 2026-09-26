@@ -1,9 +1,11 @@
 use serde::{Deserialize, Serialize};
 
+/// 将编译期资源标记绑定到线格式资源种类，供类型化句柄和运行时种类校验共用。
 pub trait ResourceMarker: Send + Sync + 'static {
     const KIND: ResourceKind;
 }
 
+/// 注册表、资源事件和非类型化句柄之间传递的资源种类判别值。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ResourceKind {
     Data,

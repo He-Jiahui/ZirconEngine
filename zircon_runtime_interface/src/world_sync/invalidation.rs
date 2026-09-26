@@ -14,6 +14,7 @@ pub struct AssetReloadFrameApplyReportDto {
     pub pending_count: u64,
 }
 
+/// 事实只描述世界变化，订阅表负责映射到 dirty token，Editor 再映射到视图。
 /// Runtime facts that can invalidate editor projections without carrying editor state.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(
@@ -41,6 +42,7 @@ pub enum WorldFact {
     AssetReloadApplied(AssetReloadFrameApplyReportDto),
 }
 
+/// 一帧内将同代事实和失效 token 批量传输；消费者以代数和 token 维护投影。
 /// One frame's monotonic generation plus the subscriptions and facts it invalidated.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
