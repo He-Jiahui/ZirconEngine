@@ -13,6 +13,9 @@ use crate::core::{EngineEvent, EventBus};
 
 use super::super::super::*;
 
+// 通过 CoreRuntime 的门面和独立 EventBus 同时检验调用者可见的投递、生命周期与诊断契约。
+// 受控并发用例额外固定同主题全序和不同主题之间的进展边界。
+
 #[test]
 fn event_bus_and_config_store_roundtrip() {
     let runtime = CoreRuntime::new();
@@ -120,6 +123,7 @@ fn event_bus_latest_policy_coalesces_to_the_newest_event() {
     assert_eq!(bus.diagnostic_report().dropped, 63);
 }
 
+// 峰值诊断代表物理队列占用上界；并发消费可暴露计数与入队顺序脱节的瞬时超限。
 #[test]
 fn event_bus_capacity_one_peak_never_exceeds_the_physical_queue_capacity() {
     let bus = Arc::new(EventBus::default());
@@ -234,6 +238,7 @@ fn event_bus_explicit_sampling_uses_independent_publish_and_queue_sequences() {
     assert_eq!(report.queue_age_samples, 3);
 }
 
+// 订阅者不拥有总线；最后一个总线所有者释放后，阻塞和轮询接收都必须观察到断开。
 #[test]
 fn event_subscription_disconnects_when_the_last_event_bus_owner_drops() {
     let bus = EventBus::default();
@@ -402,6 +407,7 @@ fn event_bus_reports_same_topic_publisher_delivery_lock_wait() {
     assert!(report.max_delivery_lock_wait_ms >= 1.0);
 }
 
+// 同一主题的多个订阅者必须看见相同全序，各发布者自身顺序也不能被扇出交错打乱。
 #[test]
 fn event_bus_concurrent_same_topic_publishers_share_one_exact_fanout_interleaving() {
     const PUBLISHER_COUNT: usize = 4;
@@ -472,6 +478,7 @@ fn event_bus_concurrent_same_topic_publishers_share_one_exact_fanout_interleavin
     assert!(report.peak_queued >= 1);
 }
 
+// 订阅等待只应阻塞所属主题，不能将总线的全局主题表锁扩展到另一主题的发布。
 #[test]
 fn event_bus_allows_another_topic_to_progress_while_subscribe_waits_on_delivery() {
     let bus = Arc::new(EventBus::default());
@@ -529,6 +536,7 @@ fn event_bus_allows_another_topic_to_progress_while_subscribe_waits_on_delivery(
     assert_eq!(added_events.recv().unwrap().payload["released"], true);
 }
 
+// 新订阅的预留必须阻止最后一个旧订阅删除主题，否则新句柄会留在已脱离主题表的对象上。
 #[test]
 fn event_bus_reservation_prevents_last_drop_from_orphaning_a_new_subscription() {
     let bus = Arc::new(EventBus::default());

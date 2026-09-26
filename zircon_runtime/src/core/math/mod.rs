@@ -1,4 +1,5 @@
 //! Shared runtime math types and the render-precision seam.
+//! 接口层定义可持久化的坐标、单位和精度身份；`zr_math` 提供运算及显式渲染精度转换，供场景与渲染边界共用。
 
 pub use zircon_runtime_interface::math::{
     CoordinateSchema, PrecisionProfile, UnitSchema, ZIRCON_COORDINATE_SCHEMA,

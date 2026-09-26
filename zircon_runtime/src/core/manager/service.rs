@@ -5,6 +5,8 @@ use std::sync::Arc;
 use crate::core::runtime::{CoreHandle, CoreWeak, RegisteredServiceIdentity, RegistryName};
 use crate::core::CoreError;
 
+/// 管理器注册身份的轻量令牌，供编辑器、脚本和运行时任务跨调用保存。
+/// 令牌只弱关联创建它的 Core；真正使用时须交回同一个运行时并重新校验注册代数。
 pub struct ManagerServiceHandle<T: ?Sized> {
     pub(crate) index: u32,
     pub(crate) generation: u32,
@@ -28,6 +30,7 @@ impl<T: ?Sized> ManagerServiceHandle<T> {
         &self.service
     }
 
+    // 相同名称与槽位可能存在于不同 CoreRuntime；先比对来源，避免跨运行时借用令牌。
     fn belongs_to(&self, core: &CoreHandle) -> bool {
         std::ptr::eq(self.runtime.inner.as_ptr(), Arc::as_ptr(&core.inner))
     }
@@ -71,6 +74,8 @@ impl<T: ?Sized> PartialEq for ManagerServiceHandle<T> {
 
 impl<T: ?Sized> Eq for ManagerServiceHandle<T> {}
 
+/// 模块工厂放入 Core 服务表的管理器包装；解析端再从中取得共享的实际管理器。
+/// 这一层保留包装对象的运行时类型身份，使 trait 对象也能经注册身份解析。
 pub struct RegisteredManagerService<T: ?Sized + Send + Sync + 'static> {
     inner: Arc<T>,
 }
@@ -91,6 +96,7 @@ impl<T: ?Sized + Send + Sync + 'static> fmt::Debug for RegisteredManagerService<
     }
 }
 
+/// 将管理器令牌绑定回运行时的解析入口；宿主实现负责拒绝外来或失效的身份。
 pub trait ManagerServiceResolver {
     fn resolve<T: ?Sized + Send + Sync + 'static>(
         &self,
@@ -98,6 +104,8 @@ pub trait ManagerServiceResolver {
     ) -> Result<Arc<T>, CoreError>;
 }
 
+/// 取得已注册管理器的版本化身份，适合长期保存并在使用时重新解析。
+/// 此处不创建管理器实例；请求的 `T` 会在后续解析包装对象时接受类型检查。
 pub fn manager_service_handle<T: ?Sized>(
     core: &CoreHandle,
     service_name: &str,
@@ -106,6 +114,9 @@ pub fn manager_service_handle<T: ?Sized>(
         .map(|identity| ManagerServiceHandle::from_identity(core.downgrade(), identity))
 }
 
+// TODO: [CR-RUNTIME-MISC-0001] 确认已解析的 Arc<T> 是否可跨模块卸载继续调用；解析时校验代数，但返回值的后续调用不经过服务调用守卫。
+/// 在使用点以原运行时重新解析令牌，拒绝跨运行时来源或已失效的注册代数。
+/// 返回共享管理器，调用方须按所属模块的生命周期约束安排使用时机。
 pub fn resolve_manager_service<T: ?Sized + Send + Sync + 'static>(
     core: &CoreHandle,
     handle: ManagerServiceHandle<T>,

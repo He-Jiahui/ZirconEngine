@@ -10,6 +10,7 @@ fn service_factory_accepts_only_a_weak_core_capability() {
     });
 }
 
+// 与行为测试互补：源形状守卫固定规范名复用、失败回滚和短依赖链路径的分层位置。
 #[test]
 fn resolution_uses_registry_names_for_recursion_stack_and_dependency_walk() {
     let resolution_mod_source = include_str!("mod.rs");
@@ -47,6 +48,7 @@ fn resolution_uses_registry_names_for_recursion_stack_and_dependency_walk() {
         .contains("fn failed_lazy_manager_initialization_resets_lifecycle_and_can_retry()"));
     assert!(resolution_behavior_source
         .contains("fn failed_dependency_initialization_resets_dependent_service_and_can_retry()"));
+    // BUG: [CR-RUNTIME-MISC-0002] 四、五依赖用例位于子模块，但以下断言误查父模块文本，当前测试必定失败。
     assert!(resolution_behavior_source
         .contains("fn resolve_exact_four_dependencies_initializes_cached_keys_directly()"));
     assert!(resolution_behavior_source

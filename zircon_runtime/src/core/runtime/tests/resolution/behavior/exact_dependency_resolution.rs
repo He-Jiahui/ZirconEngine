@@ -1,5 +1,6 @@
 use super::*;
 
+// 四、五个依赖分别覆盖专用解析分支：依赖工厂各运行一次，目标服务只在依赖成功后创建。
 #[test]
 fn resolve_exact_four_dependencies_initializes_cached_keys_directly() {
     let runtime = CoreRuntime::new();

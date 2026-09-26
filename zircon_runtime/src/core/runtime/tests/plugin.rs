@@ -12,6 +12,7 @@ use crate::plugin::{
     RuntimePluginBridgeLifecycleState, RuntimePluginCatalog, RuntimePluginRegistrationReport,
 };
 
+// 插件工厂接收带有弱 Core 能力和资源根目录的上下文，桥接主机据此建立插件侧能力边界。
 #[test]
 fn plugin_resolution_builds_plugin_context_instead_of_passing_only_core_handle() {
     let seen = Arc::new(Mutex::new(None::<PluginContext>));
@@ -152,6 +153,7 @@ fn core_runtime_module_deactivation_drives_plugin_bridge_lifecycle() {
     assert!(reactivated.provider_installed);
 }
 
+// 强依赖在 Core 卸载提交前否决 provider 关闭，避免模块已停止而桥接口仍被依赖者持有。
 #[test]
 fn core_runtime_module_deactivation_rejects_strong_bridge_dependents_before_unload() {
     let mut physics_extensions = RuntimeExtensionRegistry::default();

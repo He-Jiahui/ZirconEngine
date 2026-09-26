@@ -1,3 +1,4 @@
+// 结构守卫逐个读取事件总线模块，确保并发与诊断职责留在各自文件；合并视图只用于跨文件约束。
 pub(super) struct EventBusSources {
     pub(super) root: &'static str,
     pub(super) subscribe: &'static str,

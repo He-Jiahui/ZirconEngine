@@ -74,6 +74,7 @@ fn registry_name_from_parts_rejects_invalid_segments() {
     }
 }
 
+// 注册名的缓存偏移只服务解析热路径；哈希键与序列化仍必须保持原始规范字符串契约。
 #[test]
 fn registry_name_caches_segments_without_changing_string_contract() {
     let name = RegistryName::from_parts("TestModule", ServiceKind::Manager, "ClockManager");
@@ -171,6 +172,7 @@ fn service_kind_registry_segments_are_canonical() {
     assert_eq!(ServiceKind::from_registry_segment("manager"), None);
 }
 
+// 源形状守卫约束服务种类的字节匹配入口，避免注册名热路径退回重复字符串解析。
 #[test]
 fn service_kind_registry_segments_use_direct_byte_match() {
     let lifecycle_source = include_str!("../lifecycle.rs");

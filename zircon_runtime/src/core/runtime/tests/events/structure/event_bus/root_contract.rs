@@ -1,5 +1,6 @@
 use super::fixture::{assert_absent, assert_contains, EventBusSources};
 
+// 根模块只暴露公共门面，具体订阅、投递、清理和诊断状态由各自子模块负责。
 #[test]
 fn event_bus_root_stays_folder_backed_and_structural() {
     let sources = EventBusSources::load();

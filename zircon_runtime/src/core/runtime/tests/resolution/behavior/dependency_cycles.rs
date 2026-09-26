@@ -1,5 +1,6 @@
 use super::*;
 
+// 多帧循环覆盖短栈特化以外的路径，错误仍须指向触发循环的规范注册键。
 #[test]
 fn four_frame_resolution_cycle_reports_canonical_registry_key() {
     let runtime = CoreRuntime::new();

@@ -5,6 +5,7 @@ use crate::core::framework::render::{
 use crate::core::runtime::tasks::TaskPool;
 use crate::core::runtime::tasks::TaskPoolDescriptor;
 
+// 显式执行器只改变子任务调度位置；调用者线程语义与串行渲染产物须保持一致。
 #[test]
 fn task_pool_in_place_scope_keeps_the_scope_body_on_the_caller() {
     let pool = TaskPool::new(TaskPoolDescriptor::compute().with_worker_threads(1));

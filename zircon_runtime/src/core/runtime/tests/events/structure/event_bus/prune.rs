@@ -1,5 +1,6 @@
 use super::fixture::{assert_absent, assert_contains, assert_ordered, EventBusSources};
 
+// 订阅析构与发布共享主题投递锁；先停用并清空队列，再移除快照项，避免并发投递引用失效状态。
 #[test]
 fn event_bus_drop_deactivates_and_removes_the_subscription_from_its_topic() {
     let sources = EventBusSources::load();

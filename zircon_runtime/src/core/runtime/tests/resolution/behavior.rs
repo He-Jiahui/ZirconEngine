@@ -9,6 +9,9 @@ use crate::core::runtime::ServiceObject;
 use crate::core::CoreError;
 use crate::core::{LifecycleState, ServiceKind, StartupMode};
 
+// 解析测试跨公共入口、注册身份与模块卸载，验证懒初始化只提交当前代数的实例。
+// 线程同步用例固定工厂竞争、调用准入和卸载之间的先后关系。
+
 mod dependency_cycles;
 mod exact_dependency_resolution;
 mod factory_panics;
@@ -24,6 +27,7 @@ impl HeldService {
     }
 }
 
+// 已进入的调用必须先排空，卸载关门后旧引用不得再进入服务槽位。
 #[test]
 fn held_service_reference_cannot_enter_after_module_deactivation() {
     let runtime = CoreRuntime::new();
@@ -177,6 +181,7 @@ fn lazy_manager_is_created_on_first_resolve() {
     assert_eq!(calls.load(Ordering::SeqCst), 1);
 }
 
+// 同一懒服务的竞争解析应共享一次工厂事务，防止重复副作用或返回不同实例。
 #[test]
 fn concurrent_lazy_manager_resolve_executes_factory_once() {
     let runtime = CoreRuntime::new();
@@ -249,6 +254,7 @@ fn concurrent_lazy_manager_resolve_executes_factory_once() {
     assert_eq!(calls.load(Ordering::SeqCst), 1);
 }
 
+// 两个线程分别占有循环链的一端时，等待图须在工厂启动前终止循环而非互相等待。
 #[test]
 fn concurrent_cyclic_lazy_manager_dependencies_return_without_deadlock() {
     let runtime = CoreRuntime::new();
@@ -332,6 +338,7 @@ fn concurrent_cyclic_lazy_manager_dependencies_return_without_deadlock() {
     assert_eq!(factory_calls.load(Ordering::SeqCst), 0);
 }
 
+// 相同规范名不能使两个运行时的注册身份混淆；令牌应指向创建时的槽位代数。
 #[test]
 fn registered_manager_identity_is_unique_and_resolves_the_registered_generation() {
     let service_name =
@@ -441,6 +448,7 @@ fn deactivation_invalidates_registered_manager_identity_before_reactivation() {
         .unwrap();
 }
 
+// 卸载可在工厂执行中改变代数；晚到的工厂结果不能把已卸载槽位重新置为可用。
 #[test]
 fn lazy_factory_cannot_restore_service_after_concurrent_module_unload() {
     let runtime = CoreRuntime::new();

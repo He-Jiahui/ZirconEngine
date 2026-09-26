@@ -10,6 +10,7 @@ use crate::core::framework::events::{
 };
 use crate::core::{EngineEvent, EventBus};
 
+// 这些忽略运行的 Runtime07 用例为受管性能验收输出样本与诊断形态，不把机器相关耗时作为普通 CI 的稳定断言。
 const WARMUP_SAMPLES: usize = 16;
 const PUBLISH_FANOUTS: [usize; 4] = [1, 2, 5, 100];
 const PUBLISH_PAYLOAD_BYTES: [usize; 3] = [64, 4_096, 262_144];
