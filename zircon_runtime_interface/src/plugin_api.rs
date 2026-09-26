@@ -1,3 +1,7 @@
+//! 插件回调表与入口报告的 C ABI 载体。
+//!
+//! 当前原生插件加载路径使用独立布局，这些结构不可与其入口报告互换。
+
 use crate::buffer::{ZrByteBufferRef, ZrByteSlice, ZrOwnedByteBuffer};
 use crate::handles::ZrRuntimePluginHandle;
 use crate::manifest::ZrPluginModuleDescriptorV1;

@@ -8,6 +8,7 @@ pub type ZrPluginEventCallbackFnV1 = unsafe extern "C" fn(
     *mut ZrPluginEventCallbackResultV1,
 ) -> ZrStatus;
 
+/// 请求中的字节视图借用投递对象；插件只可在同步回调期间读取，不可留存指针。
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ZrPluginEventCallbackRequestV1 {
