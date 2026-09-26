@@ -5,6 +5,9 @@ use crate::core::StartupMode;
 
 use super::{DependencySpec, RegistryName, ServiceFactory};
 
+/// 驱动的注册声明；工厂会在依赖可解析后按启动策略调用。
+///
+/// 构造描述符不创建实例，生命周期和卸载顺序由所属模块的冻结图决定。
 #[derive(Clone)]
 pub struct DriverDescriptor {
     pub name: RegistryName,

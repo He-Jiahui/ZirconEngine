@@ -2,7 +2,7 @@ use std::ops::Deref;
 
 use super::StateSpec;
 
-/// Current value for one runtime-wide state machine.
+/// 一个类型状态机已提交的当前值；待提交请求保存在独立的 NextState 中。
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct State<T: StateSpec>(T);
 

@@ -1,4 +1,6 @@
-//! Service registry and core runtime.
+//! CoreRuntime 的注册、依赖冻结、生命周期和服务访问入口。
+//!
+//! 描述符提供声明，CoreHandle 持有可变状态；宿主通过 CoreRuntime 驱动外帧与模块阶段。
 
 mod clock_source;
 mod config_store;

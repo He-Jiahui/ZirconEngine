@@ -1,6 +1,7 @@
 use super::StateSpec;
 
-/// Queued transition for a runtime-wide state machine.
+/// 一个类型状态机的待提交请求；`Pending` 允许同值转移，
+/// `PendingIfNeq` 在提交时按当前值抑制同值事件。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum NextState<T: StateSpec> {
     Unchanged,

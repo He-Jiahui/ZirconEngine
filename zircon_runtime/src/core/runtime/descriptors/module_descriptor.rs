@@ -4,6 +4,10 @@ use std::sync::Arc;
 use super::{DriverDescriptor, ManagerDescriptor, ModuleDependencySpec, PluginDescriptor};
 use crate::core::runtime::lifecycle::{InitLevel, ModuleLifecycle, NoopModuleLifecycle};
 
+/// 一个模块在注册阶段提交的生命周期、依赖和服务声明。
+///
+/// CoreHandle 首次激活前冻结这些声明并验证图；之后的状态属于注册表条目，
+/// 调用方不应把修改已提交描述符的本地副本视为运行时重配置。
 #[derive(Clone)]
 pub struct ModuleDescriptor {
     pub name: String,
@@ -35,6 +39,7 @@ impl ModuleDescriptor {
         self
     }
 
+    /// 声明先启动的模块；跨模块服务引用也必须有对应的模块边。
     pub fn with_module_dependency(mut self, dependency: ModuleDependencySpec) -> Self {
         self.module_dependencies.push(dependency);
         self

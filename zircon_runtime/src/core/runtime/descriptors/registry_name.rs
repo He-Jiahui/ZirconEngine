@@ -8,6 +8,9 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use crate::core::CoreError;
 use crate::core::ServiceKind;
 
+/// 服务注册表的规范键，格式为 `<module namespace>.<kind>.<service>`。
+///
+/// 模块命名空间可分段；验证后的完整字符串同时决定相等、哈希与序列化身份。
 #[derive(Clone, Debug)]
 pub struct RegistryName {
     // `value` remains the equality, hash, borrow, and serde authority; the
@@ -19,6 +22,7 @@ pub struct RegistryName {
 }
 
 impl RegistryName {
+    /// 验证来自配置或常量的完整名称；非法名称返回错误，不进入注册表。
     pub fn new(value: impl Into<String>) -> Result<Self, CoreError> {
         let value = value.into();
         let Some((module_end, kind_end)) = registry_separator_offsets(&value) else {
@@ -48,6 +52,7 @@ impl RegistryName {
         })
     }
 
+    /// 为已知合法的内部片段构造名称；不合法片段会触发断言。
     pub fn from_parts(module: &str, kind: ServiceKind, service: &str) -> Self {
         assert!(
             is_canonical_module_namespace(module),

@@ -5,6 +5,7 @@ use super::time::TIME_MODULE_NAME;
 
 pub const FRAME_COUNT_MODULE_NAME: &str = "FrameCountModule";
 
+/// 帧计数诊断的声明节点；依赖 TimeModule 保证时间入口先进入 Kernel 图。
 #[derive(Clone, Copy, Debug, Default)]
 pub struct FrameCountModule;
 

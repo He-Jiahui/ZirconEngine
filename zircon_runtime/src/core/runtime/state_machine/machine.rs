@@ -3,6 +3,8 @@ use super::{
     StateSpec, StateTransitionEvent,
 };
 
+// 每种 StateSpec 独立的一台状态机；当前值、待提交值和钩子按类型隔离。
+// CoreHandle 先在锁内生成 dispatch，再在锁外运行用户钩子。
 pub(crate) struct StateMachine<T: StateSpec> {
     current: Option<State<T>>,
     next: NextState<T>,
@@ -61,6 +63,7 @@ impl<T: StateSpec> StateMachine<T> {
         self.next.reset();
     }
 
+    // 提交至多一个待处理状态；同值是否产生事件取决于调用方选用的排队策略。
     pub(crate) fn apply_pending_transition(&mut self) -> Option<StateTransitionDispatch<T>> {
         let (entered, allow_same_state_transitions) = self.next.take_transition()?;
         let exited = self.current.as_ref().map(|state| state.get().clone());

@@ -3,6 +3,8 @@ use crate::core::framework::events::{EngineEventDeliveryPolicy, EngineEventSubsc
 use super::EventBus;
 
 impl EventBus {
+    /// 为一个主题建立独立接收队列；调用方须保留返回值，Drop 会取消订阅。
+    /// 投递策略决定慢消费者遇到积压时保留哪些事件。
     pub fn subscribe(
         &self,
         topic: impl Into<String>,

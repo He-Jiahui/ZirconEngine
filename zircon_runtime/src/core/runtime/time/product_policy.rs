@@ -6,6 +6,8 @@ use crate::core::framework::time::{ProductTimePolicy, ProductTimeProfile, TimePo
 pub struct ProductTimePolicies;
 
 impl ProductTimePolicies {
+    /// 选择客户端、无头、编辑器或测试宿主的默认帧预算和 World 时间策略。
+    /// 返回值由宿主在会话启动时采纳，不会追溯修改已创建的 Level。
     pub fn for_profile(profile: ProductTimeProfile) -> ProductTimePolicy {
         let (max_fixed_steps_per_frame, virtual_max_delta) = match profile {
             ProductTimeProfile::Client => (8, Duration::from_millis(250)),

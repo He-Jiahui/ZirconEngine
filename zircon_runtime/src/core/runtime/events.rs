@@ -14,6 +14,9 @@ use crate::core::framework::events::EventBusDiagnosticsMode;
 
 use topic::EventBusState;
 
+/// CoreRuntime 的主题事件总线句柄；克隆后共享订阅者、投递策略和诊断状态。
+///
+/// 订阅所有权在返回的 subscription，持有者负责消费并在不再需要时释放它。
 #[derive(Clone)]
 pub struct EventBus {
     state: Arc<EventBusState>,

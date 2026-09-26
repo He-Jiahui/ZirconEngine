@@ -5,6 +5,9 @@ use crate::core::StartupMode;
 
 use super::{DependencySpec, PluginFactory, RegistryName};
 
+/// 插件服务的注册声明；与普通服务共用冻结依赖图和生命周期门禁。
+///
+/// 插件工厂额外接收 PluginContext，包路径可以缺席，不能假定总有文件来源。
 #[derive(Clone)]
 pub struct PluginDescriptor {
     pub name: RegistryName,

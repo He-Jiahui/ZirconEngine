@@ -10,6 +10,9 @@ use serde_json::Value;
 
 use crate::core::CoreError;
 
+/// CoreRuntime 共享的配置快照入口；克隆句柄共享同一存储，读取返回独立值。
+///
+/// 启动入口先写入配置，驱动和编辑器再经 CoreHandle 读取；解析失败由调用方处理。
 #[derive(Clone, Default)]
 pub struct ConfigStore {
     values: Arc<Mutex<HashMap<String, Arc<Value>>>>,
@@ -52,10 +55,12 @@ impl ConfigStore {
             .map_err(|error| CoreError::ConfigParse(key.to_string(), error.to_string()))
     }
 
+    // 只在锁内取得共享所有权；反序列化和深拷贝不占用全局配置锁。
     fn shared_value(&self, key: &str) -> Option<Arc<Value>> {
         self.lock_values().get(key).cloned()
     }
 
+    /// 为诊断和外部观察者返回独立快照；后续写入不会改变已取得的结果。
     pub fn snapshot_values(&self) -> HashMap<String, Value> {
         let shared_entries = shared_snapshot_entries(&self.lock_values());
         shared_entries

@@ -18,6 +18,9 @@ pub enum ClockLifecycleTransition {
     Resumed,
 }
 
+/// 宿主报告给帧时钟的可见时间断点；下一帧会携带重置来源。
+///
+/// 窗口和应用生命周期变化只重置采样基线，不改 World 自有的虚拟/固定时间。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ClockDiscontinuity {
     ApplicationLifecycle(ClockLifecycleTransition),
@@ -32,6 +35,9 @@ pub enum FrameClockRebaseCause {
     ClockDiscontinuity(ClockDiscontinuity),
 }
 
+/// 本次采样基线重置的凭据，供下一次外帧标注时间域代际。
+///
+/// 多次 rebase 后仅最新凭据随 tick 交付；代际保持不回退。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct FrameClockRebaseReceipt {
     generation: u64,
@@ -69,6 +75,9 @@ impl FrameClockTick {
     }
 }
 
+/// Runtime 外帧的单调采样器，和 World 推演时钟分属不同所有者。
+///
+/// CoreHandle::tick_time 消费采样；宿主在会话激活或窗口时间断点后先 rebase。
 #[derive(Debug, Clone)]
 pub struct FrameClock {
     source: FrameClockSource,
@@ -103,6 +112,7 @@ impl FrameClock {
         }
     }
 
+    /// 重置下次外帧的测量起点；凭据会在随后一次 tick 中消费。
     pub fn rebase(&mut self) -> FrameClockRebaseReceipt {
         self.rebase_for(FrameClockRebaseCause::Manual)
     }

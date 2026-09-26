@@ -24,6 +24,8 @@ impl EngineModule for LogModule {
     }
 }
 
+/// 可选的详细日志诊断节点；启动构建器在需要诊断配置时添加它。
+/// 其模块边要求基础日志与诊断能力先可用。
 #[derive(Clone, Copy, Debug, Default)]
 pub struct LogDiagnosticsModule;
 

@@ -39,6 +39,7 @@ pub(crate) struct ModuleLifecycleTransitionToken {
     command: ModuleLifecycleCommand,
 }
 
+// 同一模块生命周期命令的取得结果：拥有执行权、复用完成值，或等待当前执行者。
 #[derive(Clone, Debug)]
 pub(crate) enum ModuleLifecycleTransitionPermit {
     Owner(ModuleLifecycleTransitionToken),
@@ -78,6 +79,7 @@ impl Default for LifecycleCoordinator {
 }
 
 impl LifecycleCoordinator {
+    // 在调用回调前决定执行者；等待者由 CoreHandle 在锁外通过 Condvar 重试。
     pub(crate) fn begin(
         &mut self,
         module_name: &str,
@@ -105,6 +107,7 @@ impl LifecycleCoordinator {
                     }
                     return Ok(ModuleLifecycleTransitionPermit::Wait);
                 }
+                // BUG: [CR-RUNTIME-LIFECYCLE-0001] 完成值按计数而非等待者身份分发；迟到调用可抢走结果，原等待者重试后再次成为 Owner。
                 ModuleLifecycleTransition::Completed {
                     command: completed_command,
                     result,
@@ -177,6 +180,8 @@ impl LifecycleCoordinator {
     }
 }
 
+// CoreHandle 共享的运行时权威状态；注册表和生命周期门禁在这里协调。
+// 工厂、模块回调与状态钩子应在相关锁释放后运行，避免重入死锁。
 pub(crate) struct CoreRuntimeInner {
     pub(crate) modules: Mutex<HashMap<String, ModuleEntry>>,
     pub(crate) services: Mutex<HashMap<RegistryName, ServiceEntry>>,

@@ -11,6 +11,7 @@ impl EngineModule for TimeModule {
         TIME_MODULE_NAME
     }
 
+    // TODO: [CR-RUNTIME-LIFECYCLE-0002] 核对描述中的 virtual/fixed 所有权；当前 World 派生时钟由 LevelSystem 持有。
     fn module_description(&self) -> &'static str {
         "Core frame timing descriptor for runtime-owned real, virtual, and fixed clocks"
     }

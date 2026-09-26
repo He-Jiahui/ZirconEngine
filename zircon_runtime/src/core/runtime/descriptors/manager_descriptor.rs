@@ -5,6 +5,9 @@ use crate::core::StartupMode;
 
 use super::{DependencySpec, RegistryName, ServiceFactory};
 
+/// 管理器的注册声明，供模块图安排依赖、启动和卸载。
+///
+/// 工厂只在解析或即时启动时执行；返回的实例随后由服务注册表持有。
 #[derive(Clone)]
 pub struct ManagerDescriptor {
     pub name: RegistryName,

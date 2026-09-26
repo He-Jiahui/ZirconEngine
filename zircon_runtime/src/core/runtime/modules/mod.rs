@@ -1,3 +1,6 @@
+//! 内建 Kernel 模块的声明集合；这些零大小类型交给启动构建器组装依赖图。
+//! 实际任务、时间与诊断状态由 CoreRuntime 和对应服务持有。
+
 mod diagnostics;
 mod frame_count;
 mod log;

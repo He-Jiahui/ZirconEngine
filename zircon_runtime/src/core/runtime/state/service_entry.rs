@@ -14,6 +14,8 @@ pub(crate) enum ServiceEntryFactory {
     Plugin(PluginFactory),
 }
 
+// 一个已注册服务的可变生命周期、实例和调用许可状态。
+// index/generation 用于识别旧句柄，admission 与 in_flight_calls 用于安全卸载。
 pub(crate) struct ServiceEntry {
     pub(crate) index: u32,
     pub(crate) generation: u32,
@@ -44,6 +46,7 @@ impl ServiceEntry {
         self.index = index;
     }
 
+    // 卸载完成后撤销旧实例身份；调用方必须先关闭准入并等在途调用归零。
     pub(crate) fn invalidate_for_unload(&mut self) {
         debug_assert!(!self.admission_open);
         debug_assert_eq!(self.in_flight_calls, 0);
@@ -64,6 +67,7 @@ impl ServiceEntry {
         self.admission_open = false;
     }
 
+    // 为持有旧句柄的调用请求申请许可；停止阶段拒绝新调用。
     pub(crate) fn enter_call(&mut self, service_name: &str) -> Result<(), CoreError> {
         if !self.admission_open || self.lifecycle != LifecycleState::Running {
             return Err(CoreError::ServiceUnavailable(service_name.to_owned()));
@@ -84,6 +88,7 @@ impl ServiceEntry {
         self.in_flight_calls == 0
     }
 
+    // 把已卸载条目恢复为可解析状态；只有模块重激活事务可调用。
     pub(crate) fn prepare_for_reactivation(&mut self) {
         debug_assert_eq!(self.lifecycle, LifecycleState::Unloaded);
         debug_assert!(self.instance.is_none());

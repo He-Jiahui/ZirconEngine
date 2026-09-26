@@ -73,6 +73,7 @@ impl RuntimeTimeAuthority {
         })
     }
 
+    // 外帧重基线先更新真实时钟的来源代际，再生成供各 Level 消费的同一快照。
     pub(crate) fn advance_by_with_discontinuity(
         &mut self,
         raw_real_delta: Duration,
