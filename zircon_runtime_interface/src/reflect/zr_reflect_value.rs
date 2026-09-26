@@ -2,10 +2,11 @@ use crate::math::{Vec2, Vec3, Vec4};
 
 use super::{ReflectError, ReflectedValue};
 
-/// Converts a Rust field value to and from the unified reflection value model.
+/// 派生宏借此在具体 Rust 字段与统一反射值之间转换，并保留写入错误的字段上下文。
 pub trait ZrReflectValue: Sized {
     fn to_reflected_value(&self) -> ReflectedValue;
 
+    /// 反向转换须拒绝不匹配或超界值，并用类型路径及字段名构造可定位的错误。
     fn from_reflected_value(
         value: ReflectedValue,
         owner_type_path: &str,

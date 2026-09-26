@@ -20,7 +20,7 @@ use fingerprint::fingerprint;
 pub use entry::ReflectSchemaCatalogEntry;
 pub use fingerprint::{ReflectSchemaFingerprint, REFLECT_SCHEMA_CATALOG_ALGORITHM_VERSION};
 
-/// Admitted neutral reflection catalog shared by runtime, tooling, editor, and script hosts.
+/// 已接纳的中立反射目录；保留规范化元数据、字段索引和依赖关系供多个宿主共享。
 #[derive(Clone, Debug)]
 pub struct ReflectSchemaCatalog {
     entries: BTreeMap<String, ReflectSchemaCatalogEntry>,
@@ -33,7 +33,7 @@ pub struct ReflectSchemaCatalog {
     fingerprint: OnceLock<ReflectSchemaFingerprint>,
 }
 
-/// Serializable immutable projection of one admitted catalog generation.
+/// 一个已接纳目录代际的可序列化投影，包含供重载时复核的指纹与派生索引。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ReflectSchemaCatalogSnapshot {
@@ -45,6 +45,7 @@ pub struct ReflectSchemaCatalogSnapshot {
 }
 
 impl ReflectSchemaCatalog {
+    /// 整批接纳允许输入乱序，但所有依赖必须存在且无环。
     pub fn try_new(entries: Vec<ReflectSchemaCatalogEntry>) -> Result<Self, ReflectError> {
         let admitted = admit_entries(entries)?;
         Ok(Self {
@@ -59,6 +60,7 @@ impl ReflectSchemaCatalog {
         })
     }
 
+    /// 重建目录并比对算法版本、内容指纹及派生投影，拒绝过期或改写的快照。
     pub fn try_from_snapshot(snapshot: ReflectSchemaCatalogSnapshot) -> Result<Self, ReflectError> {
         if snapshot.algorithm_version != REFLECT_SCHEMA_CATALOG_ALGORITHM_VERSION {
             return Err(ReflectError::InvalidRegistration {
@@ -156,6 +158,7 @@ impl ReflectSchemaCatalog {
         })
     }
 
+    /// 将稳定字段 ID 解析为当前注册字段顺序中的槽位，供对象适配器读取或写入。
     pub fn field_slot_by_id(
         &self,
         type_path: &str,
@@ -224,6 +227,7 @@ impl ReflectSchemaCatalog {
         self.prepare_insert(entry.clone()).map(|_| ())
     }
 
+    /// 增量接纳要求依赖已入目录；成功后刷新短名、字段索引和派生缓存。
     pub fn try_insert(&mut self, entry: ReflectSchemaCatalogEntry) -> Result<(), ReflectError> {
         let (type_path, entry, dependency_edge_count) = self.prepare_insert(entry)?;
         let short_path = entry.registration.type_path.short_type_path().to_string();

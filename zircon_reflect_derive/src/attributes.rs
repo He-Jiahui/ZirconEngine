@@ -53,6 +53,7 @@ pub(crate) struct FieldAttributes {
     pub(crate) write: Option<Path>,
 }
 
+// 宏展开期先排除角色冲突和缺少访问器的虚拟字段；目录接纳再校验完整注册元数据。
 pub(crate) fn parse_container_attributes(
     attributes: &[Attribute],
 ) -> syn::Result<ContainerAttributes> {
@@ -98,6 +99,7 @@ pub(crate) fn parse_container_attributes(
                 let mut field = FieldAttributes::default();
                 meta.parse_nested_meta(|nested| parse_field_meta(&mut field, nested))?;
                 validate_field_attributes(&field)?;
+                // TODO: [CR-REFLECT-0001] 确认虚拟字段空名称或值路径是否应在宏期拒绝；当前只查 Some，下一步补充展开与注册测试。
                 if field.name.is_none() || field.value_type_path.is_none() || field.read.is_none() {
                     return Err(meta.error(
                         "virtual reflected fields require name, value_type_path, and read",

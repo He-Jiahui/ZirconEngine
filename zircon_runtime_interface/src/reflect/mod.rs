@@ -1,3 +1,5 @@
+//! 反射公共层承载类型、字段和值的可传输契约；运行时目录和对象适配器负责接纳与执行。
+
 mod editor_hint;
 mod error;
 mod field_id;

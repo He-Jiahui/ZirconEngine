@@ -16,6 +16,7 @@ enum StableFieldIndex {
     Hashed(HashMap<ReflectFieldId, u32>),
 }
 
+// 稳定 ID 只映射到当前字段序列的槽位；旧名称和别名另存为限定在所属类型内的导入索引。
 impl ReflectSchemaFieldIndex {
     pub(super) fn from_fields(fields: &[ReflectFieldInfo]) -> Self {
         let stable = if fields.len() <= HASHED_FIELD_INDEX_THRESHOLD {

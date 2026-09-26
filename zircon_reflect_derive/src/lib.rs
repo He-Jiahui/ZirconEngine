@@ -8,6 +8,7 @@ mod fields;
 #[cfg(test)]
 mod tests;
 
+/// 为结构体或枚举生成反射元数据，以及按字段名和当期槽位访问的实现。
 #[proc_macro_derive(ZrReflect, attributes(zr_reflect))]
 pub fn derive_zr_reflect(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as syn::DeriveInput);

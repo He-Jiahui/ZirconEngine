@@ -49,6 +49,7 @@ pub(crate) fn collect_virtual_fields(
     Ok(reflected)
 }
 
+// 跳过字段后压紧导出顺序，使生成的槽位与注册元数据的字段序列一一对应。
 pub(crate) fn collect_fields(fields: &syn::Fields) -> syn::Result<Vec<ReflectedField>> {
     let mut reflected = Vec::new();
     for (index, field) in fields.iter().enumerate() {

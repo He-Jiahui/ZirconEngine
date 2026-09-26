@@ -13,6 +13,7 @@ pub enum ReflectSerializationStrategy {
     EntityReference,
 }
 
+/// 中立的类型描述；运行时注册端再校验字段语义并绑定组件或资源适配器。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ReflectTypeRegistration {

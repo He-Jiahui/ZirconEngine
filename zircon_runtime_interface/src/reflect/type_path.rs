@@ -11,6 +11,7 @@ pub use validation::{
     MAX_REFLECT_TYPE_PATH_BYTES,
 };
 
+/// 已校验的完整类型路径及其短名；反序列化也重走相同的语法和长度约束。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct ReflectTypePath {
     type_path: String,
@@ -65,6 +66,7 @@ impl ReflectTypePath {
         Ok(self)
     }
 
+    /// 附加规范化的插件归属键；VM 注册端另核对完整类型路径的插件前缀。
     pub fn with_plugin_id(mut self, plugin_id: impl Into<String>) -> Result<Self, ReflectError> {
         let plugin_id = plugin_id.into();
         validate_plugin_id(&self.type_path, &plugin_id)?;

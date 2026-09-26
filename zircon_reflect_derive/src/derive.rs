@@ -30,6 +30,7 @@ pub(crate) fn derive_zr_reflect_impl(input: DeriveInput) -> syn::Result<TokenStr
         .clone()
         .map(|path| quote!(#path))
         .unwrap_or_else(|| quote!(concat!(module_path!(), "::", stringify!(#ident))));
+    // 显式身份键可使字段 ID 不随类型路径改名而变化；缺省身份键仍是当前类型路径。
     let type_identity = attributes
         .identity
         .map(|identity| quote!(#identity))
@@ -51,6 +52,7 @@ pub(crate) fn derive_zr_reflect_impl(input: DeriveInput) -> syn::Result<TokenStr
             ))
         }
     };
+    // 槽位顺序先取未跳过的实体字段，再接虚拟字段；稳定字段 ID 不依赖该顺序。
     fields.extend(collect_virtual_fields(attributes.virtual_fields)?);
     validate_unique_field_names(&fields, input_span)?;
 

@@ -11,6 +11,7 @@ use crate::reflect::{
 
 use super::ReflectSchemaCatalogEntry;
 
+/// 内容指纹的编码版本；改变字段编码或顺序规则时必须同时提升版本。
 pub const REFLECT_SCHEMA_CATALOG_ALGORITHM_VERSION: u32 = 1;
 const FINGERPRINT_DOMAIN: &[u8] = b"zircon-reflect-schema-catalog-v1\0";
 
@@ -50,6 +51,7 @@ impl<'de> Deserialize<'de> for ReflectSchemaFingerprint {
     }
 }
 
+// 先按完整类型路径排序，再编码规范化的注册元数据和依赖，避免输入顺序改变指纹。
 pub(super) fn fingerprint(
     entries: &BTreeMap<String, ReflectSchemaCatalogEntry>,
 ) -> ReflectSchemaFingerprint {

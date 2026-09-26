@@ -93,6 +93,7 @@ pub(super) fn admit_entries(
     })
 }
 
+// 这里只校验中立目录的身份与依赖约束；值类型、编辑提示等运行时语义由注册端继续校验。
 pub(super) fn canonicalize_and_validate_entry(
     entry: &mut ReflectSchemaCatalogEntry,
 ) -> Result<(), ReflectError> {
