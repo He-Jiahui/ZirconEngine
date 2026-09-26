@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 use super::ProjectGuidParseError;
 
-/// Stable project-owned GUID. Missing values must be handled by explicit migration policy.
+/// 项目持久化身份；缺失值只能经显式迁移处理，不能在读取清单时隐式补造。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize)]
 #[serde(transparent)]
 pub struct ProjectGuid(Uuid);
@@ -44,6 +44,7 @@ impl FromStr for ProjectGuid {
     }
 }
 
+// 持久化入口复用 nil 检查，防止 Serde 直接构造无效项目身份。
 impl<'de> Deserialize<'de> for ProjectGuid {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where

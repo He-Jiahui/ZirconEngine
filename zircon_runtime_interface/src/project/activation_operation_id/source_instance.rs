@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use super::ProjectLaunchInstanceIdError;
 
-/// Stable process-instance component of a project activation operation identity.
+/// 同一启动进程内保持稳定的激活来源；新进程必须产生新身份，避免序号重启后混淆操作。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize)]
 #[serde(transparent)]
 pub struct ProjectLaunchInstanceId(Uuid);

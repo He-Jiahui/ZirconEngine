@@ -2,7 +2,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 
 use super::ProjectActivationOperationSequenceError;
 
-/// A non-zero sequence number allocated monotonically by one launch instance.
+/// 单个启动实例内单调分配的非零序号；零保留给生成器的耗尽状态，反序列化也拒绝零。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize)]
 #[serde(transparent)]
 pub struct ProjectActivationOperationSequence(u64);

@@ -6,9 +6,10 @@ use super::{
     ProjectActivationOperationId, ProjectActivationOperationSequence, ProjectLaunchInstanceId,
 };
 
+// 零值是序号类型拒绝的耗尽哨兵；最后一个 u64 序号只会发放一次。
 const EXHAUSTED_SEQUENCE: u64 = 0;
 
-/// Concurrent allocator for operation identities emitted by one launch-process instance.
+/// 为同一启动进程实例并发分配项目激活标识；Hub、CLI 与 Editor 各自持有进程级生成器。
 pub struct ProjectActivationOperationIdGenerator {
     origin_instance: ProjectLaunchInstanceId,
     next_sequence: AtomicU64,
@@ -26,7 +27,7 @@ impl ProjectActivationOperationIdGenerator {
         self.origin_instance
     }
 
-    /// Allocates each non-zero sequence at most once and returns `None` after exhaustion.
+    /// 原子地占用一个非零序号，并以随机 nonce 区分操作；序号耗尽后返回 `None`。
     pub fn allocate(&self) -> Option<ProjectActivationOperationId> {
         loop {
             let current = self.next_sequence.load(Ordering::Relaxed);

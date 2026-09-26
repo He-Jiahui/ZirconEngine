@@ -5,7 +5,7 @@ use super::{
     ProjectActivationOperationIdError, ProjectActivationOperationSequence, ProjectLaunchInstanceId,
 };
 
-/// Versioned-launch identity that binds an origin instance, its monotonic sequence, and a nonce.
+/// 跨启动请求与恢复记录传递的操作身份，由来源进程、单调序号和 nonce 共同确定。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize)]
 pub struct ProjectActivationOperationId {
     origin_instance: ProjectLaunchInstanceId,
@@ -14,6 +14,7 @@ pub struct ProjectActivationOperationId {
 }
 
 impl ProjectActivationOperationId {
+    /// 构造或恢复传输身份时拒绝 nil nonce；来源和序号已由各自类型验证。
     pub fn try_from_parts(
         origin_instance: ProjectLaunchInstanceId,
         sequence: ProjectActivationOperationSequence,
@@ -42,6 +43,7 @@ impl ProjectActivationOperationId {
     }
 }
 
+// 传输入口先解析严格字段形状，再走公开构造器复核 nonce 不变量。
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct ProjectActivationOperationIdWire {

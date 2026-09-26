@@ -49,13 +49,12 @@ impl VersionRange {
         }) {
             return ProjectEngineCompatibilityDisposition::ProjectRequiresOlderEngine;
         }
+        // semver 已拒绝当前版本，但区间边界不能证明升级或降级方向。
         ProjectEngineCompatibilityDisposition::Incompatible
     }
 }
 
-/// Returns a direction only when the entire requirement can be reduced to a stable-version
-/// interval. Prerelease ranges intentionally stay indeterminate because Cargo's prerelease
-/// admission rules cannot be represented by ordinary inclusive bounds.
+/// 仅当整个要求可化为稳定版本区间时报告升级或降级方向；预发布规则无法用普通区间准确表示。
 pub(super) fn classify_incompatible_requirement(
     requirement: &VersionReq,
     running: &Version,
