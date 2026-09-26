@@ -1,3 +1,5 @@
+//! 导航派发的共享契约：处理器通过上下文读取路由、返回决议，结果承接焦点与绑定回执。
+
 mod context;
 mod effect;
 mod invocation;

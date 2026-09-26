@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 use super::{UiRenderCommandKind, UiRenderList};
 use crate::ui::event_ui::UiTreeId;
 
+/// 一棵 UI 树的命令流快照；Runtime 将其投影为按帧可消费的渲染提取物。
+/// 布局坐标仍是逻辑单位，图像与字形资源的栅格化须使用归一化后的物理比例。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiRenderExtract {
     pub tree_id: UiTreeId,
@@ -52,6 +54,7 @@ pub enum UiRenderExtractKind {
     DebugOverlay,
 }
 
+/// 仅统计 UiRenderExtract 中的旧命令列表；不表示 PaintElement、批处理或 GPU 实际绘制数。
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct UiRenderStats {

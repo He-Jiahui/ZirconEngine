@@ -2,6 +2,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::ui::{layout::UiFrame, tree::UiDirtyFlags};
 
+/// 指针处理器每次只返回一个派发决议：Handled、捕获和焦点效果结束当前路由；
+/// Blocked 在预览阶段阻止后续路由，在目标或冒泡阶段仅截断当前命中候选；
+/// Passthrough 保留透传记录并继续，脏标记及伤害请求先累积到结果。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub enum UiPointerDispatchEffect {
     #[default]
@@ -14,6 +17,8 @@ pub enum UiPointerDispatchEffect {
     SetFocus,
     ClearFocus,
     RequestDirty(UiDirtyFlags),
+    // TODO: [CR-DISPATCH-0004] Runtime 目前只将帧收集到 requested_damage；
+    // 统一输入适配器没有转发，需确认直接派发以外的渲染消费契约。
     RequestDamage(UiFrame),
 }
 

@@ -8,10 +8,14 @@ use crate::ui::tree::UiDirtyFlags;
 
 use super::{UiPointerComponentEvent, UiPointerDispatchInvocation};
 
+/// 汇总路由及 UiSurface 后续动作的观测值；pointer_routed 只表示存在目标或根候选，
+/// 并不表示某个处理器已经接管事件。
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct UiPointerDispatchDiagnostics {
     pub pointer_routed: bool,
+    // TODO: [CR-DISPATCH-0006] Hover 无命中且进入、离开列表都为空时也会置位；
+    // 需确认该字段表示无悬停变化，还是严格表示命中同一目标。
     pub ignored_same_target_hover: bool,
     pub hover_entered: usize,
     pub hover_left: usize,
@@ -24,6 +28,8 @@ pub struct UiPointerDispatchDiagnostics {
     pub scroll_defaulted: bool,
 }
 
+/// 指针路由的跨层结果：dispatcher 收集处理器效果，UiSurface 应用捕获、焦点及
+/// 组件默认行为，统一输入适配器再将处理决议投影为 UiDispatchReply。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiPointerDispatchResult {
     pub route: UiPointerRoute,
@@ -51,6 +57,7 @@ pub struct UiPointerDispatchResult {
 }
 
 impl UiPointerDispatchResult {
+    /// 从已计算的命中路由建立基础诊断；UiSurface 随后补写焦点、捕获和组件事件统计。
     pub fn new(route: UiPointerRoute) -> Self {
         let diagnostics = UiPointerDispatchDiagnostics {
             pointer_routed: route.target.is_some() || !route.root_targets.is_empty(),
@@ -81,6 +88,9 @@ impl UiPointerDispatchResult {
         }
     }
 
+    // BUG: [CR-DISPATCH-0003] 全部 Optional 目标缺值时可生成零更新但带事务及执行回执的报告；
+    // 当前判空忽略这些回执，导致该次绑定执行记录丢失。
+    /// 将组件事件触发的绑定报告送往统一输入结果，避免无意义的空更新占用结果。
     pub fn record_binding_report(&mut self, report: UiBindingUpdateReport) {
         if !report.updates.is_empty()
             || report.applied_count > 0

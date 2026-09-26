@@ -189,6 +189,8 @@ pub struct UiTextComposition {
     pub restore_text: Option<String>,
 }
 
+/// Runtime 可编辑文本的发布状态。光标、选区和组合文本范围均使用 UTF-8 字节偏移；
+/// 输入状态机在应用操作时负责夹取到合法的 grapheme 边界并执行只读约束。
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UiEditableTextState {
     pub text: String,
@@ -198,6 +200,8 @@ pub struct UiEditableTextState {
     pub read_only: bool,
 }
 
+/// 交给 Runtime 文本状态机的编辑意图，不是已提交的文本差异或绘制命令。
+/// 只读状态仍可移动光标或更改选区，内容修改由状态机拒绝。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case", tag = "kind")]
 pub enum UiTextEditAction {

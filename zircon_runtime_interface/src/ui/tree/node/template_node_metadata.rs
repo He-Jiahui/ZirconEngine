@@ -8,6 +8,8 @@ use crate::ui::layout::UiPixelSnappingPolicy;
 use crate::ui::template::UiBindingRef;
 use crate::ui::widget::UiWidgetContract;
 
+/// 随 retained 节点携带的模板作者数据，供 Runtime 布局、绘制、输入和 Editor 预览复用。
+/// 构树时从模板生成；虚拟行等调用方可复制并补写实例属性，不能假定它始终等于原模板。
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct UiTemplateNodeMetadata {
     pub component: String,

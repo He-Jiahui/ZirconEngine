@@ -5,6 +5,8 @@ use crate::ui::layout::{UiFrame, UiGeometry};
 
 use super::{UiBrushSet, UiTextPaint};
 
+/// 命令投影后的单个绘制单元；一个命令可能产生多个单元供批处理与诊断消费。
+/// z_index 与 paint_order 决定跨命令顺序；Runtime 即时路径生成的单元不带 cache_generation。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiPaintElement {
     pub node_id: UiNodeId,

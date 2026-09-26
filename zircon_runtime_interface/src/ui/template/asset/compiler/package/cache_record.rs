@@ -5,6 +5,8 @@ use crate::ui::template::{
     UiInvalidationSnapshot,
 };
 
+/// 包清单中的缓存元数据，关联编译键、失效快照和序列化字节的指纹与长度。
+/// 此类型可由接口层产物构造；运行时包路径也会填入同形记录。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UiCompiledAssetCacheRecord {
     pub header: UiCompiledAssetHeader,
@@ -15,6 +17,7 @@ pub struct UiCompiledAssetCacheRecord {
 }
 
 impl UiCompiledAssetCacheRecord {
+    /// 传入的字节必须是该产物最终写出的内容；本函数不会核对二者是否对应。
     pub fn from_artifact_bytes(artifact: &UiCompiledAssetArtifact, artifact_bytes: &[u8]) -> Self {
         let cache_key = artifact.report.header.compile_cache_key.clone();
         Self {

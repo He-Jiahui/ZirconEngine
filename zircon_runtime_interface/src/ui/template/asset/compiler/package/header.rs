@@ -7,6 +7,8 @@ use crate::ui::template::{
 pub const UI_COMPILED_ASSET_PACKAGE_SCHEMA_VERSION: u32 = 1;
 pub const UI_COMPILED_ASSET_COMPILER_SCHEMA_VERSION: u32 = 8;
 
+/// 编译包的身份与版本边界：源格式、编译器格式和包格式独立演进。
+/// 运行时生成它并用于持久缓存兼容性判断；`is_current_source_schema` 只检查源格式。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UiCompiledAssetHeader {
     pub asset: UiAssetHeader,

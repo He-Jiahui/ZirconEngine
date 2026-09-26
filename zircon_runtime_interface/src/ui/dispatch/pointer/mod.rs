@@ -1,3 +1,5 @@
+//! 指针派发的共享契约：Runtime 按阶段收集处理器效果，UiSurface 负责提交状态并公布结果。
+
 mod component_event;
 mod context;
 mod effect;

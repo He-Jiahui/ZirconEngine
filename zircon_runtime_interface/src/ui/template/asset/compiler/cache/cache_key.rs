@@ -4,6 +4,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::ui::template::{UiAssetFingerprint, UiInvalidationSnapshot};
 
+/// 编译结果的缓存身份，包含源文档、已解析导入及影响编译结果的外部修订。
+/// 运行时以完整键查找缓存；`invalidation_snapshot` 把同一输入向量交给失效图解释未命中。
+/// 扩展编译输入时须同时更新键的构造和快照投影。
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct UiCompileCacheKey {
     pub root_document: UiAssetFingerprint,

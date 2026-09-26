@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 pub const UI_BINDING_TELEMETRY_ASSET_ID_MAX_BYTES: usize = 256;
 pub const UI_BINDING_TELEMETRY_BINDING_ID_MAX_BYTES: usize = 128;
 
+/// Runtime 处理单次绑定目标事件后的诊断回执，记录执行、未命中、错误和耗时。
+/// 两个标识符经工厂截断并附哈希，仅用于诊断，不能作为稳定的资产或绑定身份键。
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct UiBindingExecutionReceipt {

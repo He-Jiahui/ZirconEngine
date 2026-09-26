@@ -14,6 +14,8 @@ pub use types::{
     UI_BINDING_VALUE_MAX_DEPTH, UI_BINDING_VALUE_MAX_NODES, UI_BINDING_VALUE_MAX_STRING_BYTES,
 };
 
+/// 模板、Runtime 与 Editor 共用的绑定值协议，用于传递事件参数和模型数据。
+/// 手工构造枚举或调用 `array` 不校验资源预算；将值写入资产或用作事件参数前应校验整棵值树。
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub enum UiBindingValue {
     String(String),
@@ -71,6 +73,8 @@ impl From<UiBindingValueWire> for UiBindingValue {
     }
 }
 
+// TODO: [CR-UITREE-0004] serde 与原生绑定解析目前先构造复合值再校验预算；
+// 若入口接收不可信的大输入，需在解析期间限制深度、元素数与字节数，避免拒绝前大量分配。
 impl<'de> Deserialize<'de> for UiBindingValue {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -91,6 +95,7 @@ impl UiBindingValue {
         Self::Unsigned(value as u64)
     }
 
+    /// 仅构造数组；与 `record`、`map` 不同，调用方须在发布前校验整个结果。
     pub fn array(values: impl Into<Vec<UiBindingValue>>) -> Self {
         Self::Array(values.into())
     }

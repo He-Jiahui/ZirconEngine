@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 use crate::ui::event_ui::{UiNodeId, UiNodePath};
 use crate::ui::focus::{UiFocusChangeEvent, UiFocusVisible, UiFocusedInput};
 
+/// 从布局快照投影出的焦点路径，分别保存根到叶和叶到根顺序，供帧观察者核对路由。
+/// 布局尚未包含焦点节点时，focused 可以存在而两个路径为空；消费方须处理该状态。
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct UiFocusPath {
@@ -31,6 +33,8 @@ impl UiFocusPath {
     }
 }
 
+/// 模态焦点恢复凭据。重建 UI 后若保存了稳定路径，Runtime 按路径重新查找目标；
+/// 只有缺少路径时才尝试旧节点 ID。
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct UiModalFocusRestoreState {
@@ -42,6 +46,8 @@ pub struct UiModalFocusRestoreState {
     pub restore_path: Option<UiNodePath>,
 }
 
+/// Surface 持有的焦点与指针交互状态；Runtime 输入路由维护它，并按帧发布给观察者。
+/// captured、pressed 与 hovered 属于同一输入状态，不代表当前键盘焦点。
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UiFocusState {
     pub focused: Option<UiNodeId>,

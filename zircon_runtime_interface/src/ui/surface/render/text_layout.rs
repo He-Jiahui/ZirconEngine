@@ -11,6 +11,7 @@ use super::{
 use crate::ui::layout::UiFrame;
 use crate::ui::style::UiRgbaColor;
 
+/// 源文本或视觉文本中的半开 UTF-8 字节范围；调用方应使用字符边界再进行切片。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UiTextRange {
     pub start: usize,
@@ -188,6 +189,8 @@ mod tests {
     }
 }
 
+/// 文本布局所有者发布给绘制、命中和 IME 几何计算的共同结果。
+/// 序列化只传可重建的布局数据；进程内 rich_text_artifact 由 Runtime 持有并按身份判断缓存等价。
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct UiResolvedTextLayout {
     pub text_align: UiTextAlign,

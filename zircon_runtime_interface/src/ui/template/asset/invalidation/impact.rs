@@ -6,6 +6,9 @@ use crate::ui::tree::UiDirtyFlags;
 
 use super::UiInvalidationStage;
 
+// TODO: [CR-UITEMPLATE-0004] 确认报告影响何时交给执行路径，避免两套映射长期分叉。
+/// 失效图对后续 UI 工作的影响摘要，折叠为脏域、投影与重建标志。
+/// 当前编译器把它写入报告，热重载执行仍由独立的 plan 决定。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UiInvalidationImpact {
     pub dirty: UiDirtyFlags,

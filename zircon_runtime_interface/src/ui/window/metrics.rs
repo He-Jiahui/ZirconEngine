@@ -26,8 +26,8 @@ impl UiWindowPixelPosition {
     }
 }
 
-/// Logical and physical window metrics share one DTO so DPI changes can mark
-/// layout metrics dirty without implying input-state mutation.
+/// 同时携带布局使用的逻辑尺寸和呈现使用的物理尺寸，供窗口事件更新布局与栅格尺度。
+/// DPI 切换时缩放因子与尺寸可能由不同事件先后送达；消费者不能要求三者立即一致。
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiWindowMetrics {
     #[serde(default)]
@@ -39,6 +39,7 @@ pub struct UiWindowMetrics {
 }
 
 impl UiWindowMetrics {
+    /// 调用方负责保证 scale_factor 有限且大于零；此构造器保留原值。
     pub const fn new(
         logical_size: UiSize,
         physical_size: UiWindowPixelSize,

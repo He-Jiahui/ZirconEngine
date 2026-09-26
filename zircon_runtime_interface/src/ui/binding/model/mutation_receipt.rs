@@ -9,6 +9,8 @@ pub enum UiBindingMutationOutcome {
     RolledBack,
 }
 
+/// Runtime 绑定目标事务提交或快照回滚后的原子结果。
+/// `base_generation` 是 Surface 失效代次；成功提交不保证 `revision` 增加，回滚保留基线代次。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UiBindingMutationReceipt {
     pub base_generation: u64,

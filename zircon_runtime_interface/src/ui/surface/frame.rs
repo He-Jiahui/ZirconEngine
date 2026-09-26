@@ -13,6 +13,8 @@ use crate::ui::window::{UiWindowMetrics, UiWindowPixelPosition, UiWindowRedrawRe
 
 use super::UiArrangedTree;
 
+/// Runtime 一次性发布布局、渲染、命中、焦点和窗口状态；消费方应在同一帧内读取各域。
+/// generation 标识整帧更新；各 domain generation 仅在对应域变化时推进，供分域缓存使用。
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct UiSurfaceFrame {
     #[serde(default)]
@@ -47,6 +49,7 @@ pub struct UiSurfaceFrameDomainGenerations {
     pub window: u64,
 }
 
+/// 窗口宿主观测结果；可选字段的 None 表示尚无观测，不能解释为 false 或零值。
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct UiSurfaceWindowState {

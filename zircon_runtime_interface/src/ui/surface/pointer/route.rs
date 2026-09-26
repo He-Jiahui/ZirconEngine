@@ -10,6 +10,8 @@ use crate::ui::surface::UiHitPath;
 
 use super::{UiPointerActivationPhase, UiPointerButton, UiPointerEventKind};
 
+/// 指针分发路径的内存表示：直接命中时复用物理命中路径；捕获或改定目标时保存显式路径。
+/// 此选择只避免重复存储，不改变序列化时暴露的冒泡路由。
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum UiPointerRoutingPath {
@@ -48,6 +50,8 @@ impl UiPointerRoutingPath {
     }
 }
 
+/// 同时保留物理命中结果与实际分发目标，供捕获、悬停及默认交互各取所需。
+/// hit_path 和 stacked 描述指针下方的节点；routing_path 描述事件真正到达的节点链。
 #[derive(Clone, Debug)]
 pub struct UiPointerRoute {
     pub kind: UiPointerEventKind,
@@ -82,6 +86,8 @@ impl UiPointerRoute {
         self.routing_root_to_leaf().iter().rev().copied()
     }
 
+    /// 默认交互优先检查物理命中堆栈；没有命中时才沿实际分发路径查找。
+    /// 调用方不得把此顺序当作事件的冒泡顺序。
     pub fn hit_candidates(&self) -> impl Iterator<Item = UiNodeId> + '_ {
         if self.stacked.is_empty() {
             UiPointerHitCandidates::Bubble(self.routing_root_to_leaf().iter().rev().copied())
@@ -124,6 +130,8 @@ impl PartialEq for UiPointerRoute {
     }
 }
 
+// 线协议始终写出 bubbled 节点序列，不暴露 HitPath/ExplicitRootToLeaf 的内存选择；
+// 反序列化再根据 hit_path 恢复等效路径，保持旧消费者可读取的路由形状。
 impl Serialize for UiPointerRoute {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where

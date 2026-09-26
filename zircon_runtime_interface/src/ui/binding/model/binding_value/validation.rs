@@ -8,6 +8,8 @@ impl UiBindingValue {
         self.validate_with_budget(UiBindingValueBudget::STANDARD)
     }
 
+    /// 以整棵值树为单位检查资源上限、身份和数值有效性，供解析入口与提交方做准入。
+    /// 自定义预算可收紧限制；只校验某个子值不能证明包含它的完整值树合规。
     pub fn validate_with_budget(
         &self,
         budget: UiBindingValueBudget,
