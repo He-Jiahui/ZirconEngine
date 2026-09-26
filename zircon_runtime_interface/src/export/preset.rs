@@ -64,6 +64,8 @@ pub struct ExportPluginSubset {
     pub features: BTreeMap<String, Vec<String>>,
 }
 
+/// .zpreset 的版本化请求载荷，由编辑器预设存储和导出 CLI 按同一格式消费。
+/// 它记录导出请求参数；读写此载荷不等于完成工程语义或路径安全校验。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ExportPreset {
@@ -103,6 +105,9 @@ impl ExportPreset {
         }
     }
 
+    /// 供预设读写入口做初步校验；成功不代表 profile、资源和输出路径已满足执行约束。
+    // BUG: [CR-EXPORT-0001] profile_ref 可含 .. 路径段；PlatformBundle 以它拼接目录并清理旧包，
+    // 可能递归删除输出根外路径。需统一限制 profile 名并在删除前核验路径归属。
     pub fn validate(&self) -> Result<(), ExportPresetValidationError> {
         if self.profile_ref.trim().is_empty() {
             return Err(ExportPresetValidationError::EmptyProfileRef);

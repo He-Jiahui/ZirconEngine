@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::str::FromStr;
 
+/// 导出阶段的共享身份，贯穿 CLI 参数、阶段报告、Runtime 执行与编辑器进度。
+/// cli_id 用于命令参数；Serde 的 PascalCase 名称用于持久化报告。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub enum ExportStage {
@@ -16,6 +18,8 @@ pub enum ExportStage {
 }
 
 impl ExportStage {
+    // TODO: [CR-EXPORT-0003] Python CLI 与桌面插件分别维护阶段名称；增删阶段时需核对
+    // 它们与 ALL、cli_id 的映射，并补跨语言契约测试。
     pub const ALL: [Self; 8] = [
         Self::Validate,
         Self::SourceTemplate,
