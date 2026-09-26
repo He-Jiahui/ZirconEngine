@@ -5,7 +5,7 @@ use serde::Serialize;
 
 use super::RelPathError;
 
-/// Portable normalized relative path that cannot escape its owning project root.
+/// 用于清单、模板和资产引用的归一化项目相对路径；解析仅做词法检查，不保证实际目标位于项目根内。
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
 #[serde(transparent)]
 pub struct RelPath(pub(super) String);
@@ -27,6 +27,7 @@ impl RelPath {
         self.0.split('/').collect()
     }
 
+    /// 拼接到所属项目根；调用方用于磁盘读写前须另行保证目标仍位于该根目录内。
     pub fn join_to(&self, root: impl AsRef<Path>) -> PathBuf {
         root.as_ref().join(self.to_path_buf())
     }

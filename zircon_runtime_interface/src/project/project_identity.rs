@@ -2,7 +2,8 @@ use serde::{Deserialize, Serialize};
 
 use super::{CanonicalDescriptorIdentity, ProjectGuid, ProjectManifestDigest};
 
-/// Versioned project identity accepted by preflight and later admission boundaries.
+/// 由物理 descriptor 路径、持久项目 GUID 和本次清单摘要组成的预检身份。
+/// 后续准入不能只凭路径或 GUID 沿用旧收据；清单字节变化须重新预检。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ProjectIdentity {
     canonical_descriptor: CanonicalDescriptorIdentity,

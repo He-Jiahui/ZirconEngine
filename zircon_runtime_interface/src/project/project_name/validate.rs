@@ -2,6 +2,7 @@ use std::path::{Component, Path};
 
 use super::ProjectNameError;
 
+/// 校验跨平台的单段项目目录名；Hub/Editor 建项在拼接项目位置前调用，清单和模板也据此拒绝不可移植名称。
 pub fn validate_project_name(value: &str) -> Result<(), ProjectNameError> {
     if value.is_empty() || value.trim().is_empty() {
         return Err(ProjectNameError::Empty);
@@ -50,6 +51,8 @@ pub fn validate_project_name(value: &str) -> Result<(), ProjectNameError> {
     Ok(())
 }
 
+// BUG: [CR-PROJECT-0002] Windows 也保留 COM¹/²/³、LPT¹/²/³ 及其带扩展名的形式；
+// 当前仅识别 ASCII 数字，建项请求和跨平台清单校验会放行这些设备名。
 fn is_windows_reserved(value: &str) -> bool {
     matches!(value, "CON" | "PRN" | "AUX" | "NUL")
         || value

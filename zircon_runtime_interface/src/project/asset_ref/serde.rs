@@ -5,6 +5,7 @@ use crate::resource::AssetUuid;
 
 use super::AssetRef;
 
+/// 项目资产引用的持久化格式；读取后须经 RelPath 和 try_new 对外部输入做词法路径及子资产标签约束。
 #[derive(Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct AssetRefRepr {

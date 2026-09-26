@@ -1,3 +1,6 @@
+//! 编译期模板文件清单，同时决定发布程序的渲染内容与模板内容摘要。
+//! 增删模板文件须同步这里；运行时不会回读源码树来发现遗漏的文件。
+
 pub(super) struct EmbeddedProjectTemplateEntry {
     pub path: &'static str,
     pub bytes: &'static [u8],

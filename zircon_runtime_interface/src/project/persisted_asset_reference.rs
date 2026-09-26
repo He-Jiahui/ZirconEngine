@@ -6,7 +6,8 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use crate::project::AssetRef;
 use crate::resource::{ResourceLocator, ResourceScheme};
 
-/// Current project-file reference contract. Runtime-only locators never serialize through it.
+/// 项目文件只持久化项目资产的 AssetRef 或 builtin:// 定位符。
+/// 运行时专用定位符不得借此写入文档；读取时也须保持两类引用的区分。
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct PersistedAssetReference(PersistedAssetReferenceKind);
 
@@ -51,6 +52,8 @@ impl PersistedAssetReference {
         Ok(Self(PersistedAssetReferenceKind::Builtin { locator }))
     }
 
+    /// 仅供已判定为 builtin:// 的内部调用；不可信定位符应使用 `try_builtin`。
+    /// 传入其他 scheme 会 panic。
     pub fn builtin(locator: ResourceLocator) -> Self {
         Self::try_builtin(locator)
             .expect("PersistedAssetReference::builtin requires a builtin:// locator")

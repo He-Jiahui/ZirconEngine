@@ -3,6 +3,8 @@ use super::{
     MAX_PROJECT_MANIFEST_NESTING_DEPTH, MAX_PROJECT_MANIFEST_TABLE_ENTRIES,
 };
 
+/// 在 TOML 已解析后、转为 JSON 值之前约束容器深度和元素总量。
+/// 此处不限制原始文档字节数，入口调用方须先执行字节预算。
 pub(super) fn validate_toml_complexity(
     root: &toml::Value,
 ) -> Result<(), ProjectManifestSummaryError> {

@@ -4,7 +4,8 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use super::ProjectManifestDigestParseError;
 
-/// Exact BLAKE3 content identity of the manifest bytes accepted during preflight.
+/// 预检清单原始字节的 BLAKE3 身份；空白等不改变 TOML 语义的编辑也会改变摘要。
+/// Editor 在准入前重读并比较它，变化时必须重新评估此前的预检决定。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct ProjectManifestDigest([u8; 32]);
 

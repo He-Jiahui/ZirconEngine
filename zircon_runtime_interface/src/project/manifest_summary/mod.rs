@@ -1,3 +1,6 @@
+//! Hub、Editor 与 Runtime 共用的轻量清单摘要和版本迁移入口。
+//! 摘要用于展示与预检；项目运行仍须通过 Runtime 的完整清单校验。
+
 mod admission;
 mod error;
 mod limits;
