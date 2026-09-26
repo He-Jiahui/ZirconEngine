@@ -1,3 +1,5 @@
+//! 版本化声明坐标、单位与精度约定，供运行时和编辑器解释同一数值数据。
+//! 具体数学运算仍由 `zr_math` 实现；这里固定产品层序列化身份。
 use crate::serialization::SchemaId;
 use zr_math::{
     AngleUnit, Axis3, AxisDirection, ClipDepthRange, CoordinateHandedness, DepthDirection,
@@ -18,6 +20,7 @@ pub struct CoordinateSchema {
     pub canonical_front_face: FrontFaceWinding,
 }
 
+/// 当前产品约定：右手系、Y 向上、负 Z 向前，深度映射为零到一。
 pub const ZIRCON_COORDINATE_SCHEMA: CoordinateSchema = CoordinateSchema {
     schema_id: SchemaId::new("zircon.coordinate"),
     version: 1,
