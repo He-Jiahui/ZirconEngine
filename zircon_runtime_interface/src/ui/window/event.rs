@@ -7,6 +7,7 @@ use crate::ui::layout::UiPoint;
 
 use super::{UiWindowEventImpact, UiWindowEventMetadata, UiWindowMetrics, UiWindowPixelPosition};
 
+/// 与输入事件分开的窗口生命周期和度量事件；窗口泵据此更新布局、输入状态与重绘需求。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiWindowEvent {
     pub metadata: UiWindowEventMetadata,
@@ -85,6 +86,7 @@ impl UiWindowEvent {
         matches!(self.kind, UiWindowEventKind::RequestRedraw { .. })
     }
 
+    /// 仅在失焦、应用停用或点击非客户区时发出瞬态 UI 关闭命令，供窗口泵应用。
     pub fn transient_dismissal_effect(&self) -> Option<UiDispatchEffect> {
         match &self.kind {
             UiWindowEventKind::Focused { focused: false } => {

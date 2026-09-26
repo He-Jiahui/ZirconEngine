@@ -26,6 +26,7 @@ impl UiWindowEvent {
         }
     }
 
+    /// 离开或销毁窗口时沿用该窗口事件的元数据生成指针取消，供 Runtime 与 Editor 清理悬停和捕获。
     pub fn normalized_pointer_cancel_input(&self, point: UiPoint) -> Option<UiInputEvent> {
         if !matches!(
             self.kind,

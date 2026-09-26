@@ -2,6 +2,7 @@ use thiserror::Error;
 
 use super::UiBindingValueValidationError;
 
+/// 原生绑定文本的解析错误；构造值校验失败保留原始错误，Editor 绑定转换层直接透传此类型。
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
 pub enum UiBindingParseError {
     #[error("binding is missing event separator ':'")]

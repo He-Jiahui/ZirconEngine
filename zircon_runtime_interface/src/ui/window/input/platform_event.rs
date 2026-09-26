@@ -16,6 +16,7 @@ use crate::ui::{
 
 use super::{UiWindowInputContext, UiWindowPlatformInputEventKind, UiWindowTouchPhase};
 
+/// 平台输入的中间形态；保留窗口上下文，调用 `normalize` 后才进入共享输入分发。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiWindowPlatformInputEvent {
     pub context: UiWindowInputContext,
@@ -284,6 +285,7 @@ impl UiWindowPlatformInputEvent {
         )
     }
 
+    /// 在构造带格式片段的预编辑事件前校验 UTF-8 字节范围及片段顺序。
     pub fn ime_with_preedit_clauses(
         context: UiWindowInputContext,
         text: impl Into<String>,
