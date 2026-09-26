@@ -3,6 +3,7 @@ use std::sync::{Mutex, MutexGuard};
 
 use crate::core::{CoreHandle, LifecycleState, ServiceKind, StartupMode};
 
+/// 核心注册表的工具视图：模块、服务和目录信息供调试界面查询，不触发服务启动。
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct RuntimeDevtoolsSnapshot {
     pub modules: Vec<RuntimeDevtoolsModuleSnapshot>,
@@ -67,6 +68,7 @@ pub struct RuntimeDevtoolsDiagnosticsSummary {
     pub tagged_subsystems: Vec<String>,
 }
 
+/// 从 CoreHandle 的注册表和诊断存储投影只读视图；调用者先采集诊断快照。
 pub(crate) fn project_runtime_devtools_snapshot(
     core: &CoreHandle,
     diagnostics: &super::RuntimeDiagnosticsSnapshot,
@@ -75,6 +77,7 @@ pub(crate) fn project_runtime_devtools_snapshot(
         modules: collect_module_snapshots(core),
         services: collect_service_snapshots(core),
         plugin_catalog: collect_plugin_catalog_entries(core),
+        // TODO: [CR-RUNTIME-DIAGNOSTICS-0001] 确认后端可用性与已加载数量的真实来源；当前常量投影尚未对应加载状态。
         native_backend_status: RuntimeDevtoolsBackendStatus {
             backend: "native_dynamic".to_string(),
             available: true,
@@ -109,6 +112,7 @@ fn collect_module_snapshots(core: &CoreHandle) -> Vec<RuntimeDevtoolsModuleSnaps
             }
         })
         .collect::<Vec<_>>();
+    // 排序留在注册表锁之外，避免工具侧展示拖慢模块注册和生命周期推进。
     drop(modules);
     snapshots.sort_by(|left, right| left.name.cmp(&right.name));
     snapshots
@@ -143,6 +147,7 @@ fn collect_plugin_catalog_entries(core: &CoreHandle) -> Vec<RuntimeDevtoolsPlugi
     entries
 }
 
+// 标签仅用于面板筛选摘要；借用存储快照中的文本并输出稳定顺序。
 fn tagged_subsystems(store: &super::DiagnosticStoreSnapshot) -> Vec<String> {
     let mut unique_tags = HashSet::<&str>::new();
     for series in &store.series {

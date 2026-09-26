@@ -1,3 +1,4 @@
+/// 帧域服务的借用状态视图；错误文本由原快照持有，调用者不能在快照销毁后保留它。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct FrameDiagnosticsStatus<'a> {
     pub domain: &'static str,
@@ -5,6 +6,7 @@ pub struct FrameDiagnosticsStatus<'a> {
     pub error: Option<&'a str>,
 }
 
+/// 让渲染、物理和动画各自提供同一面板状态契约；是否可用由采集域判定。
 pub trait FrameDiagnostics {
     fn diagnostics_domain(&self) -> &'static str;
 

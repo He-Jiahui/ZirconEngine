@@ -6,6 +6,7 @@ use super::authority::RandomAuthority;
 use super::{RandomStream, RandomStreamError};
 
 /// Exclusive mutable ownership of one registered deterministic stream.
+/// 同一稳定键只能有一个租约；抽样在本地推进，归还时才把进度写回注册表。
 #[derive(Debug)]
 pub struct RandomStreamLease {
     key: RandomStreamKey,
@@ -58,6 +59,7 @@ impl RandomStreamLease {
     }
 
     /// Commits this lease immediately and returns the committed stream state.
+    /// 需要在 checkpoint 或 reseed 前解除活跃租约时，应显式归还并处理所得状态。
     pub fn release(mut self) -> RandomState {
         let state = self.stream_ref().snapshot();
         self.commit();
@@ -83,6 +85,8 @@ impl RandomStreamLease {
     }
 }
 
+// TODO: [CR-RUNTIME-RANDOM-0001] 核查未来固定步调用链的 commit/abort：若失败步持有租约，析构仍会提交抽样进度。
+// 证据：release 和 Drop 均调用 commit；当前生产调用链尚未接入固定步抽样。
 impl Drop for RandomStreamLease {
     fn drop(&mut self) {
         self.commit();

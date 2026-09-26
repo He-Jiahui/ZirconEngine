@@ -4,6 +4,9 @@ use zr_contracts::random::{
 
 use super::RandomStream;
 
+// 域分隔符与稳定键字段顺序共同定义未来未见键的流；更改它们会改变重播序列。
+// TODO: [CR-RUNTIME-RANDOM-0002] 为派生格式与键模式定义持久化版本，否则恢复后未见键可能改序。
+// 证据：RandomServiceCheckpoint 保存生成器 ID 和已登记流状态，但没有派生模式 ID。
 const RANDOM_DERIVATION_DOMAIN: &[u8] = b"zircon.random.stream.v1";
 
 pub(super) fn derive_stream(

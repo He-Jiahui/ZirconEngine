@@ -1,4 +1,5 @@
 //! Read-only runtime diagnostics snapshots for editor and tooling surfaces.
+//! 这里定义跨模块只读数据契约；采集器在 runtime_diagnostics 中解析服务，再供编辑器和日志使用。
 
 mod animation;
 mod devtools;

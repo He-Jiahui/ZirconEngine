@@ -39,6 +39,7 @@ pub enum ProfileExportError {
     },
 }
 
+/// 一次成功导出的内存摘要和文件清单，供控制命令及性能测试继续定位报告。
 #[derive(Clone, Debug)]
 pub struct ProfileExportReport {
     pub snapshot: ProfileSnapshot,
@@ -49,6 +50,8 @@ pub struct ProfileExportReport {
     pub files: Vec<String>,
 }
 
+/// 将已冻结的录制快照写到按 session 命名的目录，并生成时间线与热点报告。
+/// 同一 session 会覆盖已有文件；中途写入失败可能留下部分文件，成功返回的 files 才是完整清单。
 pub fn export_snapshot(
     snapshot: &ProfileSnapshot,
     include_perfetto: bool,
@@ -58,6 +61,7 @@ pub fn export_snapshot(
     let ui_hotspots = analyze_ui_hotspots(snapshot);
     let export_dir =
         PathBuf::from(&snapshot.output_root).join(profile_session_basename(&snapshot.session_id));
+    // TODO: [CR-RUNTIME-DIAGNOSTICS-0002] 明确复用 session 目录时如何清理旧的可选产物；禁用 Perfetto 不会移除上次的输出。
     fs::create_dir_all(&export_dir).map_err(|source| {
         ProfileExportError::CreateExportDirectory {
             path: path_string(&export_dir),
@@ -121,6 +125,7 @@ fn path_string(path: &Path) -> String {
     path.to_string_lossy().into_owned()
 }
 
+// 与原生快照并列的 Perfetto 事件投影；时间单位沿用录制器的微秒契约。
 #[derive(Serialize)]
 struct PerfettoTrace<'a> {
     #[serde(rename = "traceEvents")]

@@ -2,6 +2,8 @@ use std::collections::{HashMap, HashSet};
 
 use zircon_runtime_interface::{HotspotEntry, HotspotReport, ProfileSnapshot, ProfileSpanSnapshot};
 
+/// 将录制的 span 按来源和路径聚合，供导出摘要与编辑器时间线按累计耗时排序。
+/// 帧预算用于标记单个 span 和提示，不等同于整帧或同组 span 的合计预算。
 pub fn analyze_hotspots(snapshot: &ProfileSnapshot) -> HotspotReport {
     let budget_us = (snapshot.frame_budget_ms.max(0.0) * 1_000.0) as u64;
     let mut groups: HashMap<HotspotKey<'_>, HotspotAccumulator> = HashMap::new();
@@ -33,6 +35,7 @@ pub fn analyze_hotspots(snapshot: &ProfileSnapshot) -> HotspotReport {
     }
 }
 
+// 借用同一快照中的路径文本作为聚合键，直到完成报告时才取得拥有权。
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 struct HotspotKey<'a> {
     stream: &'a str,

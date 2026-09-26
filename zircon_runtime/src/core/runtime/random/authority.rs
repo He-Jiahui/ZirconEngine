@@ -92,6 +92,8 @@ impl RandomAuthority {
         self.reseed_with_observer(master_seed, on_enter)
     }
 
+    // 重播要求种子代际和已停泊的流同时切换；注册表锁先于种子锁，与 checkpoint 的顺序一致。
+    // 代际递增失败时两个部分都保持原状，不能留下新种子与旧流混合的状态。
     fn reseed_with_observer(
         &self,
         master_seed: u64,

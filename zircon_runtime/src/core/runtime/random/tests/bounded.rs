@@ -28,6 +28,7 @@ fn bounded_draws_cover_range_zero_bound_and_rejection_accounting() {
     assert_eq!(rejection_stream.draw_index(), 3);
 }
 
+// 此源级回归守护流内抽样的热路径，避免日后把共享注册表或键派生移回每次抽样。
 #[test]
 fn draw_execution_source_has_no_registry_synchronization_or_key_hashing() {
     let stream_source = include_str!("../stream.rs");

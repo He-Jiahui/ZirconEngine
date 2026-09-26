@@ -15,6 +15,7 @@ pub struct RandomStream {
 }
 
 impl RandomStream {
+    /// 从已保存状态恢复一个脱离注册表的本地流；不会占用稳定键，调用方负责其所属关系。
     pub fn from_state(state: RandomState) -> Result<Self, RandomStateError> {
         let state = RandomState::new(
             state.algorithm(),
@@ -41,6 +42,7 @@ impl RandomStream {
         self.state.sequence_id()
     }
 
+    /// 每次成功抽样只推进本地状态；索引耗尽时保持状态不变，便于调用方拒绝回绕。
     pub fn try_next_u32(&mut self) -> Result<u32, RandomStreamError> {
         let next_draw_index = self
             .state
@@ -57,6 +59,7 @@ impl RandomStream {
     }
 
     /// Draws a uniformly distributed value in `[0, upper_exclusive)`.
+    /// 零上界不消耗抽样；其他上界采用拒绝采样，一次结果可能推进多个 draw index。
     pub fn try_next_bounded_u32(
         &mut self,
         upper_exclusive: u32,
