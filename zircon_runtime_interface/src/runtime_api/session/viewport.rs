@@ -13,6 +13,7 @@ pub struct ZrRuntimeViewportSizeV1 {
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq)]
+/// 同时传递窗口逻辑尺寸、设备缩放比和物理尺寸，供输入坐标与渲染像素对齐。
 pub struct ZrRuntimeViewportMetricsV1 {
     pub logical_size: ZrRuntimeViewportSizeV1,
     pub device_scale_factor: f32,
@@ -41,6 +42,7 @@ impl ZrRuntimeViewportSizeV1 {
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// 宿主窗口的原生表面标识；实际绑定前运行时检查 ABI 版本和受支持的平台种类。
 pub struct ZrRuntimeNativeSurfaceTargetV1 {
     pub abi_version: u32,
     pub kind: u32,
@@ -70,6 +72,7 @@ impl ZrRuntimeNativeSurfaceTargetV1 {
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// 把一个视口绑定到宿主持有的原生窗口；窗口句柄须在绑定和呈现期间保持有效。
 pub struct ZrRuntimeBindViewportSurfaceRequestV1 {
     pub abi_version: u32,
     pub viewport: ZrRuntimeViewportHandle,

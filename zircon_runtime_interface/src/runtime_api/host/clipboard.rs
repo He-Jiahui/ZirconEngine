@@ -5,6 +5,7 @@ use crate::ui::dispatch::{UiClipboardRequest, UiClipboardTransferId, UiClipboard
 use crate::ui::event_ui::UiNodeId;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 运行时送往平台宿主的剪贴板事务，携带视口和 UI surface 归属。
 pub struct ZrRuntimeClipboardHostRequestV1 {
     pub target_viewport: ZrRuntimeViewportHandle,
     pub target_surface: u32,
@@ -26,6 +27,7 @@ impl ZrRuntimeClipboardHostRequestV1 {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 宿主完成事务后回送的结果；运行时按 surface、传输 ID 和节点 owner 关联原请求。
 pub struct ZrRuntimeClipboardResultV1 {
     pub target_surface: u32,
     pub transfer_id: UiClipboardTransferId,

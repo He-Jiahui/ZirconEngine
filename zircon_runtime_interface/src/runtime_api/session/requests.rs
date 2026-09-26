@@ -23,6 +23,7 @@ impl ZrRuntimeHostFetchRequestV1 {
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// 同一视口的捕获与呈现请求；宿主传入目标尺寸，运行时负责生成对应帧产品。
 pub struct ZrRuntimeFrameRequestV1 {
     pub abi_version: u32,
     pub viewport: ZrRuntimeViewportHandle,
@@ -70,6 +71,7 @@ impl ZrRuntimeAccessibilityTreeRequestV1 {
 
 #[repr(C)]
 #[derive(Debug)]
+/// 捕获帧的输出参数；RGBA 缓冲区由运行时分配，宿主在成功和失败路径均按原会话释放。
 pub struct ZrRuntimeFrameV2 {
     pub abi_version: u32,
     pub width: u32,
@@ -89,7 +91,7 @@ impl ZrRuntimeFrameV2 {
         }
     }
 
-    /// Reports only the canonical cleared out-parameter state, never a malformed frame.
+    /// 仅判断尺寸与 RGBA 输出是否为空；调用方仍须核对调用状态、ABI 版本和帧代数。
     pub const fn is_empty(&self) -> bool {
         self.width == 0 && self.height == 0 && self.rgba.is_empty()
     }

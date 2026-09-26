@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 use crate::math::Transform;
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+/// 编辑器模拟视口相机的 JSON 事件载体。
+/// 构造器只封装字段；运行时收到事件后再验证版本、变换与投影参数。
 pub struct ZrRuntimeViewportCameraV1 {
     pub abi_version: u32,
     pub transform: Transform,

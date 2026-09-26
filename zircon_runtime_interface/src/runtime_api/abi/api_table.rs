@@ -18,6 +18,8 @@ use super::super::{
     },
 };
 
+/// 获取运行时静态函数表的动态入口；返回指针借用动态库内存。
+/// 宿主须在读取表字段及调用函数期间保持库已加载，并先完成表形状与必需槽校验。
 pub type ZrRuntimeGetApiFnV8 = unsafe extern "C" fn(*const ZrHostApiV1) -> *const ZrRuntimeApiV8;
 pub type ZrRuntimeCreateSessionFnV3 =
     unsafe extern "C" fn(ZrRuntimeSessionConfigV3, *mut ZrRuntimeSessionHandle) -> ZrStatus;
@@ -73,6 +75,7 @@ pub type ZrRuntimeDrainWorldInvalidationsFnV2 =
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
+/// 宿主交给动态入口的回调表；V1 的槽均可为空，能力依赖由后续握手判定。
 pub struct ZrHostApiV1 {
     pub abi_version: u32,
     pub size_bytes: usize,
@@ -97,6 +100,7 @@ impl ZrHostApiV1 {
 /// version and a coordinated hard cutover of all dynamic hosts.
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
+/// 表头只描述固定布局；槽是否可用还须按宿主所需能力逐项验证。
 pub struct ZrRuntimeApiV8 {
     pub abi_version: u32,
     pub size_bytes: usize,

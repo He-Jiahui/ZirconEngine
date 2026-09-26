@@ -7,6 +7,8 @@ use super::viewport::{ZrRuntimeViewportMetricsV1, ZrRuntimeViewportSizeV1};
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq)]
+/// 宿主输入、窗口状态和编辑器命令共用的固定布局事件载体。
+/// 字段含义由 kind 决定；payload 借用调用方内存，只能在同步事件处理期间读取或复制。
 pub struct ZrRuntimeEventV1 {
     pub abi_version: u32,
     pub kind: u32,
@@ -158,6 +160,7 @@ impl ZrRuntimeEventV1 {
         }
     }
 
+    /// 将固定布局写入请求临时借给事件；调用方须持有 request 直至 handle_event 返回。
     pub fn editor_transform_write(
         abi_version: u32,
         viewport: ZrRuntimeViewportHandle,
@@ -173,6 +176,7 @@ impl ZrRuntimeEventV1 {
         }
     }
 
+    /// 带指针位置的滚轮事件把水平、垂直滚量的位模式放入键码字段，以保留旧事件布局。
     pub fn mouse_wheel_delta_at(
         abi_version: u32,
         viewport: ZrRuntimeViewportHandle,

@@ -10,6 +10,8 @@ pub const ZR_RUNTIME_FRAME_DEMAND_AFTER_V1: u32 = 2;
 /// constructing any crate-local Rust enum.
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// 每次 tick 后由运行时返回给宿主，决定继续渲染、等待指定时长或按需唤醒。
+/// 空闲与立即请求的延时字段必须为零；延时请求的上限由消费端裁定。
 pub struct ZrRuntimeFrameDemandV1 {
     pub abi_version: u32,
     pub kind: u32,

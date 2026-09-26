@@ -3,6 +3,8 @@ use crate::version::ZIRCON_RUNTIME_ABI_VERSION_V1;
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// 跨 ABI 临时借用的实体 ID 数组；切片本身不拥有数据。
+/// 提交端须保持数组在同步调用返回前可读，运行时入口在交给会话 owner 前复制它。
 pub struct ZrRuntimeEntityIdSliceV1 {
     pub data: *const u64,
     pub len: usize,
@@ -70,6 +72,7 @@ impl ZrRuntimeHighlightRenderAttributesV1 {
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq)]
+/// 编辑器叠加高亮的视口、提交代数和借用实体集；渲染状态存储拒绝用旧代数覆盖较新高亮。
 pub struct ZrRuntimeHighlightSetV1 {
     pub abi_version: u32,
     pub viewport: ZrRuntimeViewportHandle,

@@ -103,6 +103,8 @@ impl PartialEq for ZrRuntimePluginEventDeliveryV1 {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+/// 一次订阅 drain 的有界页；剩余数量和最老待取年龄描述运行时仍保留的积压。
+/// 网关须核对版本、页大小和每条投递的订阅句柄，再交给 typed consumer。
 pub struct ZrRuntimePluginEventDeliveryBatchV1 {
     pub abi_version: u32,
     pub deliveries: Vec<ZrRuntimePluginEventDeliveryV1>,
@@ -155,6 +157,7 @@ pub type ZrRuntimeUnsubscribePluginEventFnV1 = unsafe extern "C" fn(
     ZrRuntimePluginEventSubscriptionHandle,
 ) -> ZrStatus;
 
+/// 返回拥有者 JSON 缓冲区；即使解码或验证失败，宿主也须通过同一会话的释放槽归还它。
 pub type ZrRuntimeDrainPluginEventsFnV2 = unsafe extern "C" fn(
     ZrRuntimeSessionHandle,
     ZrRuntimePluginEventSubscriptionHandle,

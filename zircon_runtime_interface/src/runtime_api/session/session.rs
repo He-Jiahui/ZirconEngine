@@ -40,6 +40,8 @@ impl ZrRuntimeWakeSinkV1 {
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
+/// 创建会话时一次性传入的配置。字节切片在同步创建调用期间借用宿主内存；
+/// 运行时须在返回前解析或复制所需内容，唤醒回调遵循独立的注册与停用生命周期。
 pub struct ZrRuntimeSessionConfigV3 {
     pub abi_version: u32,
     pub profile: ZrByteSlice,

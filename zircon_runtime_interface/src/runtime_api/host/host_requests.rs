@@ -6,6 +6,8 @@ use super::{
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 运行时经拥有者缓冲区批量交给宿主的 JSON 请求。
+/// 宿主先验证批次版本和输出预算，再按各变体路由到平台服务。
 pub struct ZrRuntimeHostRequestBatchV1 {
     pub abi_version: u32,
     pub requests: Vec<ZrRuntimeHostRequestV1>,
@@ -70,6 +72,8 @@ pub enum ZrRuntimeProjectSceneTransitionPolicyV1 {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 游戏逻辑发起的项目场景切换意图；URI 只接受规范化的项目资源路径。
+/// 构造检查不代表目标资源存在，实际加载与结果回报由运行时切换流程负责。
 pub struct ZrRuntimeProjectSceneTransitionRequestV1 {
     pub request_id: u64,
     pub scene_uri: String,
@@ -260,6 +264,8 @@ pub enum ZrRuntimeGamepadRumbleRequestKindV1 {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// IME 平台操作的序列化载体；当前生产者总是附带目标视口。
+/// 缺省视口只用于读取旧格式，宿主仍须在应用操作前核对归属。
 pub struct ZrRuntimeImeHostRequestV1 {
     pub kind: ZrRuntimeImeHostRequestKindV1,
     /// The host viewport that owns this IME session. Missing only decodes older

@@ -125,6 +125,7 @@ impl ZrRuntimeOperationDetailKindV2 {
     }
 }
 
+/// 轮询状态只承载进度与终止原因；终态结果仍须用同一会话和句柄单独 harvest。
 /// Fixed-layout, allocation-free operation status returned by the current poll ABI.
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -177,6 +178,7 @@ pub enum ZrRuntimeOperationOutcomeV1 {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 一次 harvest 的 JSON 结果；调用方必须将返回句柄与请求句柄核对后消费。
 pub struct ZrRuntimeOperationResultV1 {
     pub abi_version: u32,
     pub handle: ZrRuntimeOperationHandle,
@@ -230,6 +232,7 @@ impl ZrRuntimeOperationResultV1 {
     }
 }
 
+/// 提交、轮询和收取结果共用会话归属；收取返回的拥有者缓冲区须由同一运行时释放。
 pub type ZrRuntimeSubmitOperationFnV1 = unsafe extern "C" fn(
     ZrRuntimeSessionHandle,
     ZrByteSlice,
