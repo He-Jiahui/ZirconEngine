@@ -1,4 +1,5 @@
-//! Neutral runtime platform contracts shared across assembly and host domains.
+//! 平台层的中立契约：装配和管理端只能读取事实快照，宿主驱动端负责提交状态转换。
+//! 原生事件循环、窗口对象与持久化后端由进程宿主持有，不经这些类型转交给运行时消费者。
 
 mod application_lifecycle;
 mod event_loop_scheduler;

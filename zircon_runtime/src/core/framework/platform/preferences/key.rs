@@ -4,6 +4,8 @@ use std::fmt;
 const MAX_NAMESPACE_BYTES: usize = 128;
 const MAX_KEY_BYTES: usize = 512;
 
+/// 稳定的命名空间与键名；它们是逻辑标识，不是调用方可拼接的文件路径。
+/// 构造时按 UTF-8 字节长度约束两段，具体后端负责安全映射到存储位置。
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct PreferenceKey {
     namespace: String,

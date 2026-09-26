@@ -6,6 +6,7 @@ use super::terminal::{
     PreferenceMutationCancelError, PreferenceMutationTerminal, PreferenceTicketWaitResult,
 };
 
+/// 与一次代际绑定的终态观察入口；新写入取代同键视图后，旧票据仍可观察其自身结果。
 pub trait PreferenceMutationTicket: Send + Sync + fmt::Debug + 'static {
     fn generation(&self) -> u64;
 
@@ -14,6 +15,7 @@ pub trait PreferenceMutationTicket: Send + Sync + fmt::Debug + 'static {
     fn wait_until(&self, deadline: Instant) -> PreferenceTicketWaitResult;
 }
 
+/// 仅能在工作启动前取消，并须持有本次提交返回的取消权限；栅栏钉住时不可取消。
 pub trait PreferenceMutationCancellation: Send + Sync + fmt::Debug + 'static {
     fn cancel_before_start(&self) -> Result<(), PreferenceMutationCancelError>;
 }
@@ -53,6 +55,7 @@ impl fmt::Debug for PreferenceMutationSubmission {
     }
 }
 
+/// 前序已受理操作的完成栅栏；检查终态才能确认整体持久化结果。
 pub trait PreferenceFlushTicket: Send + Sync + fmt::Debug + 'static {
     fn epoch(&self) -> u64;
 

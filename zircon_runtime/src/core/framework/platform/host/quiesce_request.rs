@@ -2,6 +2,7 @@ use std::time::Instant;
 
 use super::{PlatformHostInstanceId, PlatformHostOperationId};
 
+/// 发给宿主线程的停机请求；回执须保留实例和操作身份以拒绝旧宿主的迟到通知。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct PlatformHostQuiesceRequest {
     instance: PlatformHostInstanceId,

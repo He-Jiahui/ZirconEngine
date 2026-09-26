@@ -1,5 +1,6 @@
 use super::{PlatformHostFailureReason, PlatformHostInstanceId, PlatformHostOperationId};
 
+/// 宿主停机或失败的最终事实，保留实例身份以区分重启前后的回执。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PlatformHostTerminalResult {
     Quiesced {

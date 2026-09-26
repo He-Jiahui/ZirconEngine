@@ -1,3 +1,6 @@
+//! 应用级生命周期事实，供平台驱动发布、管理端观察。
+//! 激活状态和表面可用性是独立维度；挂起完成仍须等待表面租约退役。
+
 mod activation_state;
 mod generation;
 mod operation;

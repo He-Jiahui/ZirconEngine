@@ -40,6 +40,7 @@ impl PreferencePersistenceFailureProjection {
     }
 }
 
+/// 一次已受理工作的终态；失败或截止前未启动仍可能留下可见但未持久化代际。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PreferenceMutationTerminal {
     Durable,
@@ -50,6 +51,7 @@ pub enum PreferenceMutationTerminal {
     Shutdown,
 }
 
+/// 等待者超时仅结束本次观察，不会撤销或中止底层存储工作。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PreferenceTicketWaitResult {
     Terminal(PreferenceMutationTerminal),

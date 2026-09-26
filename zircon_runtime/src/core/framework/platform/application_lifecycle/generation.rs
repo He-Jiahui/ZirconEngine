@@ -1,5 +1,6 @@
 use std::num::NonZeroU64;
 
+/// 每次应用事实发布递增的版本；观察者据此识别旧快照，不以操作 ID 代替版本。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ApplicationLifecycleGeneration(NonZeroU64);
 

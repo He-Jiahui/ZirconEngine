@@ -1,5 +1,6 @@
 use std::num::NonZeroU64;
 
+/// 宿主事实的版本；安装替换或状态发布后，能力投影须重新与当前版本关联。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct PlatformHostGeneration(NonZeroU64);
 

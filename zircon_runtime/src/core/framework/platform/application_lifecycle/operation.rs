@@ -1,5 +1,6 @@
 use super::{ApplicationLifecycleOperationId, ApplicationLifecycleState};
 
+/// 一次恢复或挂起事务的回执令牌。调用端须将原令牌带回终态发布入口。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ApplicationLifecycleOperation {
     id: ApplicationLifecycleOperationId,

@@ -9,6 +9,7 @@ use super::{PlatformHostBackendRequestError, PlatformHostDescriptor, PlatformHos
 pub trait PlatformHostBackend: fmt::Debug + Send + Sync + 'static {
     fn descriptor(&self) -> PlatformHostDescriptor;
 
+    /// 只确认请求已进入宿主队列；真正完成后须由宿主用原请求发布终态回执。
     fn request_quiesce(
         &self,
         request: PlatformHostQuiesceRequest,

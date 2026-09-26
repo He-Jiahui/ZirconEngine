@@ -30,6 +30,7 @@ impl PreferenceStorageOperation {
     }
 }
 
+/// 同步准入或快照读取的错误；已受理写入的持久化失败由票据终态报告。
 #[derive(Clone, Debug)]
 pub struct PreferenceStorageError {
     kind: PreferenceStorageErrorKind,

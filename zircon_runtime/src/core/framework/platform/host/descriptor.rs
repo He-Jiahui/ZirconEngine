@@ -1,5 +1,6 @@
 use super::{PlatformHostBackendKind, PlatformHostThreadAffinity};
 
+/// 宿主安装时声明的后端身份与线程约束；它不是能力已经可用的观测证据。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct PlatformHostDescriptor {
     backend: PlatformHostBackendKind,

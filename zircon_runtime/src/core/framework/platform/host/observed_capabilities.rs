@@ -1,3 +1,5 @@
+/// 宿主实际观察到的基础能力，供运行时报告与静态能力目录交叉验证。
+/// 配置启用或后端自称支持，并不能替代此观测事实。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct PlatformHostObservedCapabilities {
     event_loop: bool,
