@@ -291,6 +291,7 @@ fn binary_envelope_for_a_different_schema_is_rejected() {
 
 #[test]
 fn binary_wire_v1_golden_bytes_cover_header_and_every_node_variant() {
+    // 固定字节样本覆盖前缀、头部字段顺序、bincode 选项和全部节点判别值；修改线格式须同时提升 wire 版本。
     const EXPECTED: &[u8] = &[
         90, 82, 80, 65, 89, 76, 68, 0, 1, 0, 31, 122, 105, 114, 99, 111, 110, 46, 116, 101, 115,
         116, 115, 46, 98, 105, 110, 97, 114, 121, 45, 119, 105, 114, 101, 45, 103, 111, 108, 100,
