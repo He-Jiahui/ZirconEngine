@@ -1,8 +1,11 @@
 import contextlib
+import hashlib
 import io
 import json
 import subprocess
+import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -40,6 +43,14 @@ class SourceCommentAuditTests(unittest.TestCase):
                 for line in (self.data / relative).read_text(encoding="utf-8").splitlines()
             )
         }
+
+    def batch_input(self, name: str, rows: list[dict]) -> Path:
+        path = self.data / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            "".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8"
+        )
+        return path
 
     def test_inventory_classifies_live_source_and_explains_exclusions(self) -> None:
         self.write("zircon_runtime/src/lib.rs", "pub fn start() {}\n")
@@ -294,6 +305,284 @@ class SourceCommentAuditTests(unittest.TestCase):
         rows = self.rows("inventory.jsonl")
         self.assertEqual("included", rows["requirements-docs.txt"]["scope"])
         self.assertEqual("excluded", rows["docs/testing/notes.txt"]["scope"])
+
+    def test_mark_batch_records_per_file_evidence_and_retries_without_churn(self) -> None:
+        first = "zircon_runtime/src/first.rs"
+        second = "zircon_runtime/src/second.rs"
+        self.write(first, "pub fn first() {}\n")
+        self.write(second, "pub fn second() {}\n")
+        self.assertEqual(0, self.run_cli("inventory", "--write")[0])
+        inventory = self.rows("inventory.jsonl")
+        batch = self.batch_input("batch.jsonl", [
+            {
+                "schema": 1, "path": first,
+                "expected_sha256": inventory[first]["source_sha256"],
+                "evidence_ref": "notes.md#first", "disposition": "annotated",
+                "reviewer": "agent-a",
+            },
+            {
+                "schema": 1, "path": second,
+                "expected_sha256": inventory[second]["source_sha256"],
+                "evidence_ref": "notes.md#second", "disposition": "no_comment_needed",
+            },
+        ])
+        command = ("mark-batch", "--owner", "runtime", "--input-file", str(batch))
+        self.assertEqual(0, self.run_cli(*command)[0])
+        shard = self.data / "coverage/runtime.jsonl"
+        original_bytes = shard.read_bytes()
+        coverage = self.rows("coverage/runtime.jsonl")
+        self.assertEqual("notes.md#first", coverage[first]["evidence_ref"])
+        self.assertEqual("notes.md#second", coverage[second]["evidence_ref"])
+        self.assertEqual("agent-a", coverage[first]["reviewer"])
+        self.assertEqual("runtime", coverage[second]["reviewer"])
+        self.assertEqual(2, json.loads(self.run_cli("status", "--json")[1])["counts"]["reviewed_current"])
+        self.assertEqual(0, self.run_cli(*command)[0])
+        self.assertEqual(original_bytes, shard.read_bytes())
+
+        changed = "pub fn second() { /* reviewed update */ }\n"
+        self.write(second, changed)
+        self.batch_input("batch.jsonl", [{
+            "schema": 1, "path": second,
+            "expected_sha256": hashlib.sha256(changed.encode()).hexdigest(),
+            "evidence_ref": "notes.md#second-recheck", "disposition": "annotated",
+        }])
+        self.assertEqual(0, self.run_cli(*command)[0])
+        updated = self.rows("coverage/runtime.jsonl")
+        self.assertEqual(coverage[first], updated[first])
+        self.assertEqual("notes.md#second-recheck", updated[second]["evidence_ref"])
+
+    def test_mark_batch_failure_never_publishes_partial_review(self) -> None:
+        first = "zircon_runtime/src/first.rs"
+        second = "zircon_runtime/src/second.rs"
+        self.write(first, "pub fn first() {}\n")
+        self.write(second, "pub fn second() {}\n")
+        self.assertEqual(0, self.run_cli("inventory", "--write")[0])
+        inventory = self.rows("inventory.jsonl")
+        good = {
+            "schema": 1, "path": first, "expected_sha256": inventory[first]["source_sha256"],
+            "evidence_ref": "notes.md#first", "disposition": "annotated",
+        }
+        bad = {
+            "schema": 1, "path": second, "expected_sha256": "0" * 64,
+            "evidence_ref": "notes.md#second", "disposition": "annotated",
+        }
+        batch = self.batch_input("batch.jsonl", [good, bad])
+        command = ("mark-batch", "--owner", "runtime", "--input-file", str(batch))
+        self.assertNotEqual(0, self.run_cli(*command)[0])
+        shard = self.data / "coverage/runtime.jsonl"
+        self.assertFalse(shard.exists())
+
+        self.batch_input("batch.jsonl", [good])
+        self.assertEqual(0, self.run_cli(*command)[0])
+        original = shard.read_bytes()
+        self.batch_input("batch.jsonl", [good, bad])
+        self.assertNotEqual(0, self.run_cli(*command)[0])
+        self.assertEqual(original, shard.read_bytes())
+
+    def test_mark_batch_invalid_utf8_reports_path_without_traceback(self) -> None:
+        self.write("zircon_runtime/src/lib.rs", "pub fn start() {}\n")
+        self.assertEqual(0, self.run_cli("inventory", "--write")[0])
+        batch = self.data / "invalid-batch.jsonl"
+        batch.write_bytes(b'{"schema":1,"path":"zircon_runtime/src/lib.rs"}\xff\n')
+
+        result, output = self.run_cli(
+            "mark-batch", "--owner", "runtime", "--input-file", str(batch)
+        )
+        self.assertEqual(2, result)
+        self.assertIn("invalid UTF-8", output)
+        self.assertIn(str(batch), output)
+        self.assertNotIn("Traceback", output)
+        self.assertFalse((self.data / "coverage/runtime.jsonl").exists())
+
+    def test_concurrent_owners_cannot_publish_the_same_review(self) -> None:
+        source = "zircon_runtime/src/lib.rs"
+        self.write(source, "pub fn start() {}\n")
+        self.assertFalse(audit._review_write_lock_path(self.data).is_relative_to(self.root))
+        self.assertEqual(0, self.run_cli("inventory", "--write")[0])
+        digest = self.rows("inventory.jsonl")[source]["source_sha256"]
+        batch = self.batch_input("batch.jsonl", [{
+            "schema": 1, "path": source, "expected_sha256": digest,
+            "evidence_ref": "runtime.md", "disposition": "annotated",
+        }])
+        ready = self.data / "writer-ready"
+        release = self.data / "writer-release"
+        child_script = (
+            "import sys, time\n"
+            "from pathlib import Path\n"
+            "from unittest.mock import patch\n"
+            "from tools import source_comment_audit as audit\n"
+            "ready, release = Path(sys.argv[1]), Path(sys.argv[2])\n"
+            "real_write = audit._write_jsonl\n"
+            "def gated_write(path, rows):\n"
+            "    if path.name == 'runtime.jsonl':\n"
+            "        ready.write_text('ready', encoding='utf-8')\n"
+            "        for _ in range(200):\n"
+            "            if release.exists():\n"
+            "                break\n"
+            "            time.sleep(0.05)\n"
+            "        else:\n"
+            "            raise RuntimeError('test writer gate timed out')\n"
+            "    return real_write(path, rows)\n"
+            "with patch.object(audit, '_write_jsonl', side_effect=gated_write):\n"
+            "    raise SystemExit(audit.main(sys.argv[3:]))\n"
+        )
+        writer = subprocess.Popen(
+            [sys.executable, "-c", child_script, str(ready), str(release),
+             "--repo-root", str(self.root), "--data-dir", str(self.data),
+             "mark-batch", "--owner", "runtime", "--input-file", str(batch)],
+            cwd=Path(__file__).resolve().parents[2],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+        )
+
+        def stop_writer() -> None:
+            if writer.poll() is None:
+                writer.kill()
+            writer.communicate(timeout=10)
+
+        self.addCleanup(stop_writer)
+        for _ in range(200):
+            if ready.exists() or writer.poll() is not None:
+                break
+            time.sleep(0.05)
+        self.assertTrue(ready.exists(), "writer did not reach the locked publication step")
+        result, output = self.run_cli(
+            "mark", "--owner", "editor", "--path", source,
+            "--evidence-ref", "editor.md", "--disposition", "annotated",
+        )
+        self.assertEqual(2, result)
+        self.assertIn("review write already in progress", output)
+        self.assertFalse((self.data / "coverage/editor.jsonl").exists())
+        release.touch()
+        stdout, stderr = writer.communicate(timeout=10)
+        self.assertEqual(0, writer.returncode, stderr or stdout)
+        self.assertEqual("runtime", self.rows("coverage/runtime.jsonl")[source]["owner"])
+        self.assertEqual(2, self.run_cli(
+            "mark", "--owner", "editor", "--path", source,
+            "--evidence-ref", "editor.md", "--disposition", "annotated",
+        )[0])
+
+    def test_mark_releases_write_lock_after_publication_failure(self) -> None:
+        source = "zircon_runtime/src/lib.rs"
+        self.write(source, "pub fn start() {}\n")
+        self.assertEqual(0, self.run_cli("inventory", "--write")[0])
+        command = (
+            "mark", "--owner", "runtime", "--path", source,
+            "--evidence-ref", "runtime.md", "--disposition", "annotated",
+        )
+        with patch.object(audit, "_write_jsonl", side_effect=OSError("write failed")):
+            self.assertEqual(2, self.run_cli(*command)[0])
+        self.assertFalse((self.data / "coverage/runtime.jsonl").exists())
+        self.assertEqual(0, self.run_cli(*command)[0])
+
+    def test_mark_batch_rejects_foreign_owner_generated_and_duplicate_paths(self) -> None:
+        source = "zircon_runtime/src/lib.rs"
+        generated = "examples/woc/scripts/src/generated/catalog.zr"
+        self.write(source, "pub fn start() {}\n")
+        self.write(generated, "// Generated by codegen.mjs\n")
+        self.assertEqual(0, self.run_cli("inventory", "--write")[0])
+        digest = self.rows("inventory.jsonl")[source]["source_sha256"]
+        row = {
+            "schema": 1, "path": source, "expected_sha256": digest,
+            "evidence_ref": "notes.md", "disposition": "annotated",
+        }
+        batch = self.batch_input("batch.jsonl", [row, row])
+        self.assertNotEqual(0, self.run_cli(
+            "mark-batch", "--owner", "runtime", "--input-file", str(batch)
+        )[0])
+        self.assertFalse((self.data / "coverage/runtime.jsonl").exists())
+
+        self.batch_input("batch.jsonl", [{**row, "path": generated}])
+        self.assertNotEqual(0, self.run_cli(
+            "mark-batch", "--owner", "runtime", "--input-file", str(batch)
+        )[0])
+        for invalid in ({**row, "evidence_ref": ""}, {**row, "disposition": "unknown"}):
+            self.batch_input("batch.jsonl", [invalid])
+            self.assertNotEqual(0, self.run_cli(
+                "mark-batch", "--owner", "runtime", "--input-file", str(batch)
+            )[0])
+        self.assertEqual(0, self.run_cli(
+            "mark", "--owner", "editor", "--path", source,
+            "--evidence-ref", "editor.md", "--disposition", "annotated",
+        )[0])
+        self.batch_input("batch.jsonl", [row])
+        self.assertNotEqual(0, self.run_cli(
+            "mark-batch", "--owner", "runtime", "--input-file", str(batch)
+        )[0])
+        self.assertFalse((self.data / "coverage/runtime.jsonl").exists())
+
+    def test_mark_batch_detects_late_source_change_and_replace_failure(self) -> None:
+        source = "zircon_runtime/src/lib.rs"
+        original = "pub fn start() {}\n"
+        self.write(source, original)
+        self.assertEqual(0, self.run_cli("inventory", "--write")[0])
+        digest = self.rows("inventory.jsonl")[source]["source_sha256"]
+        row = {
+            "schema": 1, "path": source, "expected_sha256": digest,
+            "evidence_ref": "notes.md", "disposition": "annotated",
+        }
+        batch = self.batch_input("batch.jsonl", [row])
+        command = ("mark-batch", "--owner", "runtime", "--input-file", str(batch))
+        actual_digest = audit._stable_digest
+        calls = 0
+
+        def edit_after_first_hash(path: Path):
+            nonlocal calls
+            result = actual_digest(path)
+            if path == self.root / source:
+                calls += 1
+                if calls == 1:
+                    self.write(source, original + "// changed during batch\n")
+            return result
+
+        with patch.object(audit, "_stable_digest", side_effect=edit_after_first_hash):
+            self.assertNotEqual(0, self.run_cli(*command)[0])
+        self.assertFalse((self.data / "coverage/runtime.jsonl").exists())
+
+        self.write(source, original)
+        self.assertEqual(0, self.run_cli(*command)[0])
+        shard = self.data / "coverage/runtime.jsonl"
+        original_shard = shard.read_bytes()
+        self.batch_input("batch.jsonl", [{**row, "evidence_ref": "notes.md#updated"}])
+        with patch.object(audit.os, "replace", side_effect=OSError("simulated replace failure")):
+            self.assertEqual(2, self.run_cli(*command)[0])
+        self.assertEqual(original_shard, shard.read_bytes())
+        self.assertEqual([], list(shard.parent.glob(f".{shard.name}.*.tmp")))
+
+    def test_mark_batch_input_change_and_temporary_write_failure_roll_back(self) -> None:
+        source = "zircon_runtime/src/lib.rs"
+        self.write(source, "pub fn start() {}\n")
+        self.assertEqual(0, self.run_cli("inventory", "--write")[0])
+        digest = self.rows("inventory.jsonl")[source]["source_sha256"]
+        batch = self.batch_input("batch.jsonl", [{
+            "schema": 1, "path": source, "expected_sha256": digest,
+            "evidence_ref": "notes.md", "disposition": "annotated",
+        }])
+        actual_digest = audit._stable_digest
+        input_reads = 0
+
+        def edit_input_after_parse(path: Path):
+            nonlocal input_reads
+            result = actual_digest(path)
+            if path == batch:
+                input_reads += 1
+                if input_reads == 2:
+                    batch.write_text(batch.read_text(encoding="utf-8") + "\n", encoding="utf-8")
+            return result
+
+        with patch.object(audit, "_stable_digest", side_effect=edit_input_after_parse):
+            self.assertNotEqual(0, self.run_cli(
+                "mark-batch", "--owner", "runtime", "--input-file", str(batch)
+            )[0])
+        shard = self.data / "coverage/runtime.jsonl"
+        self.assertFalse(shard.exists())
+
+        shard.parent.mkdir(parents=True, exist_ok=True)
+        shard.write_text("previous shard bytes\n", encoding="utf-8")
+        before = shard.read_bytes()
+        with self.assertRaises(TypeError):
+            audit._write_jsonl(shard, {"broken": {"not_json": object()}})
+        self.assertEqual(before, shard.read_bytes())
+        self.assertEqual([], list(shard.parent.glob(f".{shard.name}.*.tmp")))
 
 
 if __name__ == "__main__":

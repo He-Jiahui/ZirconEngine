@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import argparse
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
 import codecs
 from datetime import datetime, timezone
+import errno
 import hashlib
 import json
 import os
@@ -231,8 +233,12 @@ def scan_inventory(root: Path, data: Path | None = None) -> dict[str, dict[str, 
 def _read_jsonl(path: Path, key: str) -> dict[str, dict[str, Any]]:
     if not path.is_file():
         raise AuditError(f"missing audit ledger: {path}")
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except UnicodeDecodeError as error:
+        raise AuditError(f"invalid UTF-8 audit ledger: {path}") from error
     rows: dict[str, dict[str, Any]] = {}
-    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+    for line_number, line in enumerate(lines, 1):
         if not line.strip():
             continue
         try:
@@ -282,17 +288,59 @@ def _validated_coverage(data: Path) -> dict[str, dict[str, Any]]:
 
 def _write_jsonl(path: Path, rows: dict[str, dict[str, Any]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.NamedTemporaryFile(
-        mode="w", encoding="utf-8", newline="\n", dir=path.parent,
-        prefix=f".{path.name}.", suffix=".tmp", delete=False,
-    ) as stream:
-        pending = Path(stream.name)
-        for key in sorted(rows, key=lambda item: (item.casefold(), item)):
-            stream.write(json.dumps(rows[key], ensure_ascii=False, sort_keys=True) + "\n")
+    pending: Path | None = None
     try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", newline="\n", dir=path.parent,
+            prefix=f".{path.name}.", suffix=".tmp", delete=False,
+        ) as stream:
+            pending = Path(stream.name)
+            for key in sorted(rows, key=lambda item: (item.casefold(), item)):
+                stream.write(json.dumps(rows[key], ensure_ascii=False, sort_keys=True) + "\n")
         os.replace(pending, path)
     finally:
-        pending.unlink(missing_ok=True)
+        if pending is not None:
+            pending.unlink(missing_ok=True)
+
+
+def _review_write_lock_path(data: Path) -> Path:
+    canonical = os.path.normcase(str(data.resolve()))
+    digest = hashlib.sha256(os.fsencode(canonical)).hexdigest()
+    return Path(tempfile.gettempdir()) / "zircon-source-comment-audit-locks" / f"{digest}.lock"
+
+
+@contextmanager
+def _review_write_lock(data: Path):
+    """Serialize all owners' review decisions for one audit ledger directory."""
+    lock_path = _review_write_lock_path(data)
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    # Keep the lock file after release: unlinking it can split concurrent writers across inodes.
+    with lock_path.open("a+b") as stream:
+        if stream.seek(0, os.SEEK_END) == 0:
+            stream.write(b"\0")
+            stream.flush()
+        stream.seek(0)
+        try:
+            if os.name == "nt":
+                import msvcrt
+
+                msvcrt.locking(stream.fileno(), msvcrt.LK_NBLCK, 1)
+            else:
+                import fcntl
+
+                fcntl.flock(stream.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError as error:
+            if error.errno in {errno.EACCES, errno.EAGAIN, errno.EDEADLK} or getattr(error, "winerror", None) in {33, 36}:
+                raise AuditError(f"review write already in progress for {data}") from error
+            raise
+        try:
+            yield
+        finally:
+            stream.seek(0)
+            if os.name == "nt":
+                msvcrt.locking(stream.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
 
 
 def inventory_command(root: Path, data: Path, *, write: bool) -> int:
@@ -311,6 +359,11 @@ def inventory_command(root: Path, data: Path, *, write: bool) -> int:
 
 
 def mark_command(root: Path, data: Path, arguments: argparse.Namespace) -> int:
+    with _review_write_lock(data):
+        return _mark_command_locked(root, data, arguments)
+
+
+def _mark_command_locked(root: Path, data: Path, arguments: argparse.Namespace) -> int:
     owner = arguments.owner
     if not OWNER.fullmatch(owner):
         raise AuditError(f"invalid module owner: {owner!r}")
@@ -342,6 +395,95 @@ def mark_command(root: Path, data: Path, arguments: argparse.Namespace) -> int:
     }
     _write_jsonl(shard_path, shard)
     print(json.dumps({"path": relative, "reviewed_sha256": digest, "owner": owner}))
+    return 0
+
+
+def mark_batch_command(root: Path, data: Path, arguments: argparse.Namespace) -> int:
+    with _review_write_lock(data):
+        return _mark_batch_command_locked(root, data, arguments)
+
+
+def _mark_batch_command_locked(root: Path, data: Path, arguments: argparse.Namespace) -> int:
+    owner = arguments.owner
+    if not OWNER.fullmatch(owner):
+        raise AuditError(f"invalid module owner: {owner!r}")
+    shard_path = data / "coverage" / f"{owner}.jsonl"
+    input_path = arguments.input_file.resolve()
+    if input_path == shard_path:
+        raise AuditError("batch input cannot be the coverage shard being updated")
+    input_digest, _header = _stable_digest(input_path)
+    batch = _read_jsonl(input_path, "path")
+    if not batch:
+        raise AuditError("review batch must contain at least one file")
+    if _stable_digest(input_path)[0] != input_digest:
+        raise AuditError("review batch input changed while being parsed")
+
+    inventory = _read_jsonl(data / "inventory.jsonl", "path")
+    coverage = _validated_coverage(data)
+    shard = {
+        relative: row for relative, row in coverage.items() if row["owner"] == owner
+    }
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    prepared: list[tuple[str, Path, str]] = []
+    changed = 0
+    allowed_fields = {
+        "schema", "path", "expected_sha256", "evidence_ref", "disposition", "reviewer"
+    }
+    for relative, item in batch.items():
+        if _validate_relative(relative) != relative:
+            raise AuditError(f"batch path must use forward slashes: {relative}")
+        if set(item) - allowed_fields:
+            raise AuditError(f"unknown review batch fields for {relative}: {sorted(set(item) - allowed_fields)}")
+        expected = item.get("expected_sha256")
+        if not isinstance(expected, str) or not DIGEST.fullmatch(expected):
+            raise AuditError(f"batch review requires a lowercase SHA-256 hash: {relative}")
+        evidence = item.get("evidence_ref")
+        if not isinstance(evidence, str) or not evidence.strip():
+            raise AuditError(f"batch review requires per-file evidence: {relative}")
+        disposition = item.get("disposition")
+        if not isinstance(disposition, str) or disposition not in DISPOSITIONS:
+            raise AuditError(f"invalid batch review disposition: {relative}")
+        reviewer = item.get("reviewer", arguments.reviewer or owner)
+        if not isinstance(reviewer, str) or not reviewer.strip():
+            raise AuditError(f"invalid batch reviewer: {relative}")
+        if relative not in inventory or inventory[relative]["scope"] != "included":
+            raise AuditError(f"path is not an inventoried first-party source: {relative}")
+        previous = coverage.get(relative)
+        if previous and previous["owner"] != owner:
+            raise AuditError(f"source is already reviewed by owner {previous['owner']}: {relative}")
+        path = _guard_file(root, relative)
+        if not path.is_file():
+            raise AuditError(f"reviewed source is missing: {relative}")
+        digest, header = _stable_digest(path)
+        if digest != expected:
+            raise AuditError(f"reviewed source hash differs from batch expectation: {relative}")
+        if _scope(relative, header)[0] != "included":
+            raise AuditError(f"source classification changed since inventory: {relative}")
+        prepared.append((relative, path, expected))
+        if previous and all(previous.get(field) == value for field, value in (
+            ("reviewed_sha256", expected), ("evidence_ref", evidence.strip()),
+            ("disposition", disposition), ("reviewer", reviewer.strip()),
+        )):
+            continue
+        shard[relative] = {
+            "schema": SCHEMA, "path": relative, "owner": owner,
+            "reviewed_sha256": expected, "reviewed_at": now,
+            "reviewer": reviewer.strip(), "evidence_ref": evidence.strip(),
+            "disposition": disposition,
+        }
+        changed += 1
+
+    # 大批次里最早核对的文件可能已被并行会话改动；发布前再次核对全部输入。
+    if _stable_digest(input_path)[0] != input_digest:
+        raise AuditError("review batch input changed before publication")
+    for relative, path, expected in prepared:
+        digest, header = _stable_digest(path)
+        if digest != expected or _scope(relative, header)[0] != "included":
+            raise AuditError(f"reviewed source changed before batch publication: {relative}")
+    if changed:
+        _write_jsonl(shard_path, shard)
+    print(json.dumps({"owner": owner, "submitted": len(batch), "updated": changed,
+                      "unchanged": len(batch) - changed, "coverage": str(shard_path)}))
     return 0
 
 
@@ -490,6 +632,10 @@ def main(argv: list[str] | None = None) -> int:
     mark.add_argument("--evidence-ref", required=True)
     mark.add_argument("--disposition", required=True, choices=sorted(DISPOSITIONS))
     mark.add_argument("--reviewer")
+    mark_batch = commands.add_parser("mark-batch", help="Atomically record one owner's reviewed files")
+    mark_batch.add_argument("--owner", required=True)
+    mark_batch.add_argument("--input-file", type=Path, required=True)
+    mark_batch.add_argument("--reviewer")
     status = commands.add_parser("status", help="Compare reviews with the live source inventory")
     status.add_argument("--json", action="store_true")
     verify = commands.add_parser("verify", help="Check CR labels and optional full coverage")
@@ -502,6 +648,8 @@ def main(argv: list[str] | None = None) -> int:
             return inventory_command(root, data, write=arguments.write)
         if arguments.command == "mark":
             return mark_command(root, data, arguments)
+        if arguments.command == "mark-batch":
+            return mark_batch_command(root, data, arguments)
         if arguments.command == "status":
             result = review_status(root, data)
             if arguments.json:
