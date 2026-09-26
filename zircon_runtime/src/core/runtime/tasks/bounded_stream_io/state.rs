@@ -11,6 +11,7 @@ use super::model::{
 
 const MAX_READ_FAILURE_MESSAGE_BYTES: usize = 4 * 1024;
 
+// 捕获组的共享账本：读者终结、排队容量、消费关闭和丢弃统计在同一锁下协调。
 pub(super) struct CaptureState {
     inner: Mutex<CaptureStateInner>,
     terminal: Condvar,
@@ -66,6 +67,7 @@ impl CaptureState {
         }
     }
 
+    // 队列满时继续排空外部管道并统计损失；读线程不能被慢消费者反向阻塞。
     pub fn enqueue(
         &self,
         stream: &BoundedStreamIoStreamId,
@@ -165,6 +167,7 @@ impl CaptureState {
         state.active_readers == 0
     }
 
+    // 第一条可越过字节预算以免大记录永久卡住队首，其余记录必须遵守本次消费预算。
     pub fn drain(&self, budget: BoundedStreamIoDrainBudget) -> BoundedStreamIoBatch {
         let started = Instant::now();
         let mut state = self.lock();

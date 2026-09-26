@@ -15,6 +15,7 @@ impl TaskGraphScopeDescriptor {
         }
     }
 
+    /// 设置该 owner 同时活跃任务的上限；超过上限的提交由 scope 在接管工作前拒绝。
     pub fn with_task_capacity(mut self, task_capacity: usize) -> Self {
         self.task_capacity = task_capacity.max(1);
         self

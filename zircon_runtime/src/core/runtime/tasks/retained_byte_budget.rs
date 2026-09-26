@@ -30,6 +30,8 @@ pub enum RetainedByteBudgetError {
     Overflow,
 }
 
+/// 跨异步阶段保留结果的共享字节与租约预算；调用方须在持有结果期间保留租约。
+/// close 只拒绝新租约，已有结果可继续使用直至最后一个租约克隆释放。
 #[derive(Clone)]
 pub struct RetainedByteBudget {
     inner: Arc<RetainedByteBudgetInner>,
@@ -74,6 +76,7 @@ impl RetainedByteBudget {
         }
     }
 
+    /// 在同一锁下同时预留字节和租约名额；失败时不会接管调用方的结果。
     pub fn try_reserve(
         &self,
         retained_bytes: usize,

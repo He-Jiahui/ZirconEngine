@@ -38,6 +38,7 @@ thread_local! {
     static CURRENT_THREAD_SHARD: Cell<usize> = const { Cell::new(UNASSIGNED_SHARD) };
 }
 
+// 终结事件订阅与完整耗时采样独立开启；常态调度路径因此不必为未订阅的统计付费。
 pub(super) struct JobSchedulerDiagnosticsState {
     enabled: AtomicBool,
     observation_enabled: AtomicBool,

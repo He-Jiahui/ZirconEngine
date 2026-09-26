@@ -7,6 +7,8 @@ use crate::core::runtime::tasks::bounded_keyed_io::{
 };
 use crate::core::runtime::tasks::JobHandle;
 
+/// 关闭后的可查询所有权凭证；超时等待后仍可查看积压并重试等待。
+/// 丢弃 guard 会无期限等待通道内的工作和任务句柄，调用方需先解除可能阻塞的外部依赖。
 pub struct BoundedKeyedIoShutdownGuard {
     pub(super) lane: Arc<LaneInner>,
 }
@@ -33,6 +35,7 @@ impl BoundedKeyedIoShutdownGuard {
         }
     }
 
+    /// 在统一截止时间前等待通道静止；返回 false 时 guard 仍保有清理权威。
     pub fn wait_until(&self, deadline: Instant) -> bool {
         let mut state = self.lane.lock();
         while !shutdown_complete(&state) {

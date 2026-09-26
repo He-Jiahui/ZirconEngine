@@ -1,6 +1,8 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
+// 只追踪公开 TaskGraphScope 克隆，不把任务句柄或图内部引用误算作继续接纳的所有者。
+// 最后一个客户端释放时由 scope 的 Drop 关闭接纳，已接纳任务仍按图生命周期结算。
 pub(super) struct TaskGraphClientLease {
     owner_count: AtomicUsize,
 }

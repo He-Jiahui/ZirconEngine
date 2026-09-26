@@ -11,6 +11,7 @@ pub const DEFAULT_BOUNDED_STREAM_IO_MAX_LINE_BYTES: usize = 64 * 1024;
 pub const DEFAULT_BOUNDED_STREAM_IO_QUEUE_ENTRY_CAPACITY: usize = 1_024;
 pub const DEFAULT_BOUNDED_STREAM_IO_QUEUE_BYTE_CAPACITY: usize = 4 * 1024 * 1024;
 
+/// 一条流捕获通道的内存和并发上限；创建通道时还会受 Runtime I/O 池并行度约束。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct BoundedStreamIoLimits {
     pub max_concurrent_readers: usize,
@@ -101,6 +102,8 @@ impl fmt::Display for BoundedStreamIoLimitError {
 
 impl std::error::Error for BoundedStreamIoLimitError {}
 
+/// 消费端每次取批的记录、字节和持锁时间预算。
+/// 为保证进展，首条记录可单独越过 max_bytes，调用方应按实际 drained_bytes 计费。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct BoundedStreamIoDrainBudget {
     pub max_records: usize,
@@ -153,6 +156,7 @@ impl fmt::Display for BoundedStreamIoStreamId {
     }
 }
 
+/// 交给通道接管的阻塞读取端；Read 必须可在线程上移动，长期阻塞的来源应可由调用方终止。
 pub struct BoundedStreamIoReader {
     pub(crate) stream: BoundedStreamIoStreamId,
     pub(crate) reader: Box<dyn Read + Send>,

@@ -32,6 +32,7 @@ pub enum TaskDiagnosticSeverity {
     Error,
 }
 
+/// 一条有界的取消或 panic 终结事件；消息上限防止诊断保留窗口持有大负载。
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TaskDiagnosticObservation {
     observation_sequence: u64,

@@ -1,5 +1,6 @@
 use std::fmt::{Display, Formatter};
 
+/// 将调度器诊断源与任务序号组合，供日志桥接器区分相同本地序号的不同任务。
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct TaskDiagnosticIdentity {
     scheduler_id: u64,

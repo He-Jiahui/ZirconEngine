@@ -6,6 +6,7 @@ use crate::core::runtime::tasks::bounded_keyed_io::{
     BoundedKeyedIoFailure, BoundedKeyedIoTerminal, GlobalAdmissionEpoch,
 };
 
+// 先计算并计费前置义务，再复制票据；避免栅栏绕过通道的保留字节上限。
 #[derive(Clone, Copy, Debug)]
 pub(super) struct FencePrerequisitePlan {
     latest_fence_ticket_id: Option<u64>,
@@ -28,6 +29,7 @@ impl FencePrerequisitePlan {
     }
 }
 
+// 已有栅栏概括更早义务；新栅栏只需固定最近栅栏及其后的接纳条目。
 pub(super) fn plan_fence_prerequisites(
     state: &LaneState,
     epoch: GlobalAdmissionEpoch,
@@ -131,6 +133,7 @@ pub(super) fn release_fence_pins(entry: &WorkEntry) {
     }
 }
 
+// 栅栏终结前沿同键后继追踪被替代或失败的写入，防止旧代失败掩盖已完成的有效后继。
 pub(super) fn fence_prerequisite_failure(
     prerequisites: &[FencePrerequisite],
 ) -> Option<BoundedKeyedIoFailure> {

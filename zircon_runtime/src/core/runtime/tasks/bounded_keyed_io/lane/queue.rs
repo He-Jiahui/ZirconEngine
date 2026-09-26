@@ -6,6 +6,7 @@ use super::{
     TerminalNotification, TerminalObserver, WorkEntry,
 };
 
+// 接纳与字节计费必须在通道锁内先于持有工作体；拒绝路径不接管调用方资源。
 pub(super) fn reserve(
     lane: &LaneInner,
     state: &mut LaneState,
@@ -50,6 +51,7 @@ pub(super) fn mark_pump_needed(state: &mut LaneState) -> bool {
     }
 }
 
+// 更早的挂起接纳仍占顺序位置；泵不得越过它启动队首或提前完成栅栏。
 pub(super) fn front_is_runnable(state: &LaneState) -> bool {
     let Some(front) = state.queue.front() else {
         return false;
@@ -112,6 +114,7 @@ pub(in crate::core::runtime::tasks::bounded_keyed_io) fn merge_ordered<T>(
     queue.append(&mut incoming);
 }
 
+// 执行前终结必须同时归还容量并保留票据已有的终态；观察者留待锁外投递。
 pub(super) fn finish_pre_start_entry(
     state: &mut LaneState,
     entry: WorkEntry,

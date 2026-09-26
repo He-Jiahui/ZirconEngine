@@ -1,3 +1,4 @@
+/// 在共享物理线程预算内为单一工作域分配线程；百分比基于总预算，结果受剩余额度约束。
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct TaskPoolThreadAssignmentPolicy {
     pub min_threads: usize,
@@ -36,6 +37,7 @@ impl TaskPoolThreadAssignmentPolicy {
     }
 }
 
+/// 为 I/O、异步计算和计算域设置共同的物理线程预算，供任务图创建工作池。
 #[derive(Clone, Debug, PartialEq)]
 pub struct TaskPoolOptions {
     pub min_total_threads: usize,

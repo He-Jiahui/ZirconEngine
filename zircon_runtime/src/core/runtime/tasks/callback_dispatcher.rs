@@ -17,6 +17,7 @@ const MAX_CONCURRENT_DISPATCH_RUNNERS: usize = 2;
 
 static PROCESS_CALLBACK_DISPATCHER: OnceLock<TaskCallbackDispatcher> = OnceLock::new();
 
+// JobHandle、任务图及计时器共用的完成回调出口；控制并发与单次投递预算，避免回调占满工作池。
 #[derive(Clone)]
 pub(super) struct TaskCallbackDispatcher {
     inner: Arc<TaskCallbackDispatcherInner>,
@@ -36,6 +37,7 @@ struct TaskCallbackDispatcherState {
     inline_draining: bool,
 }
 
+// 同一终结事件的观察者先于完成回调投递；大批观察者轮转让其他事件获得进展。
 struct CallbackEnvelope {
     callbacks: VecDeque<TaskCallback>,
     completion: Option<TaskCallback>,
@@ -139,6 +141,7 @@ impl TaskCallbackDispatcher {
         self.dispatch(Vec::new(), Some(callback));
     }
 
+    // 关闭中的工作池可能拒绝继续任务；已接纳的终结观察者仍须在当前线程兑现。
     fn schedule_runner(&self) {
         let Some(submission) = self
             .inner

@@ -1,3 +1,4 @@
+/// 绑定诊断源身份的下一条序号；不得把旧调度器的游标当作新源的连续位置。
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct TaskDiagnosticCursor {
     source_id: u64,

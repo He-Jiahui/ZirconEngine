@@ -23,6 +23,7 @@ pub(crate) struct LaneInner {
     pub(super) before_execute: Mutex<Option<BeforeExecuteHook>>,
 }
 
+// 通道锁下统一维护容量、顺序索引和终结统计；接纳与泵调度必须基于同一状态快照。
 pub(super) struct LaneState {
     pub(super) accepting: bool,
     pub(super) pump_active: bool,
@@ -45,6 +46,7 @@ pub(super) struct LaneState {
     pub(super) worker_wall: Duration,
 }
 
+// 条目在挂起、队列和执行前阶段持有同一份容量与票据权威；栅栏还保留前置义务。
 pub(super) struct WorkEntry {
     pub(super) key: Option<BoundedKeyedIoKey>,
     pub(super) generation: u64,

@@ -1,3 +1,4 @@
+// 为阻塞流按行保存有限字节，并单独累计被截断的源字节，避免无限长行撑大队列。
 pub(super) struct BoundedLineDecoder {
     bytes: Vec<u8>,
     max_bytes: usize,

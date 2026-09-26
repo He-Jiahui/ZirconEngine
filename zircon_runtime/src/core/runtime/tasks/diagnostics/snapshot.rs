@@ -6,6 +6,7 @@ pub(super) struct StableDiagnosticsSnapshot {
     pub(super) diagnostics: JobDiagnosticsSnapshot,
 }
 
+// 聚合各线程分片后再导出统一报表；争用时上层可回退最近稳定快照而非暴露半次更新。
 #[derive(Clone, Copy, Debug, Default)]
 pub(super) struct JobDiagnosticsSnapshot {
     pub(super) lifecycle: JobLifecycleSnapshot,

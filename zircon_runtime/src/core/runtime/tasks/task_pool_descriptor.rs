@@ -4,6 +4,7 @@ use super::TaskPoolKind;
 
 const MIN_WORKER_THREADS: usize = 1;
 
+/// 构建独立任务池时选择工作域、工作线程数和线程名；任务图的共享池另由 TaskPoolOptions 分配。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TaskPoolDescriptor {
     pub kind: TaskPoolKind,

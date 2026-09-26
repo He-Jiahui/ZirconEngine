@@ -7,6 +7,7 @@ use super::lane::ReaderPermit;
 use super::model::{BoundedStreamIoFailure, BoundedStreamIoLimits, BoundedStreamIoReader};
 use super::state::{CaptureState, ReaderOutcome};
 
+// 所有读者先完成任务图接纳，再一起开始读；任一提交失败时可整体放弃本次捕获。
 pub(super) struct ReaderStartGate {
     state: Mutex<ReaderStartState>,
     ready: Condvar,
@@ -118,6 +119,7 @@ pub(super) fn run_reader(
     }
 }
 
+// 即使读取或解码过程 panic，也必须归还读者活跃计数，避免停机永久等待。
 struct ReaderTerminalGuard {
     state: Arc<CaptureState>,
     stream: super::model::BoundedStreamIoStreamId,

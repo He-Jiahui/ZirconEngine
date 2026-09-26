@@ -1,5 +1,7 @@
 use super::{TaskDiagnosticCursor, TaskDiagnosticObservation};
 
+/// 一页任务终结诊断及游标恢复信息；编辑器日志桥接器据此报告保留窗口缺口。
+/// 遇到 source_changed 或 dropped_count 时先处理缺口，再用 next_cursor 继续翻页。
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TaskDiagnosticBatch {
     observations: Vec<TaskDiagnosticObservation>,
