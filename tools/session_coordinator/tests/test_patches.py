@@ -38,6 +38,8 @@ class PatchTests(unittest.TestCase):
         self.temporary_directory = tempfile.TemporaryDirectory()
         root = Path(self.temporary_directory.name)
         self.repo = init_repo(root / "repo")
+        # replacement_patch 的 LF 文本需要字节一致的基线，避免 Windows 的文本写入转换成为用例前提。
+        (self.repo / "README.md").write_bytes(b"baseline\n")
         self.config = CoordinatorConfig.for_repo(self.repo, state_root=root / "state")
         self.database = Database(self.config.database_path)
         migrate(self.database)
@@ -61,6 +63,39 @@ class PatchTests(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.temporary_directory.cleanup()
+
+    def test_patch_preserves_lf_bytes_with_autocrlf_enabled(self) -> None:
+        self._assert_patch_preserves_line_endings("\n")
+
+    def test_patch_preserves_crlf_bytes_with_autocrlf_enabled(self) -> None:
+        self._assert_patch_preserves_line_endings("\r\n")
+
+    def _assert_patch_preserves_line_endings(self, line_ending: str) -> None:
+        # Attribution and snapshots describe raw worktree bytes. Applying an
+        # owner-scoped patch must not rewrite unrelated line endings through
+        # the host's checkout configuration.
+        subprocess.run(
+            ["git", "config", "--local", "core.autocrlf", "true"],
+            cwd=self.repo,
+            check=True,
+        )
+        target = self.repo / "README.md"
+        target.write_bytes(f"baseline{line_ending}untouched{line_ending}".encode("utf-8"))
+        suffix = line_ending.removesuffix("\n")
+        patch_text = replacement_patch(f"baseline{suffix}", f"patched{suffix}").replace(
+            "@@ -1 +1 @@\n", "@@ -1,2 +1,2 @@\n"
+        ) + f" untouched{line_ending}"
+
+        applied = self.patches.submit(
+            "session-a",
+            patch_text,
+            ["README.md"],
+        )
+
+        self.assertEqual(PatchStatus.APPLIED, applied.status, applied.error_text)
+        self.assertEqual(
+            f"patched{line_ending}untouched{line_ending}".encode("utf-8"), target.read_bytes()
+        )
 
     def test_queued_patch_applies_after_owner_releases_unchanged_file(self) -> None:
         self.assertTrue(self.leases.acquire("session-a", ["README.md"]).acquired)

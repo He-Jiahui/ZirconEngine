@@ -240,14 +240,14 @@ class PatchService:
                 purpose=f"before patch {patch.patch_id}",
             )
             subprocess.run(
-                ["git", "apply", "--check", "-"],
+                ["git", "-c", "core.autocrlf=false", "apply", "--check", "-"],
                 cwd=self.repo_root,
                 input=patch_bytes,
                 check=True,
                 capture_output=True,
             )
             subprocess.run(
-                ["git", "apply", "--whitespace=nowarn", "-"],
+                ["git", "-c", "core.autocrlf=false", "apply", "--whitespace=nowarn", "-"],
                 cwd=self.repo_root,
                 input=patch_bytes,
                 check=True,
